@@ -1,0 +1,232 @@
+#include <assert.h> 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h> 
+#include <math.h>
+
+#define _POSIX_SOURCE
+#include <sys/stat.h>
+#include <float.h>
+
+#include <fftw3.h>
+//mfa added
+#include <stdint.h>
+#include <time.h>
+//
+#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#define MAX(a,b) (((a) > (b)) ? (a) : (b))
+#define DUMP(fmt, ...) fprintf(stdout, ">>> "fmt"\n", ## __VA_ARGS__)
+
+/*
+ * Pre-defined size
+ */
+#define DIMX 24
+#define DIMY 8
+#define SCALE 8
+
+/* Deprecated */
+/*
+void 2dmat_tofile(FILE * filep, size_t dimx, size_t dimy, double** mat){
+  for (uint64_t j = 0; j < dimy; j++){
+    for (uint64_t i = 0; i < dimx; i++){
+      fprintf(filep, "%f", mat[j][i]);
+    }
+  }
+}
+*/
+
+
+/*
+ * FFTW
+ */
+
+double fftw_abs(const fftw_complex x)
+{
+    
+    return sqrt(x[0]*x[0] + x[1]*x[1]);
+}
+
+void do_fft(double r, uint64_t len, size_t dimy, size_t dimx, double (*matX)[dimy][dimx])
+{
+    double *vec = malloc(sizeof(double) * len);
+    fftw_complex *out;
+    fftw_plan p0, p1;
+
+    int N = (len/2) + 1;
+    out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+
+    printf(">>> fft\n");
+    for (size_t iy = 0; iy < dimy; iy++)
+    {
+        for (size_t ix = 0; ix < dimx; ix++)
+        {
+            for (size_t it = 0; it < len; it++)
+                vec[it] = matX[it][iy][ix];
+
+            p0 = fftw_plan_dft_r2c_1d(len, vec, out, FFTW_ESTIMATE);
+            fftw_execute(p0);
+
+            double maxmag = 0.0;
+            for (size_t i = 0; i < N; i++)
+            {
+                double m = fftw_abs(out[i]);
+                if (m > maxmag) 
+                    maxmag = m;
+            }
+
+            //DUMP("(%ld, %ld) maxmag: %g", ix, iy, maxmag);
+
+            // Remove noise
+            for (size_t i = 0; i < N; i++)
+            {
+                out[i][0] = trunc(out[i][0]/maxmag/r)*maxmag*r;
+                out[i][1] = trunc(out[i][1]/maxmag/r)*maxmag*r;
+            }
+
+            p1 = fftw_plan_dft_c2r_1d(len, out, vec, FFTW_ESTIMATE);
+            fftw_execute(p1);
+
+            /*
+              for (size_t it = 0; it < len; it++)
+              {
+              printf("matX(%ld,%ld,%ld) %g %g\n", 
+              it, iy, ix, matX[it][iy][ix], vec[it]/(double)len);
+              }
+            */
+            /*
+            printf("vec=\n");
+            for (size_t it = 0; it < len; it++)
+            {
+              printf("vec[%ld]=%g", it, vec[it]/(double)len);
+            }
+            */
+            // Reconstruct from fft (note: scale)
+            for (size_t it = 0; it < len; it++)
+                matX[it][iy][ix] = vec[it]/(double)len;
+
+            fftw_destroy_plan(p0);
+            fftw_destroy_plan(p1);
+        }
+    }
+    fftw_free(out);
+    free(vec);
+}
+
+void dummyfill_mat(uint64_t len, size_t dimy, size_t dimx, double (*matX)[dimy][dimx])
+{
+  srand(time(NULL));
+  for (uint64_t t = 0; t < len; t++){
+    for (uint64_t i = 0; i < dimx; i++){
+      for (uint64_t j = 0; j < dimy; j++){
+        matX[t][j][i] = rand() % 100 + 1;
+      }
+    }
+  }
+}
+
+void print_3dmat(uint64_t len, size_t dimx, size_t dimy, double matX[][dimy][dimx])
+{
+  printf(">>>3d matX\n");
+  for (uint64_t t = 0; t < len; t++){
+    printf("t=%lld\n", t);
+    for (uint64_t i = 0; i < dimx; i++){
+      for (uint64_t j = 0; j < dimy; j++){
+        printf("%2.2f - ", matX[t][j][i]);
+      }
+      printf("\n");
+    }
+    printf("\n");
+  }
+}
+
+void print_2dmat(size_t dimx, size_t dimy, double** matX){
+  printf(">>>2d matX\n");
+  for (uint64_t i = 0; i < dimx; i++){
+    for (uint64_t j = 0; j < dimy; j++){
+      printf("%2.2f - ", matX[j][i]);
+    }
+    printf("\n");
+  }
+}
+
+#define DSIZE sizeof(double)+1 //+1 for floating point
+#define IMGSIZE DIMX*DIMY //doubles
+
+char* get_nextimgdata(FILE * filep){
+  char* buffer = (char*) malloc(DSIZE*IMGSIZE);
+  //
+  //size_t result = fread(buffer,1,size,filep);
+  size_t result = fread(buffer,DSIZE,IMGSIZE,filep);
+  if (result != IMGSIZE){
+    fputs ("Reading error\n",stderr); exit (0);
+  }
+  printf("get_nextimgdata:: buffer=\n%s\n", buffer);
+  
+  return buffer;
+}
+
+double** get_nextimgmatrix(FILE * filep){
+  char* imgdata = get_nextimgdata(filep);
+  printf("get_nextimgmatrix:: imgdata=\n%s\n", imgdata);
+  //free(imgdata);
+  
+  double** mat = malloc(sizeof(double)*IMGSIZE);
+  char* manp_imgdata = imgdata;
+  char temp[DSIZE+1];
+  for (uint64_t i = 0; i < DIMX; i++){
+    for (uint64_t j = 0; j < DIMY; j++){
+      strncpy(temp, manp_imgdata, DSIZE);
+      temp[DSIZE] = '\0';
+      manp_imgdata += DSIZE;
+      printf("(i,j)=(%d, %d); temp=%s\n", i,j, temp);
+      //mat[i][j] = atof(temp);
+    }
+  }
+  
+  free(imgdata);
+  
+  return mat;
+}
+
+int main (int argc, char ** argv)
+{
+  char* fname = "deneme.bp";
+  //char* fname = "/media/portable_large/ecei-hfs.007131.bp";
+  //
+  FILE* filep = fopen (fname , "r");
+  if (filep == NULL){
+    perror ("Error opening file");
+    exit(0);
+  }
+  
+  double** mat = get_nextimgmatrix(filep);
+  //print_2dmat(DIMX, DIMY, mat);
+  //print_3dmat(1, DIMX, DIMY, mat);
+  
+  /*
+  //
+  
+  int rank, size;
+  int step = 100;
+  double ratio = 1.0E-1; //1.0E-6;
+  
+  double (*matX)[DIMY][DIMX];
+  //Step #0 - Load data
+  // ECEI data layout: len-by-DIMY-by-DIMX
+  uint64_t len = 10;
+  matX = malloc (len * sizeof(*matX));
+  dummyfill_mat(len, DIMY, DIMX, matX);
+  
+  print_3dmat(len, DIMY, DIMX, matX);
+  //Step #1 - FFT
+  do_fft(ratio, len, DIMY, DIMX, matX);
+  
+  print_3dmat(len, DIMY, DIMX, matX);
+  //do_background(1000, step, len, DIMY, DIMX, matX);
+  //Step #2 - Resize
+  
+  //Step #3 - Plotting
+  */
+  return 0;
+}

@@ -1,0 +1,16 @@
+{
+    "imports": [
+        "/default.json"
+    ],
+    "preferences": {
+        "theme": "github",
+        "fontSize": 14,
+        "tabSize": 2
+    },
+    "modes": {},
+    "keys": {},
+    "commands": {},
+    "handlers": {},
+    "themes": {},
+    "packages": []
+}

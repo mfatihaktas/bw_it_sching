@@ -1,0 +1,71 @@
+#!/bin/bash
+
+#basic commands to run vm in openstack_india
+
+echo $1
+
+KEYDIR=~/.ssh/mininet-key #mfa51-key
+KEY=mininet-key #mfa51-key
+FLV=m1.medium
+
+VMNAME=mfa51-001
+VMUSERNAME=ubuntu
+VMIMG=futuregrid/ubuntu-12.04
+VM_PIVIP=10.39.1.46
+VM_PUBIP=149.165.159.16
+
+VMSNAP_NAMES=( snap_controller snap_mininet1 snap_mininet2 )
+VMSNAP_USRNAMES=( ubuntu ubuntu ubuntu )
+VMSNAP_PIVIPS=( 10.39.1.71 10.39.1.70 10.39.1.70 )
+VMSNAP_PUBIPS=( 149.165.159.18 149.165.159.17 149.165.159.17 )
+
+MINREL_DIR=~/misc/net_2p_stwithsingleitr.py
+
+if [ $1  = 'init' ]; then
+  module load novaclient
+  source ~/.futuregrid/openstack_havana/novarc
+  nova flavor-list  
+elif [ $1  = 'lsf' ]; then
+elif [ $1  = 'lsi' ]; then
+  nova image-list
+elif [ $1  = 'bvm' ]; then
+  nova boot --flavor $FLV \
+            --image $VMIMG \
+            --key_name $KEY $VMNAME
+elif [ $1  = 'lsvm' ]; then
+  #ls running vms
+  nova list
+elif [ $1  = 'rmvm' ]; then
+  nova delete $VMNAME
+elif [ $1  = 'sshvm' ]; then
+  ssh -l $VMUSERNAME -i $KEYDIR $VM_PIVIP
+elif [ $1  = 'vmea' ]; then
+  #nova floating-ip-create
+  nova add-floating-ip $VMNAME $VM_PUBIP
+  nova floating-ip-list
+#####################################################  
+elif [ $1  = 'snapvm' ]; then
+  #$3 = instance id
+  nova image-create $3 ${VMSNAP_NAMES[$2]}
+elif [ $1  = 'delsnap' ]; then
+  nova image-delete ${VMSNAP_NAMES[$2]}
+elif [ $1  = 'bsnap' ]; then
+  nova boot --flavor $FLV \
+            --image ${VMSNAP_NAMES[$2]} \
+            --key_name $KEY ${VMSNAP_NAMES[$2]}
+elif [ $1  = 'snapea' ]; then
+  nova add-floating-ip ${VMSNAP_NAMES[$2]} ${VMSNAP_PUBIPS[$2]}
+  nova floating-ip-list
+elif [ $1  = 'rmsnap' ]; then
+  nova delete ${VMSNAP_NAMES[$2]}
+elif [ $1  = 'sshsnap' ]; then
+  ssh -v -l ${VMSNAP_USRNAMES[$2]} -i $KEYDIR ${VMSNAP_PIVIPS[$2]}
+elif [ $1  = 'scprsa' ]; then
+  cat ~/.ssh/id_rsa.pub | ssh -l ${VMSNAP_USRNAMES[$2]} -i $KEYDIR ${VMSNAP_PIVIPS[$2]} 'cat >> ~/.ssh/authorized_keys'
+elif [ $1  = 'tsnap' ]; then
+  #echo -r $MINREL_DIR -i $KEYDIR ${VMSNAP_NAMES[$2]}@${VMSNAP_PIVIPS[$2]}:~/
+  #scp -v -i $KEYDIR '...' ${VMSNAP_NAMES[$2]}@${VMSNAP_PIVIPS[$2]}:~/
+  sftp -v -i $KEYDIR '...' ${VMSNAP_NAMES[$2]}@${VMSNAP_PIVIPS[$2]}:~/
+else
+	echo "Argument did not match !"
+fi

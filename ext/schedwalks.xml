@@ -1,0 +1,248 @@
+<scheduling>
+  <session p_id="0" s_id="2">
+    <connection dpid="11" from="10.0.0.2">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.2" tp_dst="6002" tp_src="-1" />
+      <rule duration="0" fport="s11-eth2" />
+    </connection>
+    <connection dpid="1" from="10.0.0.11">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.2" nw_proto="6" src_ip="10.0.0.11" tp_dst="-1" tp_src="6002" />
+      <rule duration="0" fport="s1-eth1" />
+    </connection>
+    <connection dpid="1" from="10.0.0.2">
+      <type>mod_nw_dst__forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.2" tp_dst="6002" tp_src="-1" />
+      <rule duration="0" fport="s1-eth4" new_dst_ip="10.0.0.11" new_dst_mac="00:00:00:00:01:01" />
+    </connection>
+    <connection dpid="11" from="10.0.0.11">
+      <type>mod_nw_src__forward</type>
+      <wildcards dst_ip="10.0.0.2" nw_proto="6" src_ip="10.0.0.11" tp_dst="-1" tp_src="6002" />
+      <rule duration="0" fport="s11-eth1" new_src_ip="10.0.0.1" new_src_mac="00:00:00:01:00:01" />
+    </connection>
+    <connection dpid="1" from="10.0.0.11">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.11" tp_dst="6002" tp_src="-1" />
+      <rule duration="0" fport="s1-eth3" />
+    </connection>
+    <connection dpid="3" from="10.0.0.31">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.11" nw_proto="6" src_ip="10.0.0.31" tp_dst="-1" tp_src="6002" />
+      <rule duration="0" fport="s3-eth1" />
+    </connection>
+    <connection dpid="3" from="10.0.0.11">
+      <type>mod_nw_dst__forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.11" tp_dst="6002" tp_src="-1" />
+      <rule duration="0" fport="s3-eth3" new_dst_ip="10.0.0.31" new_dst_mac="00:00:00:00:03:01" />
+    </connection>
+    <connection dpid="1" from="10.0.0.31">
+      <type>mod_nw_src__forward</type>
+      <wildcards dst_ip="10.0.0.11" nw_proto="6" src_ip="10.0.0.31" tp_dst="-1" tp_src="6002" />
+      <rule duration="0" fport="s1-eth4" new_src_ip="10.0.0.1" new_src_mac="00:00:00:01:00:01" />
+    </connection>
+    <connection dpid="3" from="10.0.0.31">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.31" tp_dst="6002" tp_src="-1" />
+      <rule duration="0" fport="s3-eth2" />
+    </connection>
+    <connection dpid="2" from="10.0.0.21">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.31" nw_proto="6" src_ip="10.0.0.21" tp_dst="-1" tp_src="6002" />
+      <rule duration="0" fport="s2-eth2" />
+    </connection>
+    <connection dpid="2" from="10.0.0.31">
+      <type>mod_nw_dst__forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.31" tp_dst="6002" tp_src="-1" />
+      <rule duration="0" fport="s2-eth4" new_dst_ip="10.0.0.21" new_dst_mac="00:00:00:00:02:01" />
+    </connection>
+    <connection dpid="3" from="10.0.0.21">
+      <type>mod_nw_src__forward</type>
+      <wildcards dst_ip="10.0.0.31" nw_proto="6" src_ip="10.0.0.21" tp_dst="-1" tp_src="6002" />
+      <rule duration="0" fport="s3-eth3" new_src_ip="10.0.0.1" new_src_mac="00:00:00:01:00:01" />
+    </connection>
+    <connection dpid="2" from="10.0.0.21">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.21" tp_dst="6002" tp_src="-1" />
+      <rule duration="0" fport="s2-eth3" />
+    </connection>
+    <connection dpid="12" from="10.0.0.1">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.21" nw_proto="6" src_ip="10.0.0.1" tp_dst="-1" tp_src="6002" />
+      <rule duration="0" fport="s12-eth1" />
+    </connection>
+    <connection dpid="12" from="10.0.0.21">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.21" tp_dst="6002" tp_src="-1" />
+      <rule duration="0" fport="s12-eth2" />
+    </connection>
+    <connection dpid="2" from="10.0.0.1">
+      <type>mod_nw_src__forward</type>
+      <wildcards dst_ip="10.0.0.21" nw_proto="6" src_ip="10.0.0.1" tp_dst="-1" tp_src="6002" />
+      <rule duration="0" fport="s2-eth4" new_src_ip="10.0.0.1" new_src_mac="00:00:00:01:00:01" />
+    </connection>
+  </session>
+  <session p_id="0" s_id="1">
+    <connection dpid="11" from="10.0.0.2">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.2" tp_dst="6001" tp_src="-1" />
+      <rule duration="0" fport="s11-eth2" />
+    </connection>
+    <connection dpid="1" from="10.0.0.11">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.2" nw_proto="6" src_ip="10.0.0.11" tp_dst="-1" tp_src="6001" />
+      <rule duration="0" fport="s1-eth1" />
+    </connection>
+    <connection dpid="1" from="10.0.0.2">
+      <type>mod_nw_dst__forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.2" tp_dst="6001" tp_src="-1" />
+      <rule duration="0" fport="s1-eth4" new_dst_ip="10.0.0.11" new_dst_mac="00:00:00:00:01:01" />
+    </connection>
+    <connection dpid="11" from="10.0.0.11">
+      <type>mod_nw_src__forward</type>
+      <wildcards dst_ip="10.0.0.2" nw_proto="6" src_ip="10.0.0.11" tp_dst="-1" tp_src="6001" />
+      <rule duration="0" fport="s11-eth1" new_src_ip="10.0.0.1" new_src_mac="00:00:00:01:00:01" />
+    </connection>
+    <connection dpid="1" from="10.0.0.11">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.11" tp_dst="6001" tp_src="-1" />
+      <rule duration="0" fport="s1-eth3" />
+    </connection>
+    <connection dpid="3" from="10.0.0.31">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.11" nw_proto="6" src_ip="10.0.0.31" tp_dst="-1" tp_src="6001" />
+      <rule duration="0" fport="s3-eth1" />
+    </connection>
+    <connection dpid="3" from="10.0.0.11">
+      <type>mod_nw_dst__forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.11" tp_dst="6001" tp_src="-1" />
+      <rule duration="0" fport="s3-eth3" new_dst_ip="10.0.0.31" new_dst_mac="00:00:00:00:03:01" />
+    </connection>
+    <connection dpid="1" from="10.0.0.31">
+      <type>mod_nw_src__forward</type>
+      <wildcards dst_ip="10.0.0.11" nw_proto="6" src_ip="10.0.0.31" tp_dst="-1" tp_src="6001" />
+      <rule duration="0" fport="s1-eth4" new_src_ip="10.0.0.1" new_src_mac="00:00:00:01:00:01" />
+    </connection>
+    <connection dpid="3" from="10.0.0.31">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.31" tp_dst="6001" tp_src="-1" />
+      <rule duration="0" fport="s3-eth2" />
+    </connection>
+    <connection dpid="2" from="10.0.0.21">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.31" nw_proto="6" src_ip="10.0.0.21" tp_dst="-1" tp_src="6001" />
+      <rule duration="0" fport="s2-eth2" />
+    </connection>
+    <connection dpid="2" from="10.0.0.31">
+      <type>mod_nw_dst__forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.31" tp_dst="6001" tp_src="-1" />
+      <rule duration="0" fport="s2-eth4" new_dst_ip="10.0.0.21" new_dst_mac="00:00:00:00:02:01" />
+    </connection>
+    <connection dpid="3" from="10.0.0.21">
+      <type>mod_nw_src__forward</type>
+      <wildcards dst_ip="10.0.0.31" nw_proto="6" src_ip="10.0.0.21" tp_dst="-1" tp_src="6001" />
+      <rule duration="0" fport="s3-eth3" new_src_ip="10.0.0.1" new_src_mac="00:00:00:01:00:01" />
+    </connection>
+    <connection dpid="2" from="10.0.0.21">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.21" tp_dst="6001" tp_src="-1" />
+      <rule duration="0" fport="s2-eth3" />
+    </connection>
+    <connection dpid="12" from="10.0.0.1">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.21" nw_proto="6" src_ip="10.0.0.1" tp_dst="-1" tp_src="6001" />
+      <rule duration="0" fport="s12-eth1" />
+    </connection>
+    <connection dpid="12" from="10.0.0.21">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.21" tp_dst="6001" tp_src="-1" />
+      <rule duration="0" fport="s12-eth2" />
+    </connection>
+    <connection dpid="2" from="10.0.0.1">
+      <type>mod_nw_src__forward</type>
+      <wildcards dst_ip="10.0.0.21" nw_proto="6" src_ip="10.0.0.1" tp_dst="-1" tp_src="6001" />
+      <rule duration="0" fport="s2-eth4" new_src_ip="10.0.0.1" new_src_mac="00:00:00:01:00:01" />
+    </connection>
+  </session>
+  <session p_id="0" s_id="0">
+    <connection dpid="11" from="10.0.0.2">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.2" tp_dst="6000" tp_src="-1" />
+      <rule duration="0" fport="s11-eth2" />
+    </connection>
+    <connection dpid="1" from="10.0.0.11">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.2" nw_proto="6" src_ip="10.0.0.11" tp_dst="-1" tp_src="6000" />
+      <rule duration="0" fport="s1-eth1" />
+    </connection>
+    <connection dpid="1" from="10.0.0.2">
+      <type>mod_nw_dst__forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.2" tp_dst="6000" tp_src="-1" />
+      <rule duration="0" fport="s1-eth4" new_dst_ip="10.0.0.11" new_dst_mac="00:00:00:00:01:01" />
+    </connection>
+    <connection dpid="11" from="10.0.0.11">
+      <type>mod_nw_src__forward</type>
+      <wildcards dst_ip="10.0.0.2" nw_proto="6" src_ip="10.0.0.11" tp_dst="-1" tp_src="6000" />
+      <rule duration="0" fport="s11-eth1" new_src_ip="10.0.0.1" new_src_mac="00:00:00:01:00:01" />
+    </connection>
+    <connection dpid="1" from="10.0.0.11">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.11" tp_dst="6000" tp_src="-1" />
+      <rule duration="0" fport="s1-eth3" />
+    </connection>
+    <connection dpid="3" from="10.0.0.31">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.11" nw_proto="6" src_ip="10.0.0.31" tp_dst="-1" tp_src="6000" />
+      <rule duration="0" fport="s3-eth1" />
+    </connection>
+    <connection dpid="3" from="10.0.0.11">
+      <type>mod_nw_dst__forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.11" tp_dst="6000" tp_src="-1" />
+      <rule duration="0" fport="s3-eth3" new_dst_ip="10.0.0.31" new_dst_mac="00:00:00:00:03:01" />
+    </connection>
+    <connection dpid="1" from="10.0.0.31">
+      <type>mod_nw_src__forward</type>
+      <wildcards dst_ip="10.0.0.11" nw_proto="6" src_ip="10.0.0.31" tp_dst="-1" tp_src="6000" />
+      <rule duration="0" fport="s1-eth4" new_src_ip="10.0.0.1" new_src_mac="00:00:00:01:00:01" />
+    </connection>
+    <connection dpid="3" from="10.0.0.31">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.31" tp_dst="6000" tp_src="-1" />
+      <rule duration="0" fport="s3-eth2" />
+    </connection>
+    <connection dpid="2" from="10.0.0.21">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.31" nw_proto="6" src_ip="10.0.0.21" tp_dst="-1" tp_src="6000" />
+      <rule duration="0" fport="s2-eth2" />
+    </connection>
+    <connection dpid="2" from="10.0.0.31">
+      <type>mod_nw_dst__forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.31" tp_dst="6000" tp_src="-1" />
+      <rule duration="0" fport="s2-eth4" new_dst_ip="10.0.0.21" new_dst_mac="00:00:00:00:02:01" />
+    </connection>
+    <connection dpid="3" from="10.0.0.21">
+      <type>mod_nw_src__forward</type>
+      <wildcards dst_ip="10.0.0.31" nw_proto="6" src_ip="10.0.0.21" tp_dst="-1" tp_src="6000" />
+      <rule duration="0" fport="s3-eth3" new_src_ip="10.0.0.1" new_src_mac="00:00:00:01:00:01" />
+    </connection>
+    <connection dpid="2" from="10.0.0.21">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.21" tp_dst="6000" tp_src="-1" />
+      <rule duration="0" fport="s2-eth3" />
+    </connection>
+    <connection dpid="12" from="10.0.0.1">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.21" nw_proto="6" src_ip="10.0.0.1" tp_dst="-1" tp_src="6000" />
+      <rule duration="0" fport="s12-eth1" />
+    </connection>
+    <connection dpid="12" from="10.0.0.21">
+      <type>forward</type>
+      <wildcards dst_ip="10.0.0.1" nw_proto="6" src_ip="10.0.0.21" tp_dst="6000" tp_src="-1" />
+      <rule duration="0" fport="s12-eth2" />
+    </connection>
+    <connection dpid="2" from="10.0.0.1">
+      <type>mod_nw_src__forward</type>
+      <wildcards dst_ip="10.0.0.21" nw_proto="6" src_ip="10.0.0.1" tp_dst="-1" tp_src="6000" />
+      <rule duration="0" fport="s2-eth4" new_src_ip="10.0.0.1" new_src_mac="00:00:00:01:00:01" />
+    </connection>
+  </session>
+</scheduling>

@@ -1,0 +1,22 @@
+#!/bin/bash
+
+echo $1
+
+if [ $1  = 'init' ]; then
+  source module load novaclient
+  source ~/.futuregrid/openstack_havana/novarc
+elif [ $1  = 'lsf' ]; then
+  nova flavor-list
+elif [ $1  = 'lsi' ]; then
+  nova image-list
+elif [ $1  = 'bdi' ]; then
+  nova boot --flavor m1.small \
+            --image "ubuntu-12.04" \
+            --key_name mfa51-key mfa51-001
+elif [ $1  = 'lsvm' ]; then
+  nova list
+elif [ $1  = 'sshtvm' ]; then
+  ssh -l ubuntu -i ~/.ssh/mfa51-key 10.39.1.46
+else
+	echo "Argument did not match !"
+fi

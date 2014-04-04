@@ -1,0 +1,4 @@
+RATE=1Mbit
+BURST=15k
+LEAF=sfq
+RULE=10.0.0.1:6000

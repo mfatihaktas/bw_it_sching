@@ -1,0 +1,33 @@
+<!--
+p1....[eth1]S1[eth4]......[eth1]S2[eth3].....c1
+p2....[eth2]                      [eth4].....c2
+
+SW              ITR
+S1[eth3] ... [eth0]t11 - 5
+
+Caps:
+
+-->
+<networks>
+  <network number="1">
+    <nodes>
+      <s1  type="sw" dpid="1" />
+      <s2  type="sw" dpid="2" />
+      <t11 type="t" ip="10.0.0.11" mac="00:00:00:00:01:01" proc_cap="100" stor_cap="200"/>
+    </nodes>
+    <edges>
+      <!-- SW...SW-->
+      <edge pre_node="s1" post_node="s2">
+        <dev pre_dev="s1-eth4" post_dev="s2-eth1"/>
+        <session/>
+        <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>
+      </edge>
+      <!-- SW...ITR -->
+      <edge pre_node="s1" post_node="t11">
+        <dev pre_dev="s1-eth3" post_dev="t11-eth0"/>
+        <session/>
+        <link_cap bw="20" delay="0" loss="0" max_queue_size="10000"/>
+      </edge>
+    </edges>
+  </network>
+</networks>

@@ -1,0 +1,96 @@
+INFO:root:udp_server is started at s_addr=('127.0.0.1', 7001)
+INFO:root:new commpair added
+INFO:root:proto=udp, s_addr=('127.0.0.1', 7001), c_addr=('127.0.0.1', 7002)
+INFO:root:mfa is ready...
+DEBUG:root:test
+DEBUG:root:welcome_s:: for stpdst=6000, est_proct=1364.99950632 
+DEBUG:root:filepipe_server:: serversock_stpdst=6000 is opened; waiting for client.
+DEBUG:root:session_client_handler:: run, sclient_addr=('127.0.0.1', 46865)
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=10240B
+DEBUG:root:session_client_handler:: datasize=10240 pushed to pipe, pipe_size_B_=10240, overflow_size=-92160
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=10240B
+DEBUG:root:session_client_handler:: datasize=10240 pushed to pipe, pipe_size_B_=20480, overflow_size=-81920
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=10240B
+DEBUG:root:session_client_handler:: datasize=10240 pushed to pipe, pipe_size_B_=30720, overflow_size=-71680
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=10240B
+DEBUG:root:session_client_handler:: datasize=10240 pushed to pipe, pipe_size_B_=40960, overflow_size=-61440
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=10240B
+DEBUG:root:session_client_handler:: datasize=10240 pushed to pipe, pipe_size_B_=51200, overflow_size=-51200
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=10240B
+DEBUG:root:session_client_handler:: datasize=10240 pushed to pipe, pipe_size_B_=61440, overflow_size=-40960
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=10240B
+DEBUG:root:session_client_handler:: datasize=10240 pushed to pipe, pipe_size_B_=71680, overflow_size=-30720
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=10240B
+DEBUG:root:session_client_handler:: datasize=10240 pushed to pipe, pipe_size_B_=81920, overflow_size=-20480
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=10240B
+DEBUG:root:session_client_handler:: datasize=10240 pushed to pipe, pipe_size_B_=92160, overflow_size=-10240
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=10240B
+DEBUG:root:session_client_handler:: datasize=10240 pushed to pipe, pipe_size_B_=102400, overflow_size=0
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=3B
+DEBUG:root:session_client_handler:: pipe_file_id=0 is ready; btw flushed pipe_size_B_=102400
+INFO:root:session_client_handler:: EOF is rxed...
+DEBUG:root:session_client_handler:: done. 
+	pipe_size=11, pipe_size_B=102400
+	at t=1395173017.97; in 0.00207304954529secs
+DEBUG:root:filepipe_server:: server_addr=('127.0.0.1', 6000) started.
+DEBUG:root:filepipe_server:: done.
+INFO:root:welcome new_s; tpdst=6000, s_info=
+{'est_proct': 1364.999506324966,
+ 'itjobrule': {'comp': 1.99999998665,
+               'datasize': 1000,
+               'itfunc_dict': {u'f1': 1.0, u'f2': 0.99999998665000001},
+               'jobtobedone': {u'f1': 1024000.0, u'f2': 511999.99316479999},
+               'proc': 183.150248167},
+ 's_server_thread': <__main__.FilePipeServer instance at 0x13afcb0>,
+ 'to_addr': (u'10.0.0.1', 6000)}
+DEBUG:root:itserv_handler:: run.
+DEBUG:root:itserv_handler:: next pipe_fileurl=pipe/pipe_tpdst=6000_0.dat
+DEBUG:root:itserv_handler:: pipe_mm.size()=102400, served_size=0
+WARNING:root:itserv_handler:: chunk is read from pipe_mm
+WARNING:root:itserv_handler:: chunksize=10240
+DEBUG:root:itserv_handler:: datasize=10240 popped.
+DEBUG:root:itserv_handler:: acted on datasize=10240B, served_size=0, served_size_=1
+WARNING:root:itserv_handler:: chunk is read from pipe_mm
+WARNING:root:itserv_handler:: chunksize=10240
+DEBUG:root:itserv_handler:: datasize=10240 popped.
+DEBUG:root:itserv_handler:: acted on datasize=10240B, served_size=0, served_size_=2
+WARNING:root:itserv_handler:: chunk is read from pipe_mm
+WARNING:root:itserv_handler:: chunksize=10240
+DEBUG:root:itserv_handler:: datasize=10240 popped.
+DEBUG:root:itserv_handler:: acted on datasize=10240B, served_size=0, served_size_=3
+WARNING:root:itserv_handler:: chunk is read from pipe_mm
+WARNING:root:itserv_handler:: chunksize=10240
+DEBUG:root:itserv_handler:: datasize=10240 popped.
+DEBUG:root:itserv_handler:: acted on datasize=10240B, served_size=0, served_size_=4
+WARNING:root:itserv_handler:: chunk is read from pipe_mm
+WARNING:root:itserv_handler:: chunksize=10240
+DEBUG:root:itserv_handler:: datasize=10240 popped.
+DEBUG:root:itserv_handler:: acted on datasize=10240B, served_size=0, served_size_=5
+WARNING:root:itserv_handler:: chunk is read from pipe_mm
+WARNING:root:itserv_handler:: chunksize=10240
+DEBUG:root:itserv_handler:: datasize=10240 popped.
+DEBUG:root:itserv_handler:: acted on datasize=10240B, served_size=0, served_size_=6
+WARNING:root:itserv_handler:: chunk is read from pipe_mm
+WARNING:root:itserv_handler:: chunksize=10240
+DEBUG:root:itserv_handler:: datasize=10240 popped.
+DEBUG:root:itserv_handler:: acted on datasize=10240B, served_size=0, served_size_=7
+WARNING:root:itserv_handler:: chunk is read from pipe_mm
+WARNING:root:itserv_handler:: chunksize=10240
+DEBUG:root:itserv_handler:: datasize=10240 popped.
+DEBUG:root:itserv_handler:: acted on datasize=10240B, served_size=0, served_size_=8
+WARNING:root:itserv_handler:: chunk is read from pipe_mm
+WARNING:root:itserv_handler:: chunksize=10240
+DEBUG:root:itserv_handler:: datasize=10240 popped.
+DEBUG:root:itserv_handler:: acted on datasize=10240B, served_size=0, served_size_=9
+WARNING:root:itserv_handler:: chunk is read from pipe_mm
+WARNING:root:itserv_handler:: chunksize=10240
+DEBUG:root:itserv_handler:: datasize=10240 popped.
+DEBUG:root:itserv_handler:: acted on datasize=10240B, served_size=0, served_size_=10
+DEBUG:root:itserv_handler:: cur_fileurl=pipe/pipe_tpdst=6000_0.dat is deleted from pipe
+DEBUG:root:itserv_handler:: next pipe_fileurl=EOF
+DEBUG:root:itserv_handler:: fileurl=EOF
+INFO:root:itserv_handler:: done. at t=1395173017.97; dur=0.00420904159546secs
+INFO:root:session_client_handler:: session_tp_dst=6000 soft-expired.
+DEBUG:root:shutting down...
+INFO:root:filepipe_server:: shutdown.
+DEBUG:root:thread for server_s_tp_dst=6000 is terminated

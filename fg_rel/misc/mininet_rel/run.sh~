@@ -1,0 +1,39 @@
+#!/bin/bash
+
+#basic commands to run mininet_vm in openstack_india
+
+echo $1
+
+KEY=mfa51-key
+VMNAME=mininet
+VMIMG_FILE=mininet-ops-vm.img
+FLV=m1.small
+VMUSERNAME=mininet
+
+PIVVMIP=10.39.1.46
+PUBVMIP=149.165.159.16
+
+if [ $1  = 'init' ]; then
+  module load euca2ools
+  source ~/.futuregrid/openstack_havana/novarc
+elif [ $1  = 'ui' ]; then
+  #upload img
+  euca-bundle-image -i $VMIMG_FILE
+elif [ $1  = 'bdi' ]; then
+  nova boot --flavor $FLV \
+            --image $VMIMG \
+            --key_name $KEY $VMNAME
+elif [ $1  = 'lsvm' ]; then
+  #ls running vms
+  nova list
+elif [ $1  = 'rmvm' ]; then
+  nova delete $VMNAME
+elif [ $1  = 'sshtvm' ]; then
+  ssh -l $VMUSERNAME -i ~/.ssh/$KEY $PIVVMIP
+elif [ $1  = 'setup-extacc' ]; then
+  nova floating-ip-create
+  nova add-floating-ip $VMNAME $PUBVMIP
+  nova floating-ip-list
+else
+	echo "Argument did not match !"
+fi

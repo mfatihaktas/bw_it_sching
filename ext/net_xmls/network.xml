@@ -1,0 +1,126 @@
+<networks>
+	<network number="1">
+		<nodes>
+			<s11 type="sw" dpid="11"  out_bw="0" in_bw="0"/>
+			<s1  type="sw" dpid="1"   out_bw="0" in_bw="0"/>
+			<s2  type="sw" dpid="2"   out_bw="0" in_bw="0"/>
+			<s3  type="sw" dpid="3"   out_bw="0" in_bw="0"/>
+			<s4  type="sw" dpid="4"   out_bw="0" in_bw="0"/>
+			<s12 type="sw" dpid="12"  out_bw="0" in_bw="0"/>
+			<t11 type="t" ip="10.0.0.11" mac="00:00:00:00:01:01" p_index="0.01" session=""/>
+			<t12 type="t" ip="10.0.0.12" mac="00:00:00:00:01:02" p_index="0.01" session=""/>
+			<t13 type="t" ip="10.0.0.13" mac="00:00:00:00:01:03" p_index="0.01" session=""/>
+			<t21 type="t" ip="10.0.0.21" mac="00:00:00:00:02:01" p_index="0.01" session=""/>
+			<t22 type="t" ip="10.0.0.22" mac="00:00:00:00:02:02" p_index="0.01" session=""/>
+			<t23 type="t" ip="10.0.0.23" mac="00:00:00:00:02:03" p_index="0.01" session=""/>
+			<t31 type="t" ip="10.0.0.31" mac="00:00:00:00:03:01" p_index="0.01" session=""/>
+			<t32 type="t" ip="10.0.0.32" mac="00:00:00:00:03:02" p_index="0.01" session=""/>
+			<t33 type="t" ip="10.0.0.33" mac="00:00:00:00:03:03" p_index="0.01" session=""/>
+			<t41 type="t" ip="10.0.0.41" mac="00:00:00:00:04:01" p_index="0.01" session=""/>
+			<t42 type="t" ip="10.0.0.42" mac="00:00:00:00:04:02" p_index="0.01" session=""/>
+			<t43 type="t" ip="10.0.0.43" mac="00:00:00:00:04:03" p_index="0.01" session=""/>
+		</nodes>
+		<edges>
+			<edge pre_node="s11" post_node="s1">
+			  <dev pre_dev="s11-eth2" post_dev="s1-eth1"/>
+			  <session/>
+			  <link_cap bw="10" delay="5" loss="0" max_queue_size="1000"/>
+			</edge>
+			<edge pre_node="s11" post_node="s3">
+			  <dev pre_dev="s11-eth3" post_dev="s3-eth1"/>
+			  <session/>
+			  <link_cap bw="10" delay="5" loss="0" max_queue_size="1000"/>
+			</edge>
+			<edge pre_node="s1" post_node="s2">
+			  <dev pre_dev="s1-eth2" post_dev="s2-eth1"/>
+			  <session/>
+			  <link_cap bw="10" delay="5" loss="0" max_queue_size="1000"/>
+			</edge>
+			<edge pre_node="s3" post_node="s4">
+			  <dev pre_dev="s3-eth2" post_dev="s4-eth1"/>
+			  <session/>
+			  <link_cap bw="10" delay="5" loss="0" max_queue_size="1000"/>
+			</edge>
+			<edge pre_node="s2" post_node="s12">
+			  <dev pre_dev="s2-eth2" post_dev="s12-eth1"/>
+			  <session/>
+			  <link_cap bw="10" delay="5" loss="0" max_queue_size="1000"/>
+			</edge>
+			<edge pre_node="s4" post_node="s12">
+			  <dev pre_dev="s4-eth2" post_dev="s12-eth2"/>
+			  <session/>
+			  <link_cap bw="10" delay="5" loss="0" max_queue_size="1000"/>
+			</edge>
+			<edge pre_node="s1" post_node="s4">
+			  <dev pre_dev="s1-eth3" post_dev="s4-eth3"/>
+			  <session/>
+			  <link_cap bw="10" delay="5" loss="0" max_queue_size="1000"/>
+			</edge>
+			<edge pre_node="s3" post_node="s2">
+			  <dev pre_dev="s3-eth3" post_dev="s2-eth3"/>
+			  <session/>
+			  <link_cap bw="10" delay="5" loss="0" max_queue_size="1000"/>
+			</edge>
+			<edge pre_node="s1" post_node="t11">
+			  <dev pre_dev="s1-eth4" post_dev="t11-eth0"/>
+			  <session/>
+			  <link_cap bw="1000" delay="1" loss="0" max_queue_size="10000"/>
+			</edge>
+			<edge pre_node="s1" post_node="t12">
+			  <dev pre_dev="s1-eth5" post_dev="t12-eth0"/>
+			  <session/>
+			  <link_cap bw="1000" delay="1" loss="0" max_queue_size="10000"/>
+			</edge>
+			<edge pre_node="s1" post_node="t13">
+			  <dev pre_dev="s1-eth6" post_dev="t13-eth0"/>
+			  <session/>
+			  <link_cap bw="1000" delay="1" loss="0" max_queue_size="10000"/>
+			</edge>
+			<edge pre_node="s2" post_node="t21">
+			  <dev pre_dev="s2-eth4" post_dev="t21-eth0"/>
+			  <session/>
+			  <link_cap bw="1000" delay="1" loss="0" max_queue_size="10000"/>
+			</edge>
+			<edge pre_node="s2" post_node="t22">
+			  <dev pre_dev="s2-eth5" post_dev="t22-eth0"/>
+			  <session/>
+			  <link_cap bw="1000" delay="1" loss="0" max_queue_size="10000"/>
+			</edge>
+			<edge pre_node="s2" post_node="t23">
+			  <dev pre_dev="s2-eth6" post_dev="t23-eth0"/>
+			  <session/>
+			  <link_cap bw="1000" delay="1" loss="0" max_queue_size="10000"/>
+			</edge>
+			<edge pre_node="s3" post_node="t31">
+			  <dev pre_dev="s3-eth4" post_dev="t31-eth0"/>
+			  <session/>
+			  <link_cap bw="1000" delay="1" loss="0" max_queue_size="10000"/>
+			</edge>
+			<edge pre_node="s3" post_node="t32">
+			  <dev pre_dev="s3-eth5" post_dev="t32-eth0"/>
+			  <session/>
+			  <link_cap bw="1000" delay="1" loss="0" max_queue_size="10000"/>
+			</edge>
+			<edge pre_node="s3" post_node="t33">
+			  <dev pre_dev="s3-eth6" post_dev="t33-eth0"/>
+			  <session/>
+			  <link_cap bw="1000" delay="1" loss="0" max_queue_size="10000"/>
+			</edge>
+			<edge pre_node="s4" post_node="t41">
+			  <dev pre_dev="s4-eth4" post_dev="t41-eth0"/>
+			  <session/>
+			  <link_cap bw="1000" delay="1" loss="0" max_queue_size="10000"/>
+			</edge>
+			<edge pre_node="s4" post_node="t42">
+			  <dev pre_dev="s4-eth5" post_dev="t42-eth0"/>
+			  <session/>
+			  <link_cap bw="1000" delay="1" loss="0" max_queue_size="10000"/>
+			</edge>
+			<edge pre_node="s4" post_node="t43">
+			  <dev pre_dev="s4-eth6" post_dev="t43-eth0"/>
+			  <session/>
+			  <link_cap bw="1000" delay="1" loss="0" max_queue_size="10000"/>
+			</edge>
+		</edges>
+	</network>
+</networks>

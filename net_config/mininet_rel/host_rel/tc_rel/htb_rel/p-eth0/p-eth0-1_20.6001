@@ -1,0 +1,6 @@
+# class for outgoing :6001 traffic
+RATE=3Kbit
+CEIL=5Kbit
+BURST=15k
+LEAF=sfq
+RULE=*:6001

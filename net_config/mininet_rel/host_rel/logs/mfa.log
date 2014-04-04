@@ -1,0 +1,53 @@
+INFO:root:udp_server is started at s_addr=('127.0.0.1', 7001)
+INFO:root:new commpair added
+INFO:root:proto=udp, s_addr=('127.0.0.1', 7001), c_addr=('127.0.0.1', 7002)
+INFO:root:mfa is ready...
+DEBUG:root:test
+DEBUG:root:filepipe_server:: serversock_stpdst=6000 is opened; waiting for client.
+DEBUG:root:session_client_handler:: sclient_addr=('127.0.0.1', 47148) started
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=1024B, pipe_size=0, pipe_size_B=0B
+DEBUG:root:itserv_handler:: run.
+DEBUG:root:filepipe_server:: server_addr=('127.0.0.1', 6000) started.
+DEBUG:root:session_client_handler:: datasize=1024 is pushed to pipe.
+DEBUG:root:filepipe_server:: done.
+INFO:root:welcome new_s; tpdst=6000, s_info=
+{'est_proct': 0.17062493829062075,
+ 'itjobrule': {'comp': 1.99999998665,
+               'datasize': 1.0,
+               'itfunc_dict': {u'f1': 1.0, u'f2': 0.99999998665},
+               'jobtobedone': {u'f1': 1024.0, u'f2': 511.9999931648},
+               'proc': 183.150248167},
+ 's_server_thread': <__main__.FilePipeServer instance at 0x7f5f218c5290>,
+ 'to_addr': (u'10.0.0.1', 6000)}
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=1024B, pipe_size=1, pipe_size_B=1024B
+DEBUG:root:session_client_handler:: datasize=1024 is pushed to pipe.
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=1024B, pipe_size=2, pipe_size_B=2048B
+DEBUG:root:session_client_handler:: datasize=1024 is pushed to pipe.
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=1024B, pipe_size=3, pipe_size_B=3072B
+DEBUG:root:session_client_handler:: datasize=1024 is pushed to pipe.
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=1024B, pipe_size=4, pipe_size_B=4096B
+DEBUG:root:session_client_handler:: datasize=1024 is pushed to pipe.
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=1024B, pipe_size=5, pipe_size_B=5120B
+DEBUG:root:session_client_handler:: datasize=1024 is pushed to pipe.
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=1024B, pipe_size=6, pipe_size_B=6144B
+DEBUG:root:session_client_handler:: datasize=1024 is pushed to pipe.
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=1024B, pipe_size=7, pipe_size_B=7168B
+DEBUG:root:session_client_handler:: datasize=1024 is pushed to pipe.
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=1024B, pipe_size=8, pipe_size_B=8192B
+DEBUG:root:session_client_handler:: datasize=1024 is pushed to pipe.
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=1024B, pipe_size=9, pipe_size_B=9216B
+DEBUG:root:session_client_handler:: datasize=1024 is pushed to pipe.
+INFO:root:session_client_handler:: stpdst=6000; rxed datasize=1024B, pipe_size=10, pipe_size_B=10240B
+DEBUG:root:itserv_handler:: pipe_mm.size()=8192
+DEBUG:root:itserv_handler:: acted on datasize=1024, test_file_size=1, test_file_size_B=1024B, served_size=1, served_size_=1
+DEBUG:root:itserv_handler:: acted on datasize=1024, test_file_size=2, test_file_size_B=2048B, served_size=2, served_size_=2
+DEBUG:root:itserv_handler:: acted on datasize=1024, test_file_size=3, test_file_size_B=3072B, served_size=3, served_size_=3
+DEBUG:root:itserv_handler:: acted on datasize=1024, test_file_size=4, test_file_size_B=4096B, served_size=4, served_size_=4
+DEBUG:root:itserv_handler:: acted on datasize=1024, test_file_size=5, test_file_size_B=5120B, served_size=5, served_size_=5
+DEBUG:root:itserv_handler:: acted on datasize=1024, test_file_size=6, test_file_size_B=6144B, served_size=6, served_size_=6
+DEBUG:root:itserv_handler:: acted on datasize=1024, test_file_size=7, test_file_size_B=7168B, served_size=7, served_size_=7
+DEBUG:root:itserv_handler:: acted on datasize=1024, test_file_size=8, test_file_size_B=8192B, served_size=8, served_size_=8
+DEBUG:root:itserv_handler:: acted on datasize=0, test_file_size=9, test_file_size_B=8192B, served_size=9, served_size_=9
+DEBUG:root:itserv_handler:: acted on datasize=0, test_file_size=10, test_file_size_B=8192B, served_size=10, served_size_=10
+DEBUG:root:itserv_handler:: pipe_file_id=0 is deleted from pipe
+INFO:root:itserv_handler:: done.
