@@ -5,7 +5,7 @@
 #include <unistd.h> 
 #include <math.h>
 
-#define _POSIX_SOURCE
+//#define _POSIX_SOURCE
 #include <sys/stat.h>
 #include <float.h>
 
@@ -13,6 +13,7 @@
 //mfa added
 #include <stdint.h>
 #include <time.h>
+#include <sys/time.h>
 //
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
@@ -41,22 +42,13 @@
 
 /* Deprecated */
 /*
-void 2dmat_tofile(FILE * filep, size_t dimx, size_t dimy, double** mat){
+void 2dmat_tofile(FILE * datafilep, size_t dimx, size_t dimy, double** mat){
   for (uint64_t j = 0; j < dimy; j++){
     for (uint64_t i = 0; i < dimx; i++){
-      fprintf(filep, "%f", mat[j][i]);
+      fprintf(datafilep, "%f", mat[j][i]);
     }
   }
 }
-
-double*** alloc_3dmat(uint64_t len, size_t dimx, size_t dimy) {
-  double*** mat;
-  mat = (double***) malloc(len*sizeof(double**));
-  for (uint64_t i = 0; i < len; i++)
-     mat[i] = alloc_2dmat(dimx, dimy);
-  return mat; 
-}
-
 
 void dummyfill_mat(uint64_t len, size_t dimy, size_t dimx, double (*mat)[dimy][dimx])
 {
@@ -71,7 +63,6 @@ void dummyfill_mat(uint64_t len, size_t dimy, size_t dimx, double (*mat)[dimy][d
 }
 
 */
-
 
 /*
  * FFTW
@@ -91,7 +82,6 @@ void do_fft(double r, uint64_t len, size_t dimx, size_t dimy, double*** mat){ //
     int N = (len/2) + 1;
     out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
 
-    printf(">>> fft\n");
     for (size_t ix = 0; ix < dimx; ix++){
       for (size_t iy = 0; iy < dimy; iy++){
         for (size_t it = 0; it < len; it++)
@@ -168,10 +158,10 @@ double bicubicInterpolate (double p[4][4], double x, double y)
 //do_upsampling(size_t dimx, size_t dimy, double X[][dimy],
 //                   size_t scale, size_t dimx2, size_t dimy2, double Y[][dimy2]){
 void do_upsampling(size_t dimx, size_t dimy, double** X,
-                   size_t scale, size_t dimx2, size_t dimy2, double Y[][dimy2]){
+                   size_t scale, size_t dimx2, size_t dimy2, double** Y){
     assert(dimy2 == scale*dimy);
     assert(dimx2 == scale*dimx);
-
+    //printf("do_upsampling:: from (x,y)=(%d,%d) to (X,Y)=(%d,%d)\n", dimx,dimy, dimx2,dimy2);
     double p[4][4];
 
     for (size_t j=0; j<dimy; j++) 
@@ -197,18 +187,63 @@ void do_upsampling(size_t dimx, size_t dimy, double** X,
                         }
                     
                     //DUMP("%ld %ld", jj, ii);
-                    Y[jj][ii] = bicubicInterpolate(p, (double)jk/scale, (double)ik/scale);
+                    Y[ii][jj] = bicubicInterpolate(p, (double)jk/scale, (double)ik/scale);
                 }
 }
 
+/*
+ * Generate PNG plot
+ */
+void do_plot(const char *outdir, size_t len, size_t dimx, size_t dimy, double*** X)
+{
+    FILE *pipe = popen("gnuplot", "w");
+
+    double m1=DBL_MAX, m2=-DBL_MAX;
+
+    for (size_t t=0; t<len; t++)
+      for (size_t i=0; i<dimx; i++)
+        for (size_t j=0; j<dimy; j++){
+          if (m1 > X[t][i][j])  m1 = X[t][i][j];
+          if (m2 < X[t][i][j])  m2 = X[t][i][j];
+        }
+
+    DUMP("[min, max] = [%g, %g]:", m1, m2);
+
+    for (size_t t=0; t<len; t++){
+      fprintf(pipe, "set term png enhanced font '/usr/share/fonts/liberation/LiberationSans-Regular.ttf' 12\n");
+      fprintf(pipe, "set output '%s/ecei-%07ld.png'\n", outdir, t);
+      fprintf(pipe, "set view map\n");
+      fprintf(pipe, "set xrange [0:%ld]\n", dimy-1);
+      fprintf(pipe, "set yrange [0:%ld] reverse\n", dimx-1);
+      fprintf(pipe, "set cbrange [%g:%g]\n", m1, m2);
+      fprintf(pipe, "set datafile missing \"nan\"\n");
+      fprintf(pipe, "splot '-' matrix with image\n");
+
+      for (size_t i=0; i<dimx; i++){
+        for (size_t j=0; j<dimy; j++){
+          fprintf(pipe, "%g ", X[t][i][j]);
+        }
+        fprintf(pipe, "\n");
+      }
+
+      fprintf(pipe, "e\n");
+      fprintf(pipe, "e\n");
+      fflush (pipe);
+
+      //printf ("Press [Enter] to continue . . .");
+      //fflush (stdout);
+      //getchar ();
+    }
+}
+
 /* MFA functions */
-void print_3dmat(uint64_t len, size_t dimx, size_t dimy, double*** mat){ //double mat[][dimy][dimx]
-  printf("print_3dmat:: len=%d, dimx=%d, dimy=%d\n", len, dimx, dimy);
+void print_3dmat(const char* matname, uint64_t len, size_t dimx, size_t dimy, double*** mat){ //double mat[][dimy][dimx]
+  printf("print_3dmat:: matname=%s, len=%d, dimx=%d, dimy=%d\n", matname, len, dimx, dimy);
   for (uint64_t t = 0; t < len; t++){
     printf("t=%lld\n", t);
     for (uint64_t i = 0; i < dimx; i++){
       for (uint64_t j = 0; j < dimy; j++){
-        printf("%2.2f , ", mat[t][i][j]);
+        printf("%2.2f,", mat[t][i][j]);
       }
       printf("\n");
     }
@@ -216,11 +251,12 @@ void print_3dmat(uint64_t len, size_t dimx, size_t dimy, double*** mat){ //doubl
   }
 }
 
-void print_2dmat(size_t dimx, size_t dimy, double** mat){ //double mat[dimx][dimy]
-  printf("print_2dmat:: dimx=%d, dimy=%d\n", dimx, dimy);
+void print_2dmat(const char* matname, size_t dimx, size_t dimy, double** mat){ //double mat[dimx][dimy]
+  printf("print_2dmat:: matname=%s, dimx=%d, dimy=%d\n", matname, dimx, dimy);
   for (uint64_t i = 0; i < dimx; i++){
+    printf("row%d:", i);
     for (uint64_t j = 0; j < dimy; j++){
-      printf("%2.2f , ", mat[i][j]);
+      printf("%2.2f,", mat[i][j]);
     }
     printf("\n");
   }
@@ -234,24 +270,32 @@ double** alloc_2dmat(size_t dimx, size_t dimy) {
   return mat;  
 }
 
+double*** alloc_3dmat(uint64_t len, size_t dimx, size_t dimy) {
+  double*** mat;
+  mat = (double***) malloc(len*sizeof(double**));
+  for (uint64_t i = 0; i < len; i++)
+     mat[i] = alloc_2dmat(dimx, dimy);
+  return mat; 
+}
+
 #define DSIZE (sizeof(double) + 1) //+1 for floating point
 #define IMGSIZE DIMX*DIMY //doubles
 
-char* get_next2dmatdata(FILE * filep){
+char* get_next2dmatdata(FILE * datafilep){
   /*
   int size = DSIZE*IMGSIZE+1;
   printf("DSIZE=%d\n", DSIZE);
   printf("IMGSIZE=%d\n", IMGSIZE);
   printf("size=%d\n", size);
   char* buffer = (char*) malloc(size-1);
-  fgets(buffer, size, filep);
+  fgets(buffer, size, datafilep);
   buffer[size] = '\0';
   printf("get_next2dmatdata:: buffer=\n%s\n", buffer);
   *imgdata = buffer;
   */
   int size = DSIZE*IMGSIZE+1;
   char* buffer = (char*) malloc(size-1);
-  size_t result = fread((char*)buffer,DSIZE,IMGSIZE,filep);
+  size_t result = fread((char*)buffer,DSIZE,IMGSIZE,datafilep);
   if (result != IMGSIZE){
     fputs ("Reading error\n",stderr); exit (0);
   }
@@ -260,8 +304,8 @@ char* get_next2dmatdata(FILE * filep){
   return buffer;
 }
 
-double** get_next2dmat(FILE * filep, size_t dimx, size_t dimy){
-  char* imgdata = get_next2dmatdata(filep);
+double** get_next2dmat(FILE * datafilep, size_t dimx, size_t dimy){
+  char* imgdata = get_next2dmatdata(datafilep);
   char* man_imgdata = imgdata;
   //printf("get_next2dmat:: imgdata=\n%s\n", imgdata);
   
@@ -285,116 +329,189 @@ double** get_next2dmat(FILE * filep, size_t dimx, size_t dimy){
   return mat;
 }
 
-double*** get_next3dmat(FILE * filep, uint64_t len, size_t dimx, size_t dimy){
-  //double*** mat = alloc_3dmat(len, dimx, dimy);
+double*** get_next3dmat(FILE * datafilep, uint64_t len, size_t dimx, size_t dimy){
   double*** mat = (double***) malloc(len*sizeof(double**));
   
   for (uint64_t i=0; i<len; i++){
-    mat[i] = get_next2dmat(filep, dimx, dimy);
+    mat[i] = get_next2dmat(datafilep, dimx, dimy);
   }
   
   return mat;
 }
 
-int main (int argc, char ** argv)
-{
-  char* fname = "deneme.bp";
-  //char* fname = "/media/portable_large/ecei_data.bp";
+void do_pipeline(uint64_t len, size_t dimx, size_t dimy, FILE* datafilep){
+  rewind(datafilep);
+  double*** matX = get_next3dmat(datafilep, len, dimx, dimy);
+  //print_3dmat("matX", len, dimx, dimy, matX);
   
-  FILE* filep = fopen (fname , "r");
-  if (filep == NULL){
+  // Step #1 - FFT
+  printf(">>> fft\n");
+  double ratio = 1.0E-6; //1.0E-1;
+  do_fft(ratio, len, dimx, dimy, matX);
+  //print_3dmat("matX", len, dimx, dimy, matX);
+  /*
+  // Step #2 - Upsampling
+  printf(">>> resize\n");
+  int step = 1;
+  int leny = len/step;
+  
+  //double (*matY)[dimx*SCALE][dimy*SCALE];
+  //matY = malloc (leny * sizeof(*matY));
+  size_t DIMX_ = dimx*SCALE;
+  size_t DIMY_ = dimy*SCALE;
+  double*** matY =  alloc_3dmat(leny, dimx*SCALE, dimy*SCALE);
+  for (int i=0; i<leny; i++) {
+      do_upsampling(dimx, dimy, (double**)matX[i*step], SCALE, 
+                    DIMX_, DIMY_, (double**)matY[i]);
+  }
+  //print_3dmat("matY", leny, DIMX_, DIMY_, (double***)matY);
+  
+  // Step #3 - Plotting
+  printf(">>> plot\n");
+  char* outdir = "images";
+  
+  do_plot(outdir, len, DIMX_, DIMY_, matY);
+  //do_plot(outdir, len, dimx, dimy, matX);
+  free(matY);
+  */
+  free(matX);
+}
+
+void comp_analysis(const char* compfname, FILE* datafilep){
+  char whole_compfname[100];
+  char* compfdir = (char*)"/media/portable_large/cb_sim_rel/fg_rel/fg_mininet/mininet_rel/host_rel/companalysis/";
+  strcpy(whole_compfname, compfdir);
+  strcat(whole_compfname, compfname);
+  
+  printf("comp_analysis:: whole_compfname=%s\n", whole_compfname);
+  
+  FILE* compfilep = fopen (whole_compfname,"w+");
+  if (compfilep == NULL){
     perror ("Error opening file");
     exit(0);
   }
+  //
+  struct timeval ts, te;
+  double elapsed_t;
+  printf("comp_analysis:: started.\n");
+  
+  //do whatever...
+  uint64_t len;
+  for (len = 100; len<10000; len+=100){
+    printf("for len=%d\n", len);
+    gettimeofday(&ts, NULL);
+    //
+    do_pipeline(len, DIMX, DIMY, datafilep);
+    //
+    gettimeofday(&te, NULL);
+    
+    elapsed_t = (te.tv_sec - ts.tv_sec) * 1000.0;      // sec to ms
+    elapsed_t += (te.tv_usec - ts.tv_usec) / 1000.0;   // us to ms
+    elapsed_t = elapsed_t/1000.0; //msec to sec
+    printf("elapsed_t=%fsec\n", elapsed_t);
+    
+    fprintf(compfilep, "%d %f\n", len, elapsed_t);
+  }
+  fclose(compfilep);
+  printf("comp_analysis:: ended.\n");
+  
+  //char* data_out_dir = "/media/portable_large/cb_sim_rel/fg_rel/fg_mininet/mininet_rel/host_rel/companalysis";
+  //get_companalysisplot(data_out_dir, "fft.dat", "fft");
+}
+
+void get_companalysisplot(const char* data_out_dir, const char* datafname, const char* funcname){
+  printf("get_companalysisplot:: started\n");
+  
+  FILE *pipe = popen("gnuplot", "w");
+  fprintf(pipe, "set term png enhanced font '/usr/share/fonts/liberation/LiberationSans-Regular.ttf' 12\n");
+  fprintf(pipe, "set output '%s/%s_comp.png'\n", data_out_dir, funcname);
+  fprintf(pipe, "set title \"%s completion time vs. len\"\n", funcname);
+  fprintf(pipe, "set xtic auto\n");
+  fprintf(pipe, "set ytic auto\n");
+  fprintf(pipe, "plot \"%s/%s\" using 1:2 title 'Column' with linespoints", data_out_dir, datafname);
+  
+  //fprintf(pipe, "e\n");
+  fflush (pipe);
+  
+  printf("get_companalysisplot:: ended\n");
+}
+
+int main (int argc, char** argv)
+{
+  //char* datafname = "deneme.bp";
+  char* datafname = "/media/portable_large/ecei_data.bp";
+  
+  FILE* datafilep = fopen (datafname , "r");
+  if (datafilep == NULL){
+    perror ("Error opening file");
+    exit(0);
+  }
+  //
+  const char* argfname;
+  if (argc == 2){
+    argfname = (char*)argv[1];
+  }
+  comp_analysis(argfname, datafilep);
+  //char* data_out_dir = "/media/portable_large/cb_sim_rel/fg_rel/fg_mininet/mininet_rel/host_rel/companalysis";
+  //get_companalysisplot(data_out_dir, "fft.dat", "fft");
+  
   /*
   double** matX;
-  matX = get_next2dmat(filep, DIMX, DIMY);
+  matX = get_next2dmat(datafilep, DIMX, DIMY);
   print_2dmat(DIMX, DIMY, matX);
   free(matX);
   
-  matX = get_next2dmat(filep, DIMX, DIMY);
+  matX = get_next2dmat(datafilep, DIMX, DIMY);
   print_2dmat(DIMX, DIMY, matX);
   free(matX);
   */
-  
-  double** matX = get_next2dmat(filep, DIMX, DIMY);
+  /*
+  double** matX = get_next2dmat(datafilep, DIMX, DIMY);
   print_2dmat(DIMX, DIMY, matX);
   
-  //double** matY = alloc_2dmat(DIMX*SCALE, DIMY*SCALE);
-  double matY[DIMX*SCALE][DIMY*SCALE];
-  do_upsampling(DIMX, DIMY, matX, SCALE, 
+  double** matY = alloc_2dmat(DIMX*SCALE, DIMY*SCALE);
+  
+  do_upsampling(DIMX, DIMY, matX, SCALE,
                 DIMX*SCALE, DIMY*SCALE, matY);
-  print_2dmat(DIMX*SCALE, DIMY*SCALE, matX);
+  printf(">>>after upsampling\n");
+  print_2dmat(DIMX*SCALE, DIMY*SCALE, (double**)matY);
+  */
+  
   /*
-  uint64_t len = 5;
-  double*** matX = get_next3dmat(filep, len, DIMX, DIMY);
-  print_3dmat(len, DIMX, DIMY, matX);
+  uint64_t len = 20;
+  double*** matX = get_next3dmat(datafilep, len, DIMX, DIMY);
+  //print_3dmat("matX", len, DIMX, DIMY, matX);
   
   // Step #1 - FFT
-  double ratio = 1.0E-1; //1.0E-6;
+  double ratio = 1.0E-6; //1.0E-1;
   do_fft(ratio, len, DIMX, DIMY, matX);
-  //print_3dmat(len, DIMX, DIMY, matX);
-  
-  // Data to write
-  int NX, NY;
-  double *data;
-  
-  NX = DIMX;
-  NY = DIMY;
-  len = len;
-  
-  data = (double *)matX;
+  //print_3dmat("matX", len, DIMX, DIMY, matX);
   
   // Step #2 - Upsampling
-  
   printf(">>> resize\n");
   int step = 1;
-  DUMP("step : %d", step);
   int leny = len/step;
-  double (*matY)[DIMX*SCALE][DIMY*SCALE];
-  matY = malloc (leny * sizeof(*matY));
   
-  
+  //double (*matY)[DIMX*SCALE][DIMY*SCALE];
+  //matY = malloc (leny * sizeof(*matY));
+  size_t DIMX_ = DIMX*SCALE;
+  size_t DIMY_ = DIMY*SCALE;
+  double*** matY =  alloc_3dmat(leny, DIMX*SCALE, DIMY*SCALE);
   for (int i=0; i<leny; i++) {
-      do_upsampling(DIMX, DIMY, matX[i*step], SCALE, 
-                    DIMX*SCALE, DIMY*SCALE, matY[i]);
-  
-      print_2dmat(DIMX*SCALE, DIMY*SCALE, (double**)matY[i]);
+      do_upsampling(DIMX, DIMY, (double**)matX[i*step], SCALE, 
+                    DIMX_, DIMY_, (double**)matY[i]);
   }
-  NX = DIMX*SCALE;
-  NY = DIMY*SCALE;
-  len = leny;
-  data = (double *)matY;
+  //print_3dmat("matY", leny, DIMX_, DIMY_, (double***)matY);
   
-  //print_3dmat(leny, NX, NY, (double***)matY);
+  // Step #3 - Plotting
+  printf(">>> plot\n");
+  char* outdir = "images";
   
+  do_plot(outdir, len, DIMX_, DIMY_, matY);
+  //do_plot(outdir, len, DIMX, DIMY, matX);
   free(matX);
   free(matY);
   */
   
-  /*
-  //
-  
-  int rank, size;
-  int step = 100;
-  double ratio = 1.0E-1; //1.0E-6;
-  
-  double (*mat)[DIMY][DIMX];
-  //Step #0 - Load data
-  // ECEI data layout: len-by-DIMY-by-DIMX
-  uint64_t len = 10;
-  mat = malloc (len * sizeof(*mat));
-  dummyfill_mat(len, DIMY, DIMX, mat);
-  
-  print_3dmat(len, DIMY, DIMX, mat);
-  //Step #1 - FFT
-  do_fft(ratio, len, DIMY, DIMX, mat);
-  
-  print_3dmat(len, DIMY, DIMX, mat);
-  //do_background(1000, step, len, DIMY, DIMX, mat);
-  //Step #2 - Resize
-  
-  //Step #3 - Plotting
-  */
   return 0;
 }

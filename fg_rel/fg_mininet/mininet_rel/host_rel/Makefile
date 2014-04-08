@@ -4,7 +4,7 @@ eceiproc_sf=ecei_proc.c
 eceiproc_tf=eceiproc
 
 eceiproc: $(eceiproc_sf)
-		gcc -std=c99 -o $(eceiproc_tf) $< -L$(FFTWDIR)/lib -I$(FFTWDIR)/include -lfftw3 -lm
+		gcc -std=gnu99 -o $(eceiproc_tf) $< -L$(FFTWDIR)/lib -I$(FFTWDIR)/include -lfftw3 -lm
 
 clean:
 		rm -rf *o $(eceiproc_tf)

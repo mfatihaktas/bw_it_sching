@@ -91,7 +91,10 @@ elif [ $1  = 'den' ]; then
   ./deneme
 elif [ $1  = 'ep' ]; then
   make eceiproc
-  ./eceiproc
+  ./eceiproc fft_1.dat
+elif [ $1  = 'ep2' ]; then
+  make eceiproc
+  nice -10 ./eceiproc fft_2.dat
 else
 	echo "Argument did not match !"
 fi
