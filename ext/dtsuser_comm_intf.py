@@ -1,7 +1,7 @@
 import sys,json,socket,threading,time,logging,errno,pprint,Queue
 from errors import *
 
-dtsuser_protocol_dict = {'send_type':['join_reply', 'sching_reply', 'ack'],
+dtsuser_protocol_dict = {'send_type':['join_reply', 'resching_reply', 'sching_reply', 'ack'],
                          'recv_type':['join_req', 'sching_req', 'session_done', 'ack'] }
 RX_SIZE = 1024
 

@@ -14,13 +14,13 @@ if [ $1  = 'p' ]; then
                      #--req_dict='{"data_size":4,"slack_metric":24,"func_list":["f1","f2","f3"],"parism_level":1,"par_share":[1]}' \
 elif [ $1  = 'p1' ]; then
   python producer.py --intf=p1-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.1.0 \
-                     --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console \
+                     --proto=tcp --tx_type=file --file_url=ltx1.dat --logto=console \
                      --req_dict='{"data_size":1,"slack_metric":1000,"func_list":["f1","f2","f3"],"parism_level":1,"par_share":[1]}' \
                      --app_pref_dict='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}' \
                      --htbdir='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
 elif [ $1  = 'p2' ]; then
   python producer.py --intf=p2-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.1.1 \
-                     --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console \
+                     --proto=tcp --tx_type=file --file_url=ltx2.dat --logto=console \
                      --req_dict='{"data_size":1,"slack_metric":1000,"func_list":["f1","f2","f3"],"parism_level":1,"par_share":[1]}' \
                      --app_pref_dict='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}' \
                      --htbdir='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
@@ -45,8 +45,9 @@ elif [ $1  = 't21' ]; then
 	python transit.py --nodename=t21 --intf=eth0 --dtsl_ip=10.0.0.255 --dtsl_port=7001 --dtst_port=7001 --logto=file --trans_type=file
 elif [ $1  = 't31' ]; then
   python transit.py --nodename=t31 --intf=eth0 --dtsl_ip=10.0.0.255 --dtsl_port=7001 --dtst_port=7001 --logto=file --trans_type=file
-elif [ $1  = 's' ]; then
-  #python sender.py --dst_ip=127.0.0.1 --dst_lport=7001 --datasize=1 --proto=udp --tx_type=dummy --file_url=ltx.dat --logto=console
+elif [ $1  = 'sr' ]; then
+  python sender.py --dst_ip=127.0.0.1 --dst_lport=7001 --datasize=1 --proto=udp --tx_type=dummy --file_url=... --logto=console
+elif [ $1  = 'sd' ]; then
   python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console
 elif [ $1  = 'r' ]; then
   #python receiver.py --lintf=lo --lport=6000 --proto=tcp --rx_type=dummy --file_url=rx.dat --logto=console
@@ -61,7 +62,7 @@ elif [ $1  = 'rd' ]; then
 elif [ $1  = 'rc' ]; then
   python receiver.py --lintf=c-eth0 --lport=6000 --proto=tcp --rx_type=file --file_url=rx.dat --logto=console
 elif [ $1  = 'glf' ]; then
-	dd if=/dev/urandom of=ltx.dat bs=1024 count=10000 #outputs bs x count Bs 
+	dd if=/dev/urandom of=ltx.dat bs=1024 count=8000 #outputs bs x count Bs 
 elif [ $1  = 'iperf-ts1' ]; then
   iperf -s -p 6000
 elif [ $1  = 'iperf-tc1' ]; then
@@ -91,10 +92,18 @@ elif [ $1  = 'den' ]; then
   ./deneme
 elif [ $1  = 'ep' ]; then
   make eceiproc
-  ./eceiproc fft_1.dat
+  #sudo nice -20 ./eceiproc fft_1.dat
+  #./eceiproc --datafname "/media/portable_large/ecei_data.bp" \
+  #           --outdir "/media/portable_large/cb_sim_rel/fg_rel/fg_mininet/mininet_rel/host_rel/companalysis" \
+  #           --compfname "fft_1.dat"
+  sudo nice -20 ./eceiproc --datafname "/home/ubuntu/ecei_data.bp" \
+             --outdir "/home/ubuntu/mininet/mininet_rel/host_rel/companalysis" \
+             --compfname "fft_1.dat"
 elif [ $1  = 'ep2' ]; then
   make eceiproc
-  nice -10 ./eceiproc fft_2.dat
+  sudo nice --20 ./eceiproc --datafname "/home/ubuntu/ecei_data.bp" \
+             --outdir "/home/ubuntu/mininet/mininet_rel/host_rel/companalysis" \
+             --compfname "fft_2.dat"
 else
 	echo "Argument did not match !"
 fi

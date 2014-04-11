@@ -26,26 +26,29 @@ def getsizeof(data):
 
 CHUNKSIZE = 1024*10 #B
 NUMCHUNKS_AFILE = 10
-PIPE_FILEURL_QUEUE = Queue.Queue(0)
-ITSERV_STOP = False
-RX_END_TIME = 0
-ITSERV_END_TIME = 0
-#to be able to close SessionClientHandler and ItServiceHandler threads
-HELPER_QUEUE = Queue.Queue(1)
 
-##########################  File TCP Server-Handler  ###########################
-class FilePipeServer():
-  def __init__(self, server_addr, itwork_dict, to_addr, logger):
+class FilePipeServer(threading.Thread):
+  def __init__(self, server_addr, itwork_dict, to_addr, flagq, sjoboutq, sdata_inq):
+    threading.Thread.__init__(self)
+    self.setDaemon(True)
+    #
     self.server_addr = server_addr
-    self.s_tp_dst = int(self.server_addr[1])
+    self.stpdst = int(self.server_addr[1])
     self.itwork_dict = itwork_dict
     self.to_addr = to_addr
-    self.logger = logger
+    self.flagq = flagq
+    self.sjoboutq = sjoboutq
+    self.sdata_inq = sdata_inq
+    #
+    self.logger = logging.getLogger('filepipeserver')
+    #
+    self.pipefileurl_q = Queue.Queue(0)
+    self.flagq_tosubthreads = Queue.Queue(1) #to be able to close SessionClientHandler thread
     #
     self.sc_handler = None
     self.server_sock = None
     self.itserv_handler = None
-
+  
   def open_socket(self):
     try:
       self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -54,58 +57,70 @@ class FilePipeServer():
     except socket.error, (value,message):
       if self.server_sock:
         self.server_sock.close()
-      self.logger.error('filepipe_server:: Could not open socket=%s', message )
+      self.logger.error('Could not open socket=%s', message )
       sys.exit(2)
-
-  def start(self):    
+  
+  def run(self):
     self.open_socket()
-    self.logger.debug('filepipe_server:: serversock_stpdst=%s is opened; waiting for client.', self.s_tp_dst)
+    self.logger.debug('serversock_stpdst=%s is opened; waiting for client.', self.stpdst)
     try:
       (sclient_sock,sclient_addr) = self.server_sock.accept()
     except Exception, e:
-      self.logger.error('filepipe_server:: Most likely transit.py is terminated with ctrl-c')
+      self.logger.error('Most likely transit.py is terminated with ctrl-c')
       self.logger.error('\ne.__doc__=%s\n e.message=%s', e.__doc__, e.message)
       return
       
     self.sc_handler = SessionClientHandler((sclient_sock,sclient_addr),
                                            itwork_dict = self.itwork_dict,
                                            to_addr = self.to_addr,
-                                           s_tp_dst = self.s_tp_dst,
-                                           logger = self.logger )
+                                           stpdst = self.stpdst,
+                                           pipefileurl_q = self.pipefileurl_q,
+                                           flag_q = self.flagq_tosubthreads )
     self.sc_handler.start()
     
-    self.itserv_handler = ItServiceHandler(itwork_dict = self.itwork_dict,
-                                           s_tp_dst = self.s_tp_dst,
-                                           to_addr = self.to_addr,
-                                           logger = self.logger )
+    self.itserv_handler = ItServHandler(itwork_dict = self.itwork_dict,
+                                        stpdst = self.stpdst,
+                                        to_addr = self.to_addr,
+                                        pipefileurl_q = self.pipefileurl_q,
+                                        flag_q = self.flagq_tosubthreads,
+                                        joboutq = self.sjoboutq, 
+                                        data_inq = self.sdata_inq)
     self.itserv_handler.start()
     #
-    self.logger.debug('filepipe_server:: server_addr=%s started.', self.server_addr)
-    #threads will handle the rest no need for further listening
-    self.server_sock.close()
-    self.logger.debug('filepipe_server:: done.')
-    
+    self.logger.debug('server_addr=%s started.', self.server_addr)
+    #
+    flag = self.flagq.get(True, None)
+    if flag == 'STOP':
+      self.shutdown()
+    else:
+      self.logger('Unexpected flag=%s', flag)
+    #
+    self.logger.debug('done.')
+  
   def shutdown(self):
-    global HELPER_QUEUE, PIPE_FILEURL_QUEUE
     #
     self.server_sock.shutdown(socket.SHUT_RDWR)
     self.server_sock.close()
     #close sc_handler
-    HELPER_QUEUE.put('stop')
+    self.flagq_tosubthreads.put('STOP')
     #close itserv_handler
-    PIPE_FILEURL_QUEUE.put('EOF')
+    self.pipefileurl_q.put('EOF')
     #
-    self.logger.info('filepipe_server:: shutdown.')
+    self.logger.info('shutdown.')
 
 class SessionClientHandler(threading.Thread):
-  def __init__(self,(sclient_sock,sclient_addr), itwork_dict, to_addr, s_tp_dst, logger):
+  def __init__(self,(sclient_sock,sclient_addr), itwork_dict, to_addr, stpdst,
+               pipefileurl_q, flag_q ):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
     self.sclient_sock = sclient_sock
     self.sclient_addr = sclient_addr
-    self.s_tp_dst = s_tp_dst
-    self.logger = logger
+    self.stpdst = stpdst
+    self.pipefileurl_q = pipefileurl_q
+    self.flagq = flag_q
+    #
+    self.logger = logging.getLogger('sessionclienthandler')
     #for now pipe is list of files
     self.recv_size = 1 #chunks
     self.num_chunks_afile = NUMCHUNKS_AFILE
@@ -115,7 +130,7 @@ class SessionClientHandler(threading.Thread):
     self.pipe_size_B_ = 0 #Bs
     self.pipe_size_B = 0 #Bs
 
-    self.pipe_file_base_str = 'pipe/pipe_tpdst=%s_' % self.s_tp_dst
+    self.pipe_file_base_str = 'pipe/pipe_tpdst=%s_' % self.stpdst
     self.pipe_file_id = 0
     self.pipe_mm = mmap.mmap(fileno = -1, length = self.num_Bs_afile)
     #session soft expire...
@@ -130,52 +145,59 @@ class SessionClientHandler(threading.Thread):
     self.session_over = False
     #
     self.check_file = open('pipe/checkfile.dat', 'w')
-    self.started_to_rx_time = None
+    #
+    self.startedtorx_time = None
     
   def run(self):
-    self.logger.debug('session_client_handler:: run, sclient_addr=%s', self.sclient_addr)
+    self.startedtorx_time = time.time()
+    
+    self.logger.debug('run:: sclient_addr=%s', self.sclient_addr)
     threading.Thread(target = self.init_rx).start()
-    popped = HELPER_QUEUE.get(True, None)
-    if popped == 'stop':
+    popped = self.flagq.get(True, None)
+    if popped == 'STOP':
       #brute force to end init_rx thread
       self.sclient_sock.close()
-      self.logger.debug('session_client_handler:: stopped.')
+      self.logger.debug('run:: stopped by STOP flag !')
+    elif popped == 'EOF':
+      self.logger.debug('run:: stopped by EOF.')
     else:
       self.logger.debug('run:: unexpected popped=%s', popped)
     #
-    self.logger.debug('session_client_handler:: done. \n\tpipe_size=%s, pipe_size_B=%s\n\tat t=%s; in %ssecs', self.pipe_size, self.pipe_size_B, RX_END_TIME, RX_END_TIME-self.started_to_rx_time)
+    self.stoppedtorx_time = time.time()
+    self.logger.debug('run:: done. \n\tpipe_size=%s, pipe_size_B=%s\n\tin dur=%ssecs, at t=%s;', self.pipe_size, self.pipe_size_B, self.stoppedtorx_time-self.startedtorx_time, self.stoppedtorx_time)
   
   def init_rx(self):
-    global PIPE_FILEURL_QUEUE, RX_END_TIME, ITSERV_STOP
     #
     rxcomplete = False
-    while not rxcomplete:
+    while 1:
       data = self.sclient_sock.recv(self.recv_size*CHUNKSIZE)
       #
-      if self.started_to_rx_time == None:
-        self.started_to_rx_time = time.time()
+      if self.startedtorx_time == None:
+        self.startedtorx_time = time.time()
       #
       datasize = getsizeof(data)
-      self.logger.info('session_client_handler:: stpdst=%s; rxed datasize=%sB', self.s_tp_dst, datasize)
+      self.logger.info('init_rx:: stpdst=%s; rxed datasize=%sB', self.stpdst, datasize)
       #
       return_ = self.push_to_pipe(data, datasize)
       if return_ == 0: #failed
-        self.logger.error('session_client_handler:: push_to_pipe for datasize=%s failed. Aborting...', datasize)
+        self.logger.error('init_rx:: push_to_pipe for datasize=%s failed. Aborting...', datasize)
         sys.exit(2)
       elif return_ == -1: #EOF
-        self.logger.info('session_client_handler:: EOF is rxed...')
-        PIPE_FILEURL_QUEUE.put('EOF')
-        rxcomplete = True
+        self.logger.info('init_rx:: EOF is rxed...')
+        self.flagq.put('EOF')
+        self.pipefileurl_q.put('EOF')
+        break
       elif return_ == -2: #datasize=0
-        self.logger.info('session_client_handler:: datasize=0 is rxed...')
+        self.logger.info('init_rx:: datasize=0 is rxed...')
         self.flush_pipe_mm()
-        ITSERV_STOP = True
-        rxcomplete = True
+        self.flagq.put('STOP')
+        break
       elif return_ == 1: #success
-        self.check_file.write(data)
+        pass
+        #self.check_file.write(data)
       #
     #
-    RX_END_TIME = time.time()
+    #RX_END_TIME = time.time()
     self.check_file.close()
     self.sclient_sock.close()
     
@@ -201,7 +223,7 @@ class SessionClientHandler(threading.Thread):
     try:
       self.pipe_mm.write(data_to_write)
     except TypeError as e:
-      self.logger.error('session_client_handler:: Could not write to pipe_mm. Check mmap.access')
+      self.logger.error('push_to_pipe:: Could not write to pipe_mm. Check mmap.access')
       self.logger.error('e.errno=%s, e.strerror=%s', e.errno, e.strerror)
       return 0
     #
@@ -221,12 +243,11 @@ class SessionClientHandler(threading.Thread):
         self.logger.error('\ne.__doc__=%s\n e.message=%s', e.__doc__, e.message)
         return 0
     #
-    self.logger.debug('session_client_handler:: datasize=%s pushed to pipe, pipe_size_B_=%s, overflow_size=%s', datasize, self.pipe_size_B_, overflow_size)
+    self.logger.debug('push_to_pipe:: datasize=%s pushed to pipe, pipe_size_B_=%s, overflow_size=%s', datasize, self.pipe_size_B_, overflow_size)
     self.s_active_last_time = time.time()
     return 1
     
   def flush_pipe_mm(self):
-    global PIPE_FILEURL_QUEUE
     #
     try:
       fileurl = self.pipe_file_base_str+str(self.pipe_file_id)+'.dat'
@@ -239,11 +260,11 @@ class SessionClientHandler(threading.Thread):
       #
       self.pipe_size += self.pipe_size_
       self.pipe_size_B += self.pipe_size_B_
-      self.logger.debug('session_client_handler:: pipe_file_id=%s is ready; btw flushed pipe_size_B_=%s', self.pipe_file_id, self.pipe_size_B_)
+      self.logger.debug('flush_pipe_mm:: pipe_file_id=%s is ready; btw flushed pipe_size_B_=%s', self.pipe_file_id, self.pipe_size_B_)
       self.pipe_size_ = 0
       self.pipe_size_B_ = 0
       #
-      PIPE_FILEURL_QUEUE.put(fileurl)
+      self.pipefileurl_q.put(fileurl)
     except Exception, e:
       self.logger.error('\ne.__doc__=%s\n e.message=%s', e.__doc__, e.message)
   
@@ -253,32 +274,35 @@ class SessionClientHandler(threading.Thread):
       inactive_time_span = time.time() - self.s_active_last_time
       if inactive_time_span >= self.s_soft_state_span:
         self.s_soft_expired = True
-        self.logger.info('session_client_handler:: session_tp_dst=%s soft-expired.',self.s_tp_dst)
+        self.logger.info('flush_pipe_mm:: session_tp_dst=%s soft-expired.',self.stpdst)
         return
       # do every ... secs
       time.sleep(self.s_soft_state_span)
 
-class ItServiceHandler(threading.Thread):
-  def __init__(self, itwork_dict, s_tp_dst, to_addr, logger):
+class ItServHandler(threading.Thread):
+  def __init__(self, itwork_dict, stpdst, to_addr,
+               pipefileurl_q, flag_q, joboutq, data_inq):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
     self.itwork_dict = itwork_dict
-    self.s_tp_dst = s_tp_dst
+    self.stpdst = stpdst
     self.to_addr = to_addr
-    self.logger = logger
+    self.pipefileurl_q = pipefileurl_q
+    self.flagq = flag_q
+    self.joboutq = joboutq
+    self.data_inq = data_inq
     #
-    self.itfunc_dict = {'f0':self.f0,
-                        'f1':self.f1,
-                        'f2':self.f2,
-                        'f3':self.f3,
-                        'f4':self.f4 }
+    self.logger = logging.getLogger('itservhandler')
+    #
     self.func_comp_dict = {'f0':0.5,
                            'f1':1,
                            'f2':2,
                            'f3':3,
                            'f4':4 }
     #
+    self.stopflag = False
+    
     self.num_chunks_afile = NUMCHUNKS_AFILE
     #num_chunks_afile % serv_size = 0
     self.serv_size = 1 #chunks
@@ -304,50 +328,82 @@ class ItServiceHandler(threading.Thread):
     self.test_file_size = 0 #serv_size
     self.test_file_size_B = 0 #B
     self.served_size_B = 0 #B
-
-  #~~~~~~~~~~~~~~~~~~~~~~~~~  IT functional interface  ~~~~~~~~~~~~~~~~~~~~~~~~#
-  def run(self):
-    global ITSERV_END_TIME
     #
-    self.logger.debug('itserv_handler:: run.')
-    serv_over = False
-    while not serv_over:
+    threading.Thread(target = self.handle_forwardingdata_).start()
+    #
+    self.startedtohandle_time = None
+    self.totalproc_time = 0
+    
+  def handle_forwardingdata_(self):
+    while not self.stopflag:
+      try:
+        #data_ = {'data':, 'dur':, }
+        data_ = self.data_inq.get(True, 1)
+        data = data_['data']
+        dur = float(data_['dur'])
+        #
+        if data == 'EOF':
+          #self.forward_data('EOF', 3)
+          self.stopflag = True
+        #
+        self.logger.debug('handle_forwardingdata_:: forward_data: datasize=%s, dur=%s', getsizeof(data_), dur )
+        #self.forward_data(data = data_,
+        #                  datasize = getsizeof(data_) )
+        self.totalproc_time += dur
+      except Queue.Empty:
+        pass
+    #
+    self.stoppedtohandle_time = time.time()
+    self.logger.info('handle_forwardingdata_:: stopped; dur=%ssecs, at t=%s', self.stoppedtohandle_time-self.startedtohandle_time, self.stoppedtohandle_time)
+    self.logger.info('handle_forwardingdata_:: totalproc_time=%s', self.totalproc_time)
+    
+  def run(self):
+    self.startedtohandle_time = time.time()
+    #
+    while not self.stopflag:
       (data, datasize) = self.pop_from_pipe()
       if data == None:
         if datasize == 0: #failed
           pass
         elif datasize == -1: #EOF
-          self.forward_data('EOF', 3)
-          self.logger.debug('itserv_handler:: fileurl=EOF')
-          serv_over = True
+          self.logger.debug('run:: fileurl=EOF')
+          job = {'stpdst': self.stpdst,
+                 'data': 'EOF',
+                 'datasize': 3 }
+          self.joboutq.put(job)
         elif datasize == -2: #STOP
-          self.logger.debug('itserv_handler:: stopped with flag:ITSERV_STOP')
-          serv_over = True
+          self.logger.debug('run:: stopped with flag:ITSERV_STOP')
+          self.stopflag = True
         elif datasize == -3: #fatal
-          self.logger.error('itserv_handler:: sth unexpected happened. Check exceptions. Aborting...')
+          self.logger.error('run:: sth unexpected happened. Check exceptions. Aborting...')
           sys.exit(2)
       else:
-        self.logger.debug('itserv_handler:: datasize=%s popped.', datasize)
+        self.logger.debug('run:: datasize=%s popped.', datasize)
         if not self.serv_started:
           self.serv_started = True
         #
         self.active_last_time = time.time()
-        #data_ = self.proc(data, float(datasize)/1024)
-        data_ = data
-        datasize_ = getsizeof(data_)
-        self.forward_data(data_, datasize_)
+        #
+        job = {'stpdst': self.stpdst,
+               'data': data,
+               'datasize': float(datasize)/(1024**2),
+               'jobtobedone': self.itwork_dict['jobtobedone'],
+               'proc': self.itwork_dict['proc'] }
+        self.joboutq.put(job)
+        
+        #datasize_ = getsizeof(data_)
+        #self.forward_data(data_, datasize_)
+        
         #
         self.served_size_ += self.serv_size
         self.served_size_B_ += datasize
         #
-        self.test_file.write(data)
-        self.logger.debug('itserv_handler:: acted on datasize=%sB, served_size=%s, served_size_=%s', datasize, self.served_size, self.served_size_)
+        #self.test_file.write(data)
+        self.logger.debug('run:: queued job datasize=%sB, served_size=%s, served_size_=%s', datasize, self.served_size, self.served_size_)
     #
     self.test_file.close()
     self.sock.close()
-    ITSERV_END_TIME = time.time()
-    dur = ITSERV_END_TIME - RX_END_TIME
-    self.logger.info('itserv_handler:: done. at t=%s; dur=%ssecs', ITSERV_END_TIME, dur)
+    self.logger.info('run:: done.')
 
   def pop_from_pipe(self):
     """ returns:
@@ -357,7 +413,6 @@ class ItServiceHandler(threading.Thread):
     (None, -2): STOP
     (None, -3): fatal failure
     """
-    global PIPE_FILEURL_QUEUE
     if self.pipe_mm == None or self.served_size_ == self.num_chunks_afile: #time to move to next file
       if self.cur_fileurl != None:
         #thread.start_new_thread(self.delete_pipe_file, (self.pipe_mm, self.pipe_file, pipe_file_id_) )
@@ -369,8 +424,8 @@ class ItServiceHandler(threading.Thread):
       self.served_size_B_ = 0
       #
       try:
-        self.cur_fileurl = PIPE_FILEURL_QUEUE.get(True, None) #self.max_idle_time)
-        self.logger.debug('itserv_handler:: next pipe_fileurl=%s', self.cur_fileurl)
+        self.cur_fileurl = self.pipefileurl_q.get(True, None)
+        self.logger.debug('pop_from_pipe:: cur_fileurl=%s', self.cur_fileurl)
         if self.cur_fileurl == 'EOF':
           return (None, -1)
         #
@@ -378,7 +433,7 @@ class ItServiceHandler(threading.Thread):
         self.pipe_mm = mmap.mmap(fileno = self.pipe_file.fileno(),
                                  length = 0,
                                  access=mmap.ACCESS_READ )
-        self.logger.debug('itserv_handler:: pipe_mm.size()=%s, served_size=%s', self.pipe_mm.size(), self.served_size)
+        self.logger.debug('pop_from_pipe:: pipe_mm.size()=%s, served_size=%s', self.pipe_mm.size(), self.served_size)
         self.pipe_file.close()
       except Exception, e:
         self.logger.error('pop_from_pipe:: \ne.__doc__=%s\n e.message=%s', e.__doc__, e.message)
@@ -391,9 +446,10 @@ class ItServiceHandler(threading.Thread):
       return (None, -3)
     #
     chunk_size = getsizeof(chunk)
-    self.logger.warning('itserv_handler:: chunksize=%s', chunk_size)
+    #self.logger.warning('pop_from_pipe:: chunksize=%s', chunk_size)
     if chunk_size <= 0:
-      if ITSERV_STOP == True:
+      flag = self.flagq.get(False, None)
+      if flag == 'STOP':
         return (None, -2)
       #
       return (None, 0)
@@ -412,37 +468,26 @@ class ItServiceHandler(threading.Thread):
     try:
       os.remove(cur_fileurl)
     except OSError, e:
-      self.logger.error('itserv_handler:: for cur_fileurl=%s', cur_fileurl)
+      self.logger.error('delete_pipe_file:: for cur_fileurl=%s', cur_fileurl)
       self.logger.error('Error: %s - %s.' % (e.errno,e.strerror))
       return
     #
-    self.logger.debug('itserv_handler:: cur_fileurl=%s is deleted from pipe', cur_fileurl)
+    self.logger.debug('delete_pipe_file:: cur_fileurl=%s is deleted from pipe', cur_fileurl)
 
-  #~~~~~~~~~~~~~~~~~~~~~~~~~  IT data transport  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
   def forward_data(self, data, datasize):
     """ TODO: returns:
     1: success
     0: failed
     """
-    '''
-    if not self.forwarding_started:
-      self.logger.info('itserv_handler:: itserv_sock is trying to connect to addr=%s', self.to_addr)
-      self.sock.connect(self.to_addr)
-      self.logger.info('itserv_handler:: itserv_sock is connected to addr=%s', self.to_addr)
-      self.forwarding_started = True
-    #
-    self.sock.sendall(data)
-    self.logger.info('itserv_handler:: datasize=%s forwarded to_addr=%s', datasize, self.to_addr)
-    '''
     try:
       if not self.forwarding_started:
-        self.logger.info('itserv_handler:: itserv_sock is trying to connect to addr=%s', self.to_addr)
+        self.logger.info('forward_data:: itserv_sock is trying to connect to addr=%s', self.to_addr)
         self.sock.connect(self.to_addr)
-        self.logger.info('itserv_handler:: itserv_sock is connected to addr=%s', self.to_addr)
+        self.logger.info('forward_data:: itserv_sock is connected to addr=%s', self.to_addr)
         self.forwarding_started = True
       #
       self.sock.sendall(data)
-      self.logger.info('itserv_handler:: datasize=%s forwarded to_addr=%s', datasize, self.to_addr)
+      self.logger.info('forward_data:: datasize=%s forwarded to_addr=%s', datasize, self.to_addr)
     except socket.error, e:
       if isinstance(e.args, tuple):
         self.logger.error('errno is %d', e[0])
@@ -455,25 +500,77 @@ class ItServiceHandler(threading.Thread):
       else:
         self.logger.error('socket error=%s', e)
 
-  #~~~~~~~~~~~~~~~~~~~~~~~~~  IT data manipulation  ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-  def proc(self, data, datasize):
-    try:
-      #datasize is in B, datasize_ is in MB
-      datasize_ = float(datasize)/1024
+
+class JobProcThread(threading.Thread):
+  def __init__(self, jobinq, data_q):
+    threading.Thread.__init__(self)
+    self.setDaemon(True)
+    #
+    self.logger = logging.getLogger('jobprocthread')
+    #
+    self.itfunc_dict = {'f0':self.f0,
+                        'f1':self.f1,
+                        'f2':self.f2,
+                        'f3':self.f3,
+                        'f4':self.f4 }
+    self.func_comp_dict = {'f0':0.5,
+                           'f1':1,
+                           'f2':2,
+                           'f3':3,
+                           'f4':4 }
+    #
+    self.jobinq = jobinq
+    self.data_q = data_q
+    
+  def run(self):
+    while (1):
+      '''
+      procjob = {jobtobedone:, data:, datasize(MB):, proc:}
+      '''
+      procjob = self.jobinq.get(True, None)
+      if procjob == 'STOP':
+        self.logger.info('JobProcThread:: stopped by STOP flag !')
+        break;
       #
-      jobtobedone = self.itwork_dict['jobtobedone']
-      proc_cap = self.itwork_dict['proc']
+      stpdst = procjob['stpdst']
+      jobtobedone = procjob['jobtobedone']
+      data = procjob['data']
+      datasize = procjob['datasize']
+      proc = procjob['proc']
+      #
+      if datasize == 3 and data == 'EOF':
+        jobdone = {'stpdst': stpdst,
+                   'data': 'EOF' }
+        self.data_q.put(jobdone)
+        break
+      #
+      procstart_time = time.time()
+      data_ = self.proc(jobtobedone = jobtobedone,
+                        data = data,
+                        datasize = datasize,
+                        proc = proc)
+      procend_time = time.time()
+      jobdone = {'stpdst': stpdst,
+                 'data': data_,
+                 'dur': procend_time-procstart_time}
+      self.data_q.put(jobdone)
+  
+  #~~~  Data Manipulation  ~~~#
+  def proc(self, jobtobedone, data, datasize, proc):
+    try:
+      datasize_ = float(datasize) # MB
+      #
       data_ = None
       for ftag in jobtobedone:
-        data_ = self.itfunc_dict[ftag](datasize_, data, proc_cap)
+        data_ = self.itfunc_dict[ftag](datasize_, data, proc)
         #
-        datasize_ = float(getsizeof(data_))/1024
+        datasize_ = float(getsizeof(data_))/(1024**2)
         data = data_
       #
       return data
     except Exception, e:
       self.logger.error('proc:: \ne.__doc__=%s\n e.message=%s', e.__doc__, e.message)
-
+  
   def proc_time_model(self, datasize, func_comp, proc_cap):
     '''
     proc_time_model used in sching process. To see if the sching results can be reaklized
@@ -486,92 +583,69 @@ class ItServiceHandler(threading.Thread):
     
   # transit data manipulation functions
   def f0(self, datasize, data, proc_cap):
-    self.logger.info('itserv_handler:: f0 is on action')
+    self.logger.info('f0:: on action')
     t_sleep = self.proc_time_model(datasize = datasize,
                                    func_comp = self.func_comp_dict['f0'],
                                    proc_cap = proc_cap)
-    self.logger.info('itserv_handler:: f0_sleep=%ssecs', t_sleep)
+    self.logger.info('f0:: sleep=%ssecs', t_sleep)
     time.sleep(t_sleep)
     #for now no manipulation on data, just move the data forward !
     return data
     
   def f1(self, datasize, data, proc_cap):
-    self.logger.info('itserv_handler:: f1 is on action')
+    self.logger.info('f1:: on action')
     t_sleep = self.proc_time_model(datasize = datasize,
                                    func_comp = self.func_comp_dict['f1'],
                                    proc_cap = proc_cap)
-    self.logger.info('itserv_handler:: f1_sleep=%ssecs', t_sleep)
+    self.logger.info('f1:: sleep=%ssecs', t_sleep)
     time.sleep(t_sleep)
     #for now no manipulation on data, just move the data forward !
     return data
     
   def f2(self, datasize, data, proc_cap):
-    self.logger.info('itserv_handler:: f2 is on action')
+    self.logger.info('f2:: on action')
     t_sleep = self.proc_time_model(datasize = datasize,
                                    func_comp = self.func_comp_dict['f2'],
                                    proc_cap = proc_cap)
-    self.logger.info('itserv_handler:: f2_sleep=%ssecs', t_sleep)
+    self.logger.info('f2:: sleep=%ssecs', t_sleep)
     time.sleep(t_sleep)
     #for now no manipulation on data, just move the data forward !
     return data
     
   def f3(self, datasize, data, proc_cap):
-    self.logger.info('itserv_handler:: f3 is on action')
+    self.logger.info('f3:: on action')
     t_sleep = self.proc_time_model(datasize = datasize,
                                    func_comp = self.func_comp_dict['f3'],
                                    proc_cap = proc_cap)
-    self.logger.info('itserv_handler:: f3_sleep=%ssecs', t_sleep)
+    self.logger.info('f3:: sleep=%ssecs', t_sleep)
     time.sleep(t_sleep)
     #for now no manipulation on data, just move the data forward !
     return data
     
   def f4(self, datasize, data, proc_cap):
-    self.logger.info('itserv_handler:: f4 is on action')
+    self.logger.info('f4:: on action')
     t_sleep = self.proc_time_model(datasize = datasize,
                                    func_comp = self.func_comp_dict['f4'],
                                    proc_cap = proc_cap)
-    self.logger.info('itserv_handler:: f4_sleep=%ssecs', t_sleep)
+    self.logger.info('f4:: sleep=%ssecs', t_sleep)
     time.sleep(t_sleep)
     #for now no manipulation on data, just move the data forward !
     return data
 
-##########################  Dummy UDP Server-Handler  ##########################
-class ThreadedUDPServer(SocketServer.ThreadingMixIn, SocketServer.UDPServer):
-  def __init__(self, call_back, server_addr, RequestHandlerClass):
-    SocketServer.UDPServer.__init__(self, server_addr, logger, RequestHandlerClass)
-    self.call_back = call_back
-    self.logger = logger
-  
-class ThreadedUDPRequestHandler(SocketServer.BaseRequestHandler):
-  def handle(self):
-    data = self.request[0].strip()
-    #socket = self.request[1]
-    cur_thread = threading.current_thread()
-    server = self.server
-    s_tp_dst = int(server.server_address[1])
-    datasize = getsizeof(data) #in MB
-    self.logger.info('cur_udp_thread=%s; s_tp_dst=%s, rxed_data_size=%sB', cur_thread.name, s_tp_dst, datasize)
-    #
-    server.call_back(s_tp_dst, data, datasize)
-##########################  Dummy TCP Server-Handler  ##########################
-class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-  def __init__(self, call_back, server_addr, logger, RequestHandlerClass):
-    SocketServer.TCPServer.__init__(self, server_addr, RequestHandlerClass)
-    self.call_back = call_back
-    self.logger = logger
-  
-class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
-  def handle(self):
-    data = self.request.recv(CHUNKSIZE)
-    #
-    cur_thread = threading.current_thread()
-    server = self.server
-    s_tp_dst = int(server.server_address[1])
-    datasize = getsizeof(data) #in MB
-    server.logger.info('cur_tcp_thread=%s; s_tp_dst=%s, rxed_data_size=%sB', cur_thread.name, s_tp_dst, datasize)
-    #
-    server.call_back(s_tp_dst, data, datasize)
 #############################  Class Transit  ##################################
+TOTALPROC = 100 #Mflop/s
+
+func_comp_dict = {'f0':0.5,
+                  'f1':1,
+                  'f2':2,
+                  'f3':3,
+                  'f4':4 }
+
+def proc_time_model(datasize, func_comp, proc_cap):
+  proc_t = float(func_comp)*float(8*float(datasize)/64)*float(1/float(proc_cap)) #secs
+  #self.logger.info('%s*(%s/64)*(1/%s)=%s', func_comp, datasize, proc_cap, proc_t)
+  return proc_t
+
 class Transit(object):
   def __init__(self, nodename, tl_ip, tl_port, dtsl_ip, dtsl_port, trans_type, logger):
     if not (trans_type == 'file' or trans_type == 'console'):
@@ -586,50 +660,59 @@ class Transit(object):
     self.logger = logger
     #
     self.sinfo_dict = {}
-    #for control comm
+    self.N = 0 #number of sessions being served
+    #
     self.itrdts_intf = UserDTSCommIntf(sctag = 't-dts',
                                        user_addr = (self.tl_ip,self.tl_port),
                                        dts_addr = (self.dtsl_ip,self.dtsl_port),
                                        _recv_callback = self._handle_recvfromdts )
     #
-    """
-    self.session_soft_state_span = 1000
-    s_soft_expire_timer = threading.Timer(self.session_soft_state_span,
-                                          self._handle_SessionSoftTimerExpire)
-    s_soft_expire_timer.daemon = True
-    s_soft_expire_timer.start()
-    """
     #to handle ctrl-c for doing cleanup
     signal.signal(signal.SIGINT, self.signal_handler)
+    #for proc_power slicing
+    self.stopflag = False
+    self.sflagq_dict = {}
+    
+    self.sjoboutq_dict = {}
+    self.sdata_inq_dict = {}
+    self.jobq = Queue.Queue(0)
+    self.data_q = Queue.Queue(0)
+    
+    self.jobproct = JobProcThread(jobinq = self.jobq,
+                                  data_q = self.data_q )
+    self.jobproct.start()
+    
+    threading.Thread(target = self.manage_jobq).start()
+    threading.Thread(target = self.manage_data_q).start()
     #
     self.logger.info('%s is ready...', self.nodename)
   
-  def signal_handler(self, signal, frame):
-    self.logger.info('signal_handler:: ctrl+c !')
-    self.shutdown()
-  
-  def _handle_SessionSoftTimerExpire(self):
-    while True:
-      #self.logger.info('_handle_SessionSoftTimerExpire;')
-      #print 's_info_dict:'
-      #pprint.pprint(s_info_dict )
-      for s_tp_dst, s_info in self.sinfo_dict.items():
-        inactive_time_span = time.time() - s_info['s_active_last_time']
-        if inactive_time_span >= self.session_soft_state_span: #soft state expire
-          s_info['s_server_thread'].shutdown()
-          del self.sinfo_dict[s_tp_dst]
-          self.logger.info('inactive_time_span=%s\ns with tp_dst:%s is soft-expired.',inactive_time_span,s_tp_dst)
-      #
-      #self.logger.info('------')
-      # do every ... secs
-      time.sleep(self.session_soft_state_span)
-  
-  ##########################  handle dts_comm  #################################
+  def manage_jobq(self):
+    while not self.stopflag:
+      for stpdst, sjoboutq in self.sjoboutq_dict.items():
+        try:
+          job = sjoboutq.get(False, None)
+          self.jobq.put(job)
+        except Queue.Empty:
+          #self.logger.warning('manage_jobq:: sjoboutq is empty.')
+          pass
+    #
+    self.logger.debug('manage_jobq:: stoppped by STOP flag !')
+    
+  def manage_data_q(self):
+    while not self.stopflag:
+      try:
+        data_ = self.data_q.get(True, 1)
+        stpdst = data_['stpdst']
+        del data_['stpdst']
+        self.sdata_inq_dict[stpdst].put(data_)
+      except Queue.Empty:
+          pass
+    #
+    self.logger.debug('manage_data_q:: stoppped by STOP flag !')
+    
+  ###  handle dts_comm  ###
   def _handle_recvfromdts(self, msg):
-    """
-    TODO: Comm btw DTS-t is assumed to be perfect. Not really...
-    """
-    #msg = [type_, data_]
     [type_, data_] = msg
     if type_ == 'itjob_rule':
       self.welcome_s(data_)
@@ -640,230 +723,83 @@ class Transit(object):
     if stpdst in self.sinfo_dict:
       self.bye_s(stpdst)
     del data_['s_tp']
-    #
+    
     to_ip = data_['data_to_ip']
     del data_['data_to_ip']
-    #
+    
     to_addr = (to_ip, stpdst) #goes into s_info_dict
     #
     jobtobedone = {}
     for ftag,comp in data_['itfunc_dict'].items():
-      jobtobedone[ftag] = 1024*data_['datasize']*comp/func_comp_dict[ftag]
+      jobtobedone[ftag] = data_['datasize']*comp/func_comp_dict[ftag]
     data_.update( {'jobtobedone': jobtobedone} )
     #
-    proto = int(data_['proto']) #6:TCP, 17:UDP - goes into s_info_dict
+    modelproct = proc_time_model(datasize = float(data_['datasize']),
+                                 func_comp = float(data_['comp']),
+                                 proc_cap = float(data_['proc']) )
+    #
+    proto = int(data_['proto']) #6:TCP, 17:UDP
     del data_['proto']
-    #calc est_proct
-    est_proct = proc_time_model(datasize = float(data_['datasize']),
-                                func_comp = float(data_['comp']),
-                                proc_cap = float(data_['proc']))
-    #FilePipeServer blocking to accept a tcp conn, so I took log_info up
-    dict_forlog = {'itjobrule':data_,
-                   'proto': proto,
-                   'to_addr': to_addr,
-                   'est_proct': est_proct }
-    self.logger.info('welcome_s:: welcome stpdst=%s, est_proct=%s, s_info=\n%s', stpdst, est_proct, pprint.pformat(dict_forlog))
+    #
+    sflagq = Queue.Queue(0)
+    sjoboutq = Queue.Queue(0)
+    sdata_inq = Queue.Queue(0)
+    self.sflagq_dict[stpdst] = sflagq
+    self.sjoboutq_dict[stpdst] = sjoboutq
+    self.sdata_inq_dict[stpdst] = sdata_inq
     #
     if self.trans_type == 'file':
       s_server_thread = FilePipeServer(server_addr = (self.tl_ip, stpdst),
                                        itwork_dict = data_,
                                        to_addr = to_addr,
-                                       logger = self.logger )
+                                       flagq = sflagq,
+                                       sjoboutq = sjoboutq,
+                                       sdata_inq = sdata_inq )
       self.sinfo_dict[stpdst] = {'itjobrule':data_,
-                                  'to_addr': to_addr,
-                                  's_server_thread': s_server_thread,
-                                  'est_proct': est_proct }
+                                 'to_addr': to_addr,
+                                 's_server_thread': s_server_thread,
+                                 'modelproct': modelproct,
+                                 'proc': float(data_['proc']),
+                                 'procw': 100*float(data_['proc'])/TOTALPROC }
       s_server_thread.start()
-    elif self.trans_type == 'dummy':
-      self.sinfo_dict[stpdst] = {'itjobrule':data_,
-                                  'proto': proto,
-                                  'to_addr': to_addr,
-                                  's_server_thread': self.create_sserver_thread(proto = proto, port = stpdst),
-                                  's_active_last_time':time.time(),
-                                  'est_proct': est_proct }
+      self.N += 1
+    else:
+      self.logger.error('Unexpected trans_type=%s', self.trans_type)
     #
+    self.logger.info('welcome_s:: welcome stpdst=%s, s_info=\n%s', stpdst, pprint.pformat(self.sinfo_dict[stpdst]) )
   
   def bye_s(self, stpdst):
-    sinfo_dict = self.sinfo_dict[stpdst]
-    if self.trans_type == 'file':
-      sinfo_dict['s_server_thread'].shutdown()
-    elif self.trans_type == 'dummy':
-      sinfo_dict['s_server_thread'].close()
-    #ready to erase s_info
+    self.sflagq_dict[stpdst].put('STOP')
+    self.N -= 1
     del self.sinfo_dict[stpdst]
     self.logger.info('bye s; tpdst=%s', stpdst)
   
+  def signal_handler(self, signal, frame):
+    self.logger.info('signal_handler:: ctrl+c !')
+    self.shutdown()
+  
   def shutdown(self):
-    for stpdst in self.sinfo_dict:
-      sinfo_dict = self.sinfo_dict[stpdst]
-      if self.trans_type == 'file':
-        sinfo_dict['s_server_thread'].shutdown()
-      elif self.trans_type == 'dummy':
-        sinfo_dict['s_server_thread'].close()
-    #this may close created sub-threads
+    self.stopflag = True
+    self.jobq.put('STOP')
+    #
+    for stpdst,sflagq in self.sflagq_dict.items():
+      sflagq.put('STOP')
+    #
     self.itrdts_intf.close()
     self.logger.debug('shutdown:: shutdown.')
     sys.exit(0)
-  
-  #########################  handle s_data_traffic  ############################
-  def create_sserver_thread(self, proto, port):
-    s_addr = (self.tl_ip, port)
-    s_server = None
-    if proto == 6:
-      s_server = ThreadedTCPServer(self._handle_recvsdata, s_addr, self.logger, ThreadedTCPRequestHandler)
-    elif proto == 17:
-      s_server = ThreadedUDPServer(self._handle_recvsdata, s_addr, self.logger, ThreadedUDPRequestHandler)
-    else:
-      self.logger.error('Unexpected proto=%s', proto)
-      return
-    #
-    s_server_thread = threading.Thread(target=s_server_thread.serve_forever)
-    s_server_thread.daemon = True
-    s_server_thread.start()
-    #
-    self.logger.info('%s_server_thread is started at s_addr=%s', proto,s_addr )
-    return s_server
-  
-  def _handle_recvsdata(self, s_tp_dst, data, datasize):
-    if not s_tp_dst in self.sinfo_dict:
-      raise NoItruleMatchError('No itjobrule match', s_tp_dst)
-      return
-    #
-    """
-    data_ = self.proc_pipeline(s_tp_dst = s_tp_dst,
-                               data = data,
-                               datasize = datasize )
-    """
-    data_ = data
-    datasize_ = sys.getsizeof(data_)
-    #
-    self.forward_data(s_tp_dst, data_, datasize_)
-  
-  def proc_pipeline(self, s_tp_dst, data, datasize):
-    #datasize is in MB
-    global itfunc_dict
-    itjobrule = self.sinfo_dict[s_tp_dst]['itjobrule']
-    jobtobedone = itjobrule['jobtobedone']
-    proc_cap = itjobrule['proc']
-    #datasize_ = len(data) #in bits
-    for ftag,compleft in jobtobedone.items():
-      datasize = float(datasize)/1024
-      data = itfunc_dict[ftag](datasize, data, proc_cap)
-      #for now no need for checking how much left to process for session
-      """
-      if jobtobedone[ftag] > 0:
-        datasize = float(sys.getsizeof(data))/1024
-        data = itfunc_dict[ftag](datasize, data, proc_cap)
-        #update jobtobedone
-        jobtobedone[ftag] -= datasize
-      """
-    #
-    return data
-  
-  def forward_data(self, s_tp_dst, data, datasize):
-    s_info = self.sinfo_dict[s_tp_dst]
-    proto = s_info['proto']
-    to_addr = s_info['to_addr']
-    #
-    sock = None
-    if proto == 6:
-      sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-      self.logger.info('s_tcpsock is trying to connect to addr=%s', to_addr)
-      sock.connect(to_addr)
-      sock.sendall(data)
-      #datasent_size = sock.send(data)
-    elif proto == 17:
-      sock.sendto(data, to_addr)
-    #
-    self.logger.info('proced data is forwarded to_addr=%s', to_addr)
-    #update session_active_last_time
-    s_info['s_active_last_time']=time.time()
   
   def test(self):
     self.logger.debug('test')
     data = {'comp': 1.99999998665,
             'proto': 6,
             'data_to_ip': u'10.0.0.1',
-            'datasize': 1000,
+            'datasize': 8,
             'itfunc_dict': {u'f1': 1.0, u'f2': 0.99999998665},
-            'proc': 183.150248167,
+            'proc': 1.0,
             's_tp': 6000 }
     self.welcome_s(data)
 
-############################  IT data manipulation  ############################
-func_comp_dict = {'f0':0.5,
-                  'f1':1,
-                  'f2':2,
-                  'f3':3,
-                  'f4':4 }
-
-def proc_time_model(datasize, func_comp, proc_cap):
-  '''
-  proc_time_model used in sching process. To see if the sching results can be reaklized
-  by assuming used models for procing are perfectly accurate.
-  datasize: in MB
-  '''
-  proc_t = 1000*float(func_comp)*float(8*float(datasize)/64)*float(1/float(proc_cap)) #(ms)
-  #self.logger.info('1000*%s*(%s/64)*(1/%s)=%s', func_comp, datasize, proc_cap, proc_t)
-  return proc_t
-  
-# transit data manipulation functions
-def f0(datasize, data, proc_cap):
-  self.logger.info('f0 is on action')
-  t_sleep = proc_time_model(datasize = datasize,
-                            func_comp = func_comp_dict['f0'],
-                            proc_cap = proc_cap)
-  self.logger.info('f0_sleep=%s', t_sleep)
-  time.sleep(t_sleep)
-  #for now no manipulation on data, just move the data forward !
-  return data
-  
-def f1(datasize, data, proc_cap):
-  self.logger.info('f1 is on action')
-  t_sleep = proc_time_model(datasize = datasize,
-                            func_comp = func_comp_dict['f1'],
-                            proc_cap = proc_cap)
-  self.logger.info('f1_sleep=%s', t_sleep)
-  time.sleep(t_sleep)
-  #for now no manipulation on data, just move the data forward !
-  return data
-  
-def f2(datasize, data, proc_cap):
-  self.logger.info('f2 is on action')
-  t_sleep = proc_time_model(datasize = datasize,
-                            func_comp = func_comp_dict['f2'],
-                            proc_cap = proc_cap)
-  self.logger.info('f2_sleep=%s', t_sleep)
-  time.sleep(t_sleep)
-  #for now no manipulation on data, just move the data forward !
-  return data
-  
-def f3(datasize, data, proc_cap):
-  self.logger.info('f3 is on action')
-  t_sleep = proc_time_model(datasize = datasize,
-                            func_comp = func_comp_dict['f3'],
-                            proc_cap = proc_cap)
-  self.logger.info('f3_sleep=%s', t_sleep)
-  time.sleep(t_sleep)
-  #for now no manipulation on data, just move the data forward !
-  return data
-  
-def f4(datasize, data, proc_cap):
-  self.logger.info('f4 is on action')
-  t_sleep = proc_time_model(datasize = datasize,
-                            func_comp = func_comp_dict['f4'],
-                            proc_cap = proc_cap)
-  self.logger.info('f4_sleep=%s', t_sleep)
-  time.sleep(t_sleep)
-  #for now no manipulation on data, just move the data forward !
-  return data
-
-itfunc_dict = {'f0':f0,
-               'f1':f1,
-               'f2':f2,
-               'f3':f3,
-               'f4':f4}
-  
 def main(argv):
   nodename = intf = dtsl_ip = dtsl_port= dtst_port = logto = trans_type = None
   try:
@@ -908,7 +844,7 @@ def main(argv):
   #
   if nodename == 'mfa':
     tr.test()
-    raw_input('Enter')
+    raw_input('Enter\n')
     tr.shutdown()
   else:
     time.sleep(100000)

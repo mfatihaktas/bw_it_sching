@@ -141,12 +141,17 @@ class Scheduler(object):
                        'gw_dpid': user_info['gw_dpid'],
                        'gw_conn_port': user_info['gw_conn_port'] }
       if reply == 'done':
-        self.sessions_beingserved_dict[sch_req_id]['sching_job_done'][p_id] = True
+        type_touser = None;
+        if s_info['sching_job_done'][p_id] == False:
+          self.sessions_beingserved_dict[sch_req_id]['sching_job_done'][p_id] = True
+          type_touser = 'sching_reply'
+        else:
+          type_touser = 'resching_reply'
         #get s_alloc_info
         s_alloc_info = self.alloc_dict['s-wise'][s_id]
         s_pl = s_alloc_info['parism_level']
         #
-        msg = {'type':'sching_reply',
+        msg = {'type':type_touser,
                'data':{'sch_req_id': sch_req_id,
                        'parism_level':s_pl,
                        'p_bw':s_alloc_info['p_bw'][0:s_pl],

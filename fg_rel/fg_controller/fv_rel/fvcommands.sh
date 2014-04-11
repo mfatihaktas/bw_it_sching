@@ -2,7 +2,7 @@
 echo $1 $2
 
 #no matter what value to set for cont_ip sws are conned sucessfully
-CONT_INTF_IP=10.39.1.12 #'192.168.56.1' #'10.0.0.7'
+CONT_INTF_IP=10.39.1.64 #'192.168.56.1' #'10.0.0.7'
 
 if [ $1 = 'run' ]
 then

@@ -4,6 +4,9 @@ import mmap,os,pprint,threading,time,thread,Queue,logging,subprocess
 from multiprocessing import Process
 from sender import Sender
 
+#proc_t = float(func_comp)*float(8*float(datasize)/64)*float(1/float(proc_cap)) #secs
+#2*(8*8/64) = 2
+
 def main():
   htbdir = '/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
   peth0dir_1 = '/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel/p-eth0_1'

@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <sys/time.h>
+#include <getopt.h>
 //
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
@@ -377,9 +378,8 @@ void do_pipeline(uint64_t len, size_t dimx, size_t dimy, FILE* datafilep){
   free(matX);
 }
 
-void comp_analysis(const char* compfname, FILE* datafilep){
+void comp_analysis(const char* compfdir, const char* compfname, FILE* datafilep){
   char whole_compfname[100];
-  char* compfdir = (char*)"/media/portable_large/cb_sim_rel/fg_rel/fg_mininet/mininet_rel/host_rel/companalysis/";
   strcpy(whole_compfname, compfdir);
   strcat(whole_compfname, compfname);
   
@@ -415,7 +415,6 @@ void comp_analysis(const char* compfname, FILE* datafilep){
   fclose(compfilep);
   printf("comp_analysis:: ended.\n");
   
-  //char* data_out_dir = "/media/portable_large/cb_sim_rel/fg_rel/fg_mininet/mininet_rel/host_rel/companalysis";
   //get_companalysisplot(data_out_dir, "fft.dat", "fft");
 }
 
@@ -439,21 +438,63 @@ void get_companalysisplot(const char* data_out_dir, const char* datafname, const
 int main (int argc, char** argv)
 {
   //char* datafname = "deneme.bp";
-  char* datafname = "/media/portable_large/ecei_data.bp";
+  char* datafname;
+  char* outdir;
+  char* compfname;
+  int c;
+  while (1){
+    static struct option long_options[] =
+    {
+      {"datafname",  required_argument, 0, 'd'},
+      {"outdir",  required_argument, 0, 'o'},
+      {"compfname",  required_argument, 0, 'c'},
+      {0, 0, 0, 0}
+    };
+     /* getopt_long stores the option index here. */
+     int option_index = 0;
   
+     c = getopt_long (argc, argv, "d:",
+                      long_options, &option_index);
+     /* Detect the end of the options. */
+     if (c == -1)
+       break;
+    
+    switch (c){
+      case 0:
+        printf ("option %s", long_options[option_index].name);
+        if (optarg)
+          printf (" with arg %s\n", optarg);
+          break;
+      case 'd':
+        datafname = optarg;
+        printf ("option -d with value `%s'\n", optarg);
+        break;
+      case 'o':
+        outdir = optarg;
+        printf ("option -o with value `%s'\n", optarg);
+        break;
+      case 'c':
+        compfname = optarg;
+        printf ("option -c with value `%s'\n", optarg);
+        break;
+      case '?':
+        /* getopt_long already printed an error message. */
+        break;
+      default:
+        abort ();
+    }
+  }
+   
   FILE* datafilep = fopen (datafname , "r");
   if (datafilep == NULL){
     perror ("Error opening file");
     exit(0);
   }
-  //
-  const char* argfname;
-  if (argc == 2){
-    argfname = (char*)argv[1];
-  }
-  comp_analysis(argfname, datafilep);
+  
+  comp_analysis(outdir, compfname, datafilep);
+  
   //char* data_out_dir = "/media/portable_large/cb_sim_rel/fg_rel/fg_mininet/mininet_rel/host_rel/companalysis";
-  //get_companalysisplot(data_out_dir, "fft.dat", "fft");
+  //get_companalysisplot(outdir, compfname, "fft");
   
   /*
   double** matX;

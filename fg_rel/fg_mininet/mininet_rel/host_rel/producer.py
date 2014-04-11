@@ -56,8 +56,7 @@ class Producer(object):
       #
       if data_ != 'sorry':
         self.state = 2
-        logging.info('successful sch_req :) data_=')
-        logging.info('%s', pprint.pformat(data_))
+        logging.info('successful sch_req :) data_=\n%s', pprint.pformat(data_))
         #immediately start streaming session data
         pl = int(data_['parism_level'])
         p_bw = data_['p_bw']
@@ -80,6 +79,19 @@ class Producer(object):
       else:
         logging.info('unsuccessful sch_req :( data_=%s', data_)
         return
+    elif type_ == 'resching_reply':
+      if self.state != 2:
+        logging.error('resching_reply: unexpected cur_state=%s', self.state)
+        return
+      #
+      logging.info('resching_reply:: data_=\n%s', pprint.pformat(data_))
+      #reinit htb
+      pl = int(data_['parism_level'])
+      p_bw = data_['p_bw']
+      p_tp_dst = data_['p_tp_dst']
+      #
+      self.init_htbconf(pl, p_bw, p_tp_dst)
+      
     elif type_ == 'join_reply':
       if self.state != 0:
         logging.error('join_reply: unexpected cur_state=%s', self.state)
@@ -175,8 +187,8 @@ class Producer(object):
       logging.error('unknown command=%s',command)
       return
     #
-    logging.info('\n----------------------------------------------------------')
-    logging.info('%s_output:\n%s',command,cli_o)
+    #logging.info('\n----------------------------------------------------------')
+    #logging.info('%s_output:\n%s',command,cli_o)
   #############################  data trans rel  ###############################
   def stream_sdata(self, datasize, cl_port):
     if self.state != 2:

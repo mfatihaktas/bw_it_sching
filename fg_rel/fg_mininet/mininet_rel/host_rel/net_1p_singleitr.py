@@ -44,9 +44,9 @@ def run_tnodes(hosts):
 if __name__ == '__main__':
   setLogLevel( 'info' )
   net = Mininet( topo=MyTopo(), link=TCLink, controller=RemoteController)
-  net.addController( 'r0' , controller=RemoteController,
-                   ip='10.39.1.12',
-                   port=6633)
+  net.addController('r0' , controller=RemoteController,
+                    ip='10.39.1.64',
+                    port=6633 )
   #
   p1,p2 = net.getNodeByName('p1', 'p2')
   c1,c2 = net.getNodeByName('c1', 'c2')

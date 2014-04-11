@@ -71,7 +71,8 @@ class Sender(threading.Thread):
     elif self.tx_type == 'file':
       self.file_send()
     #
-    self.out_queue.put('done')
+    if self.out_queue != None:
+      self.out_queue.put('done')
   
   def file_send(self):
     #TODO (??? ):This method needs to be rewritten according to threaded TCPServer approach
@@ -97,7 +98,7 @@ class Sender(threading.Thread):
         #
         try:
           self.sock.sendall(l)
-          logging.info('file_send:: over tcp, datasize=%sB', c_len_)
+          #logging.info('file_send:: over tcp, datasize=%sB', c_len_)
         except socket.error, e:
           if isinstance(e.args, tuple):
             logging.error('errno is %d', e[0])
