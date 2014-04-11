@@ -28,7 +28,7 @@ CHUNKSIZE = 1024*10 #B
 NUMCHUNKS_AFILE = 10
 
 class FilePipeServer(threading.Thread):
-  def __init__(self, server_addr, itwork_dict, to_addr, flagq, sjoboutq, sdata_inq):
+  def __init__(self, server_addr, itwork_dict, to_addr, sflagq, stokenq):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
@@ -36,9 +36,8 @@ class FilePipeServer(threading.Thread):
     self.stpdst = int(self.server_addr[1])
     self.itwork_dict = itwork_dict
     self.to_addr = to_addr
-    self.flagq = flagq
-    self.sjoboutq = sjoboutq
-    self.sdata_inq = sdata_inq
+    self.sflagq = sflagq
+    self.stokenq = stokenq
     #
     self.logger = logging.getLogger('filepipeserver')
     #
@@ -62,7 +61,7 @@ class FilePipeServer(threading.Thread):
   
   def run(self):
     self.open_socket()
-    self.logger.debug('serversock_stpdst=%s is opened; waiting for client.', self.stpdst)
+    self.logger.debug('run:: serversock_stpdst=%s is opened; waiting for client.', self.stpdst)
     try:
       (sclient_sock,sclient_addr) = self.server_sock.accept()
     except Exception, e:
@@ -75,27 +74,26 @@ class FilePipeServer(threading.Thread):
                                            to_addr = self.to_addr,
                                            stpdst = self.stpdst,
                                            pipefileurl_q = self.pipefileurl_q,
-                                           flag_q = self.flagq_tosubthreads )
+                                           flagq = self.flagq_tosubthreads )
     self.sc_handler.start()
     
     self.itserv_handler = ItServHandler(itwork_dict = self.itwork_dict,
                                         stpdst = self.stpdst,
                                         to_addr = self.to_addr,
                                         pipefileurl_q = self.pipefileurl_q,
-                                        flag_q = self.flagq_tosubthreads,
-                                        joboutq = self.sjoboutq, 
-                                        data_inq = self.sdata_inq)
+                                        flagq = self.flagq_tosubthreads,
+                                        stokenq = self.stokenq )
     self.itserv_handler.start()
     #
-    self.logger.debug('server_addr=%s started.', self.server_addr)
+    self.logger.debug('run:: server_addr=%s started.', self.server_addr)
     #
-    flag = self.flagq.get(True, None)
+    flag = self.sflagq.get(True, None)
     if flag == 'STOP':
       self.shutdown()
     else:
       self.logger('Unexpected flag=%s', flag)
     #
-    self.logger.debug('done.')
+    self.logger.debug('run:: done.')
   
   def shutdown(self):
     #
@@ -110,7 +108,7 @@ class FilePipeServer(threading.Thread):
 
 class SessionClientHandler(threading.Thread):
   def __init__(self,(sclient_sock,sclient_addr), itwork_dict, to_addr, stpdst,
-               pipefileurl_q, flag_q ):
+               pipefileurl_q, flagq ):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
@@ -118,7 +116,7 @@ class SessionClientHandler(threading.Thread):
     self.sclient_addr = sclient_addr
     self.stpdst = stpdst
     self.pipefileurl_q = pipefileurl_q
-    self.flagq = flag_q
+    self.flagq = flagq
     #
     self.logger = logging.getLogger('sessionclienthandler')
     #for now pipe is list of files
@@ -184,8 +182,8 @@ class SessionClientHandler(threading.Thread):
         sys.exit(2)
       elif return_ == -1: #EOF
         self.logger.info('init_rx:: EOF is rxed...')
-        self.flagq.put('EOF')
         self.pipefileurl_q.put('EOF')
+        self.flagq.put('EOF')
         break
       elif return_ == -2: #datasize=0
         self.logger.info('init_rx:: datasize=0 is rxed...')
@@ -197,7 +195,6 @@ class SessionClientHandler(threading.Thread):
         #self.check_file.write(data)
       #
     #
-    #RX_END_TIME = time.time()
     self.check_file.close()
     self.sclient_sock.close()
     
@@ -281,7 +278,7 @@ class SessionClientHandler(threading.Thread):
 
 class ItServHandler(threading.Thread):
   def __init__(self, itwork_dict, stpdst, to_addr,
-               pipefileurl_q, flag_q, joboutq, data_inq):
+               pipefileurl_q, flagq, stokenq):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
@@ -289,9 +286,8 @@ class ItServHandler(threading.Thread):
     self.stpdst = stpdst
     self.to_addr = to_addr
     self.pipefileurl_q = pipefileurl_q
-    self.flagq = flag_q
-    self.joboutq = joboutq
-    self.data_inq = data_inq
+    self.flagq = flagq
+    self.stokenq = stokenq
     #
     self.logger = logging.getLogger('itservhandler')
     #
@@ -319,7 +315,6 @@ class ItServHandler(threading.Thread):
     #
     self.max_idle_time = 5 #_after_serv_started, secs
     self.active_last_time = None
-    self.serv_started = False
     #
     self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self.forwarding_started = False
@@ -329,68 +324,58 @@ class ItServHandler(threading.Thread):
     self.test_file_size_B = 0 #B
     self.served_size_B = 0 #B
     #
-    threading.Thread(target = self.handle_forwardingdata_).start()
+    self.itfunc_dict = {'f0':self.f0,
+                        'f1':self.f1,
+                        'f2':self.f2,
+                        'f3':self.f3,
+                        'f4':self.f4 }
+    self.func_comp_dict = {'f0':0.5,
+                           'f1':1,
+                           'f2':2,
+                           'f3':3,
+                           'f4':4 }
     #
     self.startedtohandle_time = None
     self.totalproc_time = 0
-    
-  def handle_forwardingdata_(self):
-    while not self.stopflag:
-      try:
-        #data_ = {'data':, 'dur':, }
-        data_ = self.data_inq.get(True, 1)
-        data = data_['data']
-        dur = float(data_['dur'])
-        #
-        if data == 'EOF':
-          #self.forward_data('EOF', 3)
-          self.stopflag = True
-        #
-        self.logger.debug('handle_forwardingdata_:: forward_data: datasize=%s, dur=%s', getsizeof(data_), dur )
-        #self.forward_data(data = data_,
-        #                  datasize = getsizeof(data_) )
-        self.totalproc_time += dur
-      except Queue.Empty:
-        pass
-    #
-    self.stoppedtohandle_time = time.time()
-    self.logger.info('handle_forwardingdata_:: stopped; dur=%ssecs, at t=%s', self.stoppedtohandle_time-self.startedtohandle_time, self.stoppedtohandle_time)
-    self.logger.info('handle_forwardingdata_:: totalproc_time=%s', self.totalproc_time)
-    
+
   def run(self):
     self.startedtohandle_time = time.time()
     #
     while not self.stopflag:
+      #wait for the proc turn
+      stoken = self.stokenq.get(True, None)
+      if stoken == CHUNKSIZE:
+        pass
+      elif stoken == -1:
+        self.stopflag = True
+        continue
+      else:
+        self.logger.error('run:: Unexpected stoken=%s', stoken)
+        self.stopflag = True
+        continue
+      #
       (data, datasize) = self.pop_from_pipe()
       if data == None:
         if datasize == 0: #failed
           pass
         elif datasize == -1: #EOF
           self.logger.debug('run:: fileurl=EOF')
-          job = {'stpdst': self.stpdst,
-                 'data': 'EOF',
-                 'datasize': 3 }
-          self.joboutq.put(job)
+          self.stopflag = True
         elif datasize == -2: #STOP
-          self.logger.debug('run:: stopped with flag:ITSERV_STOP')
+          self.logger.debug('run:: stopped with STOP flag !')
           self.stopflag = True
         elif datasize == -3: #fatal
           self.logger.error('run:: sth unexpected happened. Check exceptions. Aborting...')
           sys.exit(2)
       else:
         self.logger.debug('run:: datasize=%s popped.', datasize)
-        if not self.serv_started:
-          self.serv_started = True
-        #
         self.active_last_time = time.time()
         #
-        job = {'stpdst': self.stpdst,
-               'data': data,
-               'datasize': float(datasize)/(1024**2),
-               'jobtobedone': self.itwork_dict['jobtobedone'],
-               'proc': self.itwork_dict['proc'] }
-        self.joboutq.put(job)
-        
+        self.logger.debug('run:: ready proc and forward datasize=%s', datasize)
+        data_ = self.proc(jobtobedone = self.itwork_dict['jobtobedone'],
+                          datasize = datasize,
+                          data = data,
+                          proc = float(self.itwork_dict['proc']) )
         #datasize_ = getsizeof(data_)
         #self.forward_data(data_, datasize_)
         
@@ -399,11 +384,13 @@ class ItServHandler(threading.Thread):
         self.served_size_B_ += datasize
         #
         #self.test_file.write(data)
-        self.logger.debug('run:: queued job datasize=%sB, served_size=%s, served_size_=%s', datasize, self.served_size, self.served_size_)
+        self.logger.debug('run:: acted on datasize=%sB, served_size=%s, served_size_=%s', datasize, self.served_size, self.served_size_)
     #
     self.test_file.close()
     self.sock.close()
-    self.logger.info('run:: done.')
+    self.stoppedtohandle_time = time.time()
+    self.logger.info('run:: done, dur=%ssecs, at time=%s', self.stoppedtohandle_time-self.startedtohandle_time, self.stoppedtohandle_time)
+    self.logger.debug('run:: totalproc_time=%s', self.totalproc_time)
 
   def pop_from_pipe(self):
     """ returns:
@@ -499,66 +486,11 @@ class ItServHandler(threading.Thread):
           pass
       else:
         self.logger.error('socket error=%s', e)
-
-
-class JobProcThread(threading.Thread):
-  def __init__(self, jobinq, data_q):
-    threading.Thread.__init__(self)
-    self.setDaemon(True)
-    #
-    self.logger = logging.getLogger('jobprocthread')
-    #
-    self.itfunc_dict = {'f0':self.f0,
-                        'f1':self.f1,
-                        'f2':self.f2,
-                        'f3':self.f3,
-                        'f4':self.f4 }
-    self.func_comp_dict = {'f0':0.5,
-                           'f1':1,
-                           'f2':2,
-                           'f3':3,
-                           'f4':4 }
-    #
-    self.jobinq = jobinq
-    self.data_q = data_q
     
-  def run(self):
-    while (1):
-      '''
-      procjob = {jobtobedone:, data:, datasize(MB):, proc:}
-      '''
-      procjob = self.jobinq.get(True, None)
-      if procjob == 'STOP':
-        self.logger.info('JobProcThread:: stopped by STOP flag !')
-        break;
-      #
-      stpdst = procjob['stpdst']
-      jobtobedone = procjob['jobtobedone']
-      data = procjob['data']
-      datasize = procjob['datasize']
-      proc = procjob['proc']
-      #
-      if datasize == 3 and data == 'EOF':
-        jobdone = {'stpdst': stpdst,
-                   'data': 'EOF' }
-        self.data_q.put(jobdone)
-        break
-      #
-      procstart_time = time.time()
-      data_ = self.proc(jobtobedone = jobtobedone,
-                        data = data,
-                        datasize = datasize,
-                        proc = proc)
-      procend_time = time.time()
-      jobdone = {'stpdst': stpdst,
-                 'data': data_,
-                 'dur': procend_time-procstart_time}
-      self.data_q.put(jobdone)
-  
   #~~~  Data Manipulation  ~~~#
   def proc(self, jobtobedone, data, datasize, proc):
     try:
-      datasize_ = float(datasize) # MB
+      datasize_ = float(datasize)/(1024**2) # MB
       #
       data_ = None
       for ftag in jobtobedone:
@@ -588,6 +520,7 @@ class JobProcThread(threading.Thread):
                                    func_comp = self.func_comp_dict['f0'],
                                    proc_cap = proc_cap)
     self.logger.info('f0:: sleep=%ssecs', t_sleep)
+    self.totalproc_time += t_sleep
     time.sleep(t_sleep)
     #for now no manipulation on data, just move the data forward !
     return data
@@ -598,6 +531,7 @@ class JobProcThread(threading.Thread):
                                    func_comp = self.func_comp_dict['f1'],
                                    proc_cap = proc_cap)
     self.logger.info('f1:: sleep=%ssecs', t_sleep)
+    self.totalproc_time += t_sleep
     time.sleep(t_sleep)
     #for now no manipulation on data, just move the data forward !
     return data
@@ -608,6 +542,7 @@ class JobProcThread(threading.Thread):
                                    func_comp = self.func_comp_dict['f2'],
                                    proc_cap = proc_cap)
     self.logger.info('f2:: sleep=%ssecs', t_sleep)
+    self.totalproc_time += t_sleep
     time.sleep(t_sleep)
     #for now no manipulation on data, just move the data forward !
     return data
@@ -618,6 +553,7 @@ class JobProcThread(threading.Thread):
                                    func_comp = self.func_comp_dict['f3'],
                                    proc_cap = proc_cap)
     self.logger.info('f3:: sleep=%ssecs', t_sleep)
+    self.totalproc_time += t_sleep
     time.sleep(t_sleep)
     #for now no manipulation on data, just move the data forward !
     return data
@@ -628,6 +564,7 @@ class JobProcThread(threading.Thread):
                                    func_comp = self.func_comp_dict['f4'],
                                    proc_cap = proc_cap)
     self.logger.info('f4:: sleep=%ssecs', t_sleep)
+    self.totalproc_time += t_sleep
     time.sleep(t_sleep)
     #for now no manipulation on data, just move the data forward !
     return data
@@ -672,44 +609,21 @@ class Transit(object):
     #for proc_power slicing
     self.stopflag = False
     self.sflagq_dict = {}
-    
-    self.sjoboutq_dict = {}
-    self.sdata_inq_dict = {}
-    self.jobq = Queue.Queue(0)
-    self.data_q = Queue.Queue(0)
-    
-    self.jobproct = JobProcThread(jobinq = self.jobq,
-                                  data_q = self.data_q )
-    self.jobproct.start()
-    
-    threading.Thread(target = self.manage_jobq).start()
-    threading.Thread(target = self.manage_data_q).start()
+    self.stokenq_dict = {}
+    #
+    threading.Thread(target = self.manage_stokenqs).start()
     #
     self.logger.info('%s is ready...', self.nodename)
   
-  def manage_jobq(self):
+  def manage_stokenqs(self):
     while not self.stopflag:
-      for stpdst, sjoboutq in self.sjoboutq_dict.items():
+      for stpdst, stokenq in self.stokenq_dict.items():
         try:
-          job = sjoboutq.get(False, None)
-          self.jobq.put(job)
-        except Queue.Empty:
-          #self.logger.warning('manage_jobq:: sjoboutq is empty.')
+          stokenq.put(CHUNKSIZE, True, 1)
+        except Queue.Full:
           pass
     #
-    self.logger.debug('manage_jobq:: stoppped by STOP flag !')
-    
-  def manage_data_q(self):
-    while not self.stopflag:
-      try:
-        data_ = self.data_q.get(True, 1)
-        stpdst = data_['stpdst']
-        del data_['stpdst']
-        self.sdata_inq_dict[stpdst].put(data_)
-      except Queue.Empty:
-          pass
-    #
-    self.logger.debug('manage_data_q:: stoppped by STOP flag !')
+    self.logger.debug('manage_stokenqs:: stoppped by STOP flag!')
     
   ###  handle dts_comm  ###
   def _handle_recvfromdts(self, msg):
@@ -742,19 +656,16 @@ class Transit(object):
     del data_['proto']
     #
     sflagq = Queue.Queue(0)
-    sjoboutq = Queue.Queue(0)
-    sdata_inq = Queue.Queue(0)
+    stokenq = Queue.Queue(10)
     self.sflagq_dict[stpdst] = sflagq
-    self.sjoboutq_dict[stpdst] = sjoboutq
-    self.sdata_inq_dict[stpdst] = sdata_inq
+    self.stokenq_dict[stpdst] = stokenq
     #
     if self.trans_type == 'file':
       s_server_thread = FilePipeServer(server_addr = (self.tl_ip, stpdst),
                                        itwork_dict = data_,
                                        to_addr = to_addr,
-                                       flagq = sflagq,
-                                       sjoboutq = sjoboutq,
-                                       sdata_inq = sdata_inq )
+                                       sflagq = sflagq,
+                                       stokenq = stokenq )
       self.sinfo_dict[stpdst] = {'itjobrule':data_,
                                  'to_addr': to_addr,
                                  's_server_thread': s_server_thread,
@@ -780,7 +691,6 @@ class Transit(object):
   
   def shutdown(self):
     self.stopflag = True
-    self.jobq.put('STOP')
     #
     for stpdst,sflagq in self.sflagq_dict.items():
       sflagq.put('STOP')
@@ -796,7 +706,7 @@ class Transit(object):
             'data_to_ip': u'10.0.0.1',
             'datasize': 8,
             'itfunc_dict': {u'f1': 1.0, u'f2': 0.99999998665},
-            'proc': 1.0,
+            'proc': 0.5,#1.0,
             's_tp': 6000 }
     self.welcome_s(data)
 
