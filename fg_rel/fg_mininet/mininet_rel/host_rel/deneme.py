@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import mmap,os,pprint,threading,time,thread,Queue,logging,subprocess
+import mmap,os,pprint,threading,time,thread,Queue,logging,subprocess,sys
 from multiprocessing import Process
 from sender import Sender
 
@@ -8,6 +8,26 @@ from sender import Sender
 #2*(8*8/64) = 2
 
 def main():
+  
+  '''
+  print 'python:: here'
+  hm = 10
+  sys.stdout.write('a'*hm)
+  sys.stdout.write('b'*hm)
+  #cli_o = subprocess.call(['./deneme'])
+  sys.stdout.write('c'*hm)
+  '''
+  '''
+  starttime = time.time()
+  try:
+    cli_o = subprocess.call(['./run_hosts.sh', 'ep'])
+  except subprocess.CalledProcessError as e:
+    print 'ERR=%s\n' % e.output
+  #
+  elapsed_time = time.time() - starttime
+  print 'python_elapsed_time=%s' % elapsed_time
+  '''
+  '''
   htbdir = '/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
   peth0dir_1 = '/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel/p-eth0_1'
   peth0dir_2 = '/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel/p-eth0_2'
@@ -44,6 +64,7 @@ def main():
   #
   raw_input('Enter\n')
   queue_tosender.put('stop')
+  '''
   '''
   #p = Process(target=somework())
   #p.start()

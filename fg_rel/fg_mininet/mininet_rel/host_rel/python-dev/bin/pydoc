@@ -1,0 +1,5 @@
+#!/media/portable_large/cb_sim_rel/fg_rel/fg_mininet/mininet_rel/host_rel/python-dev/bin/python
+
+import pydoc
+if __name__ == '__main__':
+    pydoc.cli()

@@ -47,8 +47,10 @@ elif [ $1  = 't31' ]; then
   python transit.py --nodename=t31 --intf=eth0 --dtsl_ip=10.0.0.255 --dtsl_port=7001 --dtst_port=7001 --logto=file --trans_type=file
 elif [ $1  = 'sr' ]; then
   python sender.py --dst_ip=127.0.0.1 --dst_lport=7001 --datasize=1 --proto=udp --tx_type=dummy --file_url=... --logto=console
-elif [ $1  = 'sd' ]; then
+elif [ $1  = 's' ]; then
   python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console
+elif [ $1  = 's1' ]; then
+  python sender.py --dst_ip=127.0.0.1 --dst_lport=6001 --datasize=20 --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console
 elif [ $1  = 'r' ]; then
   #python receiver.py --lintf=lo --lport=6000 --proto=tcp --rx_type=dummy --file_url=rx.dat --logto=console
   python receiver.py --lintf=lo --lport=6000 --proto=tcp --rx_type=file --file_url=rx.dat --logto=console
@@ -89,21 +91,17 @@ elif [ $1  = 'pexp' ]; then
 #eceiprocing
 elif [ $1  = 'den' ]; then
   g++ deneme.c -o deneme
-  ./deneme
+  #echo "denememe" | ./deneme
+  #dd if=/dev/zero of=stdout bs=1024 count=1 | ./deneme
+  python deneme.py | ./deneme
 elif [ $1  = 'ep' ]; then
   make eceiproc
-  #sudo nice -20 ./eceiproc fft_1.dat
-  #./eceiproc --datafname "/media/portable_large/ecei_data.bp" \
-  #           --outdir "/media/portable_large/cb_sim_rel/fg_rel/fg_mininet/mininet_rel/host_rel/companalysis" \
-  #           --compfname "fft_1.dat"
-  sudo nice -20 ./eceiproc --datafname "/home/ubuntu/ecei_data.bp" \
-             --outdir "/home/ubuntu/mininet/mininet_rel/host_rel/companalysis" \
+  ./eceiproc --datafname "/media/portable_large/ecei_data.bp" \
+             --outdir "/media/portable_large/cb_sim_rel/fg_rel/fg_mininet/mininet_rel/host_rel/companalysis" \
              --compfname "fft_1.dat"
 elif [ $1  = 'ep2' ]; then
-  make eceiproc
-  sudo nice --20 ./eceiproc --datafname "/home/ubuntu/ecei_data.bp" \
-             --outdir "/home/ubuntu/mininet/mininet_rel/host_rel/companalysis" \
-             --compfname "fft_2.dat"
+  make eceiproc2
+  
 else
 	echo "Argument did not match !"
 fi

@@ -378,6 +378,21 @@ void do_pipeline(uint64_t len, size_t dimx, size_t dimy, FILE* datafilep){
   free(matX);
 }
 
+void deneme(size_t len, FILE* datafilep){
+  struct timeval ts, te;
+  double elapsed_t;
+  printf("deneme:: started.\n");
+  
+  gettimeofday(&ts, NULL);
+  do_pipeline(len, DIMX, DIMY, datafilep);
+  gettimeofday(&te, NULL);
+    
+  elapsed_t = (te.tv_sec - ts.tv_sec) * 1000.0;      // sec to ms
+  elapsed_t += (te.tv_usec - ts.tv_usec) / 1000.0;   // us to ms
+  elapsed_t = elapsed_t/1000.0; //msec to sec
+  printf("deneme:: done, elapsed_t=%fsec\n", elapsed_t);
+}
+
 void comp_analysis(const char* compfdir, const char* compfname, FILE* datafilep){
   char whole_compfname[100];
   strcpy(whole_compfname, compfdir);
@@ -491,7 +506,20 @@ int main (int argc, char** argv)
     exit(0);
   }
   
-  comp_analysis(outdir, compfname, datafilep);
+  
+  struct timeval ts, te;
+  double elapsed_t;
+  
+  gettimeofday(&ts, NULL);
+  deneme(50000, datafilep);
+  gettimeofday(&te, NULL);
+    
+  elapsed_t = (te.tv_sec - ts.tv_sec) * 1000.0;      // sec to ms
+  elapsed_t += (te.tv_usec - ts.tv_usec) / 1000.0;   // us to ms
+  elapsed_t = elapsed_t/1000.0; //msec to sec
+  printf("done, celapsed_t=%fsec\n", elapsed_t);
+  
+  //comp_analysis(outdir, compfname, datafilep);
   
   //char* data_out_dir = "/media/portable_large/cb_sim_rel/fg_rel/fg_mininet/mininet_rel/host_rel/companalysis";
   //get_companalysisplot(outdir, compfname, "fft");
