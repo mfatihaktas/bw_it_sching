@@ -2,10 +2,11 @@
 import sys,socket,json,getopt,struct,time,errno,logging,threading
 #import numpy as np
 
-TXCHUNK_SIZE = 1024 #4096
+TXCHUNK_SIZE = 1920 #1024 #4096
+IMGSIZE = 192
 
 class Sender(threading.Thread):
-  def __init__(self, dst_addr, proto, datasize, tx_type, file_url, logto, in_queue=None, out_queue=None):
+  def __init__(self, dst_addr, proto, datasize, tx_type, file_url, logto, numimg, kstardata_url, in_queue=None, out_queue=None):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
@@ -29,7 +30,7 @@ class Sender(threading.Thread):
       sys.exit(0)
     self.proto = proto
     #
-    if not (tx_type == 'dummy' or tx_type == 'file'):
+    if not (tx_type == 'dummy' or tx_type == 'file' or tx_type == 'kstardata'):
       logging.error('Unexpected tx_type=%s', tx_type)
       sys.exit(0)
     self.tx_type = tx_type
@@ -37,6 +38,8 @@ class Sender(threading.Thread):
     self.dst_addr = dst_addr
     self.datasize = datasize
     self.file_url = file_url
+    self.numimg = numimg
+    self.kstardata_url = kstardata_url
     #
   
   def run(self):
@@ -70,16 +73,57 @@ class Sender(threading.Thread):
       self.dummy_send(data_str, self.datasize*1024/TXCHUNK_SIZE)
     elif self.tx_type == 'file':
       self.file_send()
+    elif self.tx_type == 'kstardata':
+      self.kstardata_send()
     #
     if self.out_queue != None:
       self.out_queue.put('done')
+  
+  def kstardata_send(self):
+    if self.proto != 'tcp':
+      logging.info('kstardata_send:: unexpected proto=%s', self.proto)
+      return
+    #
+    self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self.sock.connect(self.dst_addr)
+    #
+    time_s = time.time()
+    logging.info('kstardata_send:: started at time=%s', time_s )
+    f=open(self.kstardata_url, "r")
+    
+    ds_tobesent_B = self.numimg*IMGSIZE
+    #
+    len_ = 0
+    l = f.read(TXCHUNK_SIZE)
+    while (l and len_ < ds_tobesent_B):
+      c_len_ = len(l)
+      len_ += c_len_
+      try:
+        self.sock.sendall(l)
+      except socket.error, e:
+        if isinstance(e.args, tuple):
+          logging.error('errno is %d', e[0])
+          if e[0] == errno.EPIPE:
+            logging.error('Detected remote disconnect')
+          else:
+            pass
+        else:
+          logging.error('socket error=%s', e)
+      #
+      l = f.read(TXCHUNK_SIZE)
+    #
+    self.sock.sendall('EOF')
+    logging.info('kstardata_send:: EOF is txed.')
+    #
+    tx_dur = time.time() - time_s
+    logging.info('kstardata_send:: sent to %s; size=%sB, dur=%ssec', self.dst_addr,len_,tx_dur)
   
   def file_send(self):
     #TODO (??? ):This method needs to be rewritten according to threaded TCPServer approach
     self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self.sock.connect(self.dst_addr)
     #
-    logging.info('file_send started at time=%s', time.time() )
+    logging.info('file_send:: started at time=%s', time.time() )
     time_s = time.time()
     f=open(self.file_url, "r")
     #
@@ -203,9 +247,9 @@ def main(argv):
   global is_sender_run
   is_sender_run = True
   #
-  dst_ip = dst_lport = proto = datasize = tx_type = file_url = logto = None
+  dst_ip = dst_lport = proto = datasize = tx_type = file_url = logto = kstardata_url = numimg = None
   try:
-    opts, args = getopt.getopt(argv,'',['dst_ip=','dst_lport=','proto=','datasize=','tx_type=', 'file_url=', 'logto='])
+    opts, args = getopt.getopt(argv,'',['dst_ip=','dst_lport=','proto=','datasize=','tx_type=', 'file_url=', 'logto=', 'kstardata_url=', 'numimg='])
   except getopt.GetoptError:
     print 'sender.py --dst_ip=<> --dst_lport=<> --proto=tcp/udp --datasize=Mb --tx_type=dummy/file --file_url=<> --logto=<>'
     sys.exit(0)
@@ -224,7 +268,7 @@ def main(argv):
     elif opt == '--datasize':
       datasize = int(arg)
     elif opt == '--tx_type':
-      if arg == 'file' or arg == 'dummy':
+      if arg == 'file' or arg == 'dummy' or arg == 'kstardata':
         tx_type = arg
       else:
         print 'unknown rx_type=%s' % arg
@@ -233,6 +277,10 @@ def main(argv):
       file_url = arg
     elif opt == '--logto':
       logto = arg
+    elif opt == '--kstardata_url':
+      kstardata_url = arg
+    elif opt == '--numimg':
+      numimg = int(arg)
   #
   import Queue
   queue_tosender = Queue.Queue(0)
@@ -242,7 +290,9 @@ def main(argv):
               datasize = datasize,
               tx_type = tx_type,
               file_url = file_url,
-              logto = logto )
+              logto = logto,
+              kstardata_url = kstardata_url,
+              numimg = numimg )
   ds.start()
   #
   raw_input('Enter\n')

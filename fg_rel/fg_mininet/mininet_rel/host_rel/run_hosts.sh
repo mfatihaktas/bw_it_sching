@@ -45,10 +45,9 @@ elif [ $1  = 't21' ]; then
 	python transit.py --nodename=t21 --intf=eth0 --dtsl_ip=10.0.0.255 --dtsl_port=7001 --dtst_port=7001 --logto=file --trans_type=file
 elif [ $1  = 't31' ]; then
   python transit.py --nodename=t31 --intf=eth0 --dtsl_ip=10.0.0.255 --dtsl_port=7001 --dtst_port=7001 --logto=file --trans_type=file
-elif [ $1  = 'sr' ]; then
-  python sender.py --dst_ip=127.0.0.1 --dst_lport=7001 --datasize=1 --proto=udp --tx_type=dummy --file_url=... --logto=console
 elif [ $1  = 's' ]; then
-  python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console
+  #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console
+  python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=100 --kstardata_url=/media/portable_large/ecei_data.bp
 elif [ $1  = 's1' ]; then
   python sender.py --dst_ip=127.0.0.1 --dst_lport=6001 --datasize=20 --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console
 elif [ $1  = 'r' ]; then
@@ -93,7 +92,7 @@ elif [ $1  = 'den' ]; then
   g++ deneme.c -o deneme
   #echo "denememe" | ./deneme
   #dd if=/dev/zero of=stdout bs=1024 count=1 | ./deneme
-  python deneme.py | ./deneme
+  #python deneme.py | ./deneme
 elif [ $1  = 'ep' ]; then
   make eceiproc
   ./eceiproc --datafname "/media/portable_large/ecei_data.bp" \
@@ -101,6 +100,7 @@ elif [ $1  = 'ep' ]; then
              --compfname "fft_1.dat"
 elif [ $1  = 'ep2' ]; then
   make eceiproc2
+  ./eceiproc2
   
 else
 	echo "Argument did not match !"

@@ -499,7 +499,7 @@ int main (int argc, char** argv)
         abort ();
     }
   }
-   
+  
   FILE* datafilep = fopen (datafname , "r");
   if (datafilep == NULL){
     perror ("Error opening file");

@@ -1,5 +1,0 @@
-#!/media/portable_large/cb_sim_rel/fg_rel/fg_mininet/mininet_rel/host_rel/python-dev/bin/python
-
-from idlelib.PyShell import main
-if __name__ == '__main__':
-    main()

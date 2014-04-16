@@ -7,7 +7,17 @@ from sender import Sender
 #proc_t = float(func_comp)*float(8*float(datasize)/64)*float(1/float(proc_cap)) #secs
 #2*(8*8/64) = 2
 
+DSIZE = 9
+IMGSIZE = 24*8
+NIMGACHUNK  = 100
+CHUNKSIZE = DSIZE*IMGSIZE*NIMGACHUNK
+
 def main():
+  fifoname = 'fft_fifo'+'0'
+  fifo = open(fifoname, 'w')
+  # write stuff to fifo
+  print >> fifo, 'h'*CHUNKSIZE
+  fifo.close()
   
   '''
   print 'python:: here'

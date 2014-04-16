@@ -343,6 +343,8 @@ class ItServHandler(threading.Thread):
     self.jobremaining = {}
     for ftag,datasize in self.jobtobedone.items():
       self.jobremaining[ftag] = datasize*(1024**2) #B
+    #to integrate ecei_proc
+    self.ftag_fifoid_dict = {'fft':0, 'upsampling':0, 'plot':0}
     #
     self.logger.debug('itservhandler:: jobremaining=\n%s', pprint.pformat(self.jobremaining))
     
@@ -382,11 +384,13 @@ class ItServHandler(threading.Thread):
         #self.logger.debug('run:: ready proc and forward datasize=%s', datasize)
         
         #print 'itwork_dict=%s' % pprint.pformat(self.itwork_dict)
-        
+        '''
         [data_, datasize_] = self.proc(jobtobedone = self.jobtobedone,
                                        datasize = datasize,
                                        data = data,
                                        proc = float(self.itwork_dict['proc']) )
+        '''
+        
         #datasize_ = getsizeof(data_)
         #self.forward_data(data_, datasize_)
         
@@ -402,7 +406,34 @@ class ItServHandler(threading.Thread):
     self.stoppedtohandle_time = time.time()
     self.logger.info('run:: done, dur=%ssecs, at time=%s', self.stoppedtohandle_time-self.startedtohandle_time, self.stoppedtohandle_time)
     self.logger.debug('run:: totalproc_time=%s, totalproced_datasize=%s, jobremaining=\n%s', self.totalproc_time, self.totalproced_datasize, pprint.pformat(self.jobremaining))
-
+  
+  def proc(self, jobtobedone, datasize, data):
+    
+     
+    for ftag in jobtobedone:
+      if self.jobremaining[ftag] > 0:
+        fifo_id = self.ftag_fifoid_dict[ftag]
+        #first create data_fifo
+        data_fifoname = ftag+'_data_fifo'+fifo_id
+        
+        
+        
+        datafifoname = ftag+'_datafifo'+fifo_id
+        self.ftag_fifoid_dict[ftag] += 1
+        
+        datafifo = open(datafifoname, 'w')
+        print >> datafifo, data
+        self.logger.debug('proc:: pushed to datafifo datasize=%s', datasize)
+        
+        
+        #data_ = self.itfunc_dict[ftag](float(datasize)/(1024**2), data, proc)
+        
+        self.jobremaining[ftag] -= datasize
+        
+        self.logger.debug('proc:: %s run on datasize=%s', ftag, datasize)
+        #datasize = getsizeof(data_)
+        #data = data_
+  
   def pop_from_pipe(self):
     """ returns:
     (data, datasize): success
@@ -497,91 +528,7 @@ class ItServHandler(threading.Thread):
           pass
       else:
         self.logger.error('socket error=%s', e)
-    
-  #~~~  Data Manipulation  ~~~#
-  def proc(self, jobtobedone, data, datasize, proc):
-    self.totalproced_datasize += datasize
-    try:
-      data_ = None
-      
-      for ftag in jobtobedone:
-        if self.jobremaining[ftag] > 0:
-          data_ = self.itfunc_dict[ftag](float(datasize)/(1024**2), data, proc)
-          self.jobremaining[ftag] -= datasize
-          
-          self.logger.debug('proc:: %s run on datasize=%s', ftag, datasize)
-          datasize = getsizeof(data_)
-          data = data_
-      #
-      return [data_, datasize]
-    except Exception, e:
-      self.logger.error('proc:: \ne.__doc__=%s\n e.message=%s', e.__doc__, e.message)
-  
-  def proc_time_model(self, datasize, func_comp, proc_cap):
-    '''
-    proc_time_model used in sching process. To see if the sching results can be reaklized
-    by assuming used models for procing are perfectly accurate.
-    datasize: in MB
-    '''
-    proc_t = float(func_comp)*float(8*float(datasize)/64)*float(1/float(proc_cap)) #secs
-    #self.logger.info('%s*(%s/64)*(1/%s)=%s', func_comp, datasize, proc_cap, proc_t)
-    return proc_t
-    
-  # transit data manipulation functions
-  def f0(self, datasize, data, proc_cap):
-    self.logger.info('f0:: on action')
-    t_sleep = self.proc_time_model(datasize = datasize,
-                                   func_comp = self.func_comp_dict['f0'],
-                                   proc_cap = proc_cap)
-    self.logger.info('f0:: sleep=%ssecs', t_sleep)
-    self.totalproc_time += t_sleep
-    time.sleep(t_sleep)
-    #for now no manipulation on data, just move the data forward !
-    return data
-    
-  def f1(self, datasize, data, proc_cap):
-    self.logger.info('f1:: on action')
-    t_sleep = self.proc_time_model(datasize = datasize,
-                                   func_comp = self.func_comp_dict['f1'],
-                                   proc_cap = proc_cap)
-    self.logger.info('f1:: sleep=%ssecs', t_sleep)
-    self.totalproc_time += t_sleep
-    time.sleep(t_sleep)
-    #for now no manipulation on data, just move the data forward !
-    return data
-    
-  def f2(self, datasize, data, proc_cap):
-    self.logger.info('f2:: on action')
-    t_sleep = self.proc_time_model(datasize = datasize,
-                                   func_comp = self.func_comp_dict['f2'],
-                                   proc_cap = proc_cap)
-    self.logger.info('f2:: sleep=%ssecs', t_sleep)
-    self.totalproc_time += t_sleep
-    time.sleep(t_sleep)
-    #for now no manipulation on data, just move the data forward !
-    return data
-    
-  def f3(self, datasize, data, proc_cap):
-    self.logger.info('f3:: on action')
-    t_sleep = self.proc_time_model(datasize = datasize,
-                                   func_comp = self.func_comp_dict['f3'],
-                                   proc_cap = proc_cap)
-    self.logger.info('f3:: sleep=%ssecs', t_sleep)
-    self.totalproc_time += t_sleep
-    time.sleep(t_sleep)
-    #for now no manipulation on data, just move the data forward !
-    return data
-    
-  def f4(self, datasize, data, proc_cap):
-    self.logger.info('f4:: on action')
-    t_sleep = self.proc_time_model(datasize = datasize,
-                                   func_comp = self.func_comp_dict['f4'],
-                                   proc_cap = proc_cap)
-    self.logger.info('f4:: sleep=%ssecs', t_sleep)
-    self.totalproc_time += t_sleep
-    time.sleep(t_sleep)
-    #for now no manipulation on data, just move the data forward !
-    return data
+    #
 
 #############################  Class Transit  ##################################
 TOTALPROCCAP = 100 #Mflop/s

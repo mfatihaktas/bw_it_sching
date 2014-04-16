@@ -1,15 +1,19 @@
-/* fscanf example */
+//for get_stdindata()
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
-
+//for get_fifodata()
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+//
 #define BUFFSIZE 10 //1024
 
-char* get_data(FILE* datafp){
+char* get_stdindata(FILE* datafp){
   char* buffer = (char*) malloc(BUFFSIZE+1);
   size_t numcharsread = fread((char*)buffer,1,BUFFSIZE,datafp);
-  //printf("get_data:: numcharsread=%d", numcharsread);
+  //printf("get_stdindata:: numcharsread=%d", numcharsread);
   if (numcharsread != BUFFSIZE){
     fputs ("Reading error\n",stderr); exit (0);
   }
@@ -17,18 +21,28 @@ char* get_data(FILE* datafp){
   return buffer;
 }
 
+char* get_fifodata(int fd){
+  char* buf = (char*) malloc(BUFFSIZE+1);
+  read(fd, buf, BUFFSIZE);
+  buf[BUFFSIZE]='\0';
+  
+  return buf;
+}
+
+
 int main ()
 {
-  /*
-  FILE* read_fp = fopen (stdin , "r");
-  if (read_fp == NULL){
-    perror ("Error opening file");
-    exit(0);
-  }
-  */
-  printf("here\n");
-  char* stdin_data = get_data((FILE*) stdin);
-  printf("stdin_data=%s\n", stdin_data);
+  //char* stdin_data = get_stdindata((FILE*) stdin);
+  //printf("stdin_data=%s\n", stdin_data);
+  
+  int fd;
+  char* myfifo = (char*) "myfifo";
+  mkfifo(myfifo, 0666);
+  fd = open(myfifo, O_RDONLY);
+  
+  char* fifodata = get_fifodata(fd);
+  printf("fifodata=%s\n", fifodata);
+  close(fd);
   
   return 0;
 }
