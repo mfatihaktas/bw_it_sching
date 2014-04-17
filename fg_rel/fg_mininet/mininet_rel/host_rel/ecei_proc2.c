@@ -21,6 +21,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <getopt.h>
+#include <pthread.h>
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
@@ -119,9 +120,9 @@ void do_fft(double r, uint64_t len, size_t dimx, size_t dimy, double*** mat){ //
  */
 double cubicInterpolate(double p[4], double x)
 {
-    return p[1] + 0.5 * x*(p[2] - p[0] + 
-                           x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + 
-                              x*(3.0*(p[1] - p[2]) + p[3] - p[0])));
+  return p[1] + 0.5 * x*(p[2] - p[0] + 
+                         x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + 
+                            x*(3.0*(p[1] - p[2]) + p[3] - p[0])));
 }
 
 double bicubicInterpolate (double p[4][4], double x, double y) 
@@ -137,36 +138,36 @@ double bicubicInterpolate (double p[4][4], double x, double y)
 //                   size_t scale, size_t dimx2, size_t dimy2, double Y[][dimy2]){
 void do_upsampling(size_t dimx, size_t dimy, double** X,
                    size_t scale, size_t dimx2, size_t dimy2, double** Y){
-    assert(dimy2 == scale*dimy);
-    assert(dimx2 == scale*dimx);
-    //printf("do_upsampling:: from (x,y)=(%d,%d) to (X,Y)=(%d,%d)\n", dimx,dimy, dimx2,dimy2);
-    double p[4][4];
+  assert(dimy2 == scale*dimy);
+  assert(dimx2 == scale*dimx);
+  //printf("do_upsampling:: from (x,y)=(%d,%d) to (X,Y)=(%d,%d)\n", dimx,dimy, dimx2,dimy2);
+  double p[4][4];
 
-    for (size_t j=0; j<dimy; j++) 
-        for (size_t i=0; i<dimx; i++)
-            for (size_t jk=0; jk<scale; jk++)
-                for (size_t ik=0; ik<scale; ik++)
-                {
-                    size_t jj = j*scale + jk;
-                    size_t ii = i*scale + ik;
+  for (size_t j=0; j<dimy; j++) 
+      for (size_t i=0; i<dimx; i++)
+          for (size_t jk=0; jk<scale; jk++)
+              for (size_t ik=0; ik<scale; ik++)
+              {
+                  size_t jj = j*scale + jk;
+                  size_t ii = i*scale + ik;
 
-                    for (size_t t2=0; t2<4; t2++)
-                        for (size_t t1=0; t1<4; t1++)
-                        {
-                            int64_t o1 = i + t1 - 1;
-                            int64_t o2 = j + t2 - 1;
+                  for (size_t t2=0; t2<4; t2++)
+                      for (size_t t1=0; t1<4; t1++)
+                      {
+                          int64_t o1 = i + t1 - 1;
+                          int64_t o2 = j + t2 - 1;
 
-                            if (o1 < 0) o1=0;
-                            if (o2 < 0) o2=0;
-                            if (o1 > dimx-1) o1 = dimx;
-                            if (o2 > dimy-1) o2 = dimy;
+                          if (o1 < 0) o1=0;
+                          if (o2 < 0) o2=0;
+                          if (o1 > dimx-1) o1 = dimx;
+                          if (o2 > dimy-1) o2 = dimy;
 
-                            p[t2][t1] = X[o2][o1];
-                        }
-                    
-                    //DUMP("%ld %ld", jj, ii);
-                    Y[ii][jj] = bicubicInterpolate(p, (double)jk/scale, (double)ik/scale);
-                }
+                          p[t2][t1] = X[o2][o1];
+                      }
+                  
+                  //DUMP("%ld %ld", jj, ii);
+                  Y[ii][jj] = bicubicInterpolate(p, (double)jk/scale, (double)ik/scale);
+              }
 }
 
 /*
@@ -221,7 +222,7 @@ void print_3dmat(const char* matname, uint64_t len, size_t dimx, size_t dimy, do
     printf("t=%lld\n", t);
     for (uint64_t i = 0; i < dimx; i++){
       for (uint64_t j = 0; j < dimy; j++){
-        printf("%2.2f,", mat[t][i][j]);
+        printf("%2.3f,", mat[t][i][j]);
       }
       printf("\n");
     }
@@ -248,55 +249,127 @@ double** alloc_2dmat(size_t dimx, size_t dimy) {
   return mat;  
 }
 
-double*** alloc_3dmat(uint64_t len, size_t dimx, size_t dimy) {
-  double*** mat;
-  mat = (double***) malloc(len*sizeof(double**));
-  for (uint64_t i = 0; i < len; i++)
-     mat[i] = alloc_2dmat(dimx, dimy);
-  return mat; 
-}
+#define AFSIZE (sizeof(double) + 1) //+1 for floating point
+#define IMGSIZE DIMX*DIMY*AFSIZE //floats
+#define NIMGACHUNK 10
+#define CHUNKSIZE IMGSIZE*NIMGACHUNK
 
-#define DSIZE (sizeof(double) + 1) //+1 for floating point
-#define IMGSIZE DIMX*DIMY //doubles
-#define NIMGACHUNK 100
-#define CHUNKSIZE DSIZE*IMGSIZE*NIMGACHUNK
-
-char* get_nextchunk(int chunk_index){
+char* read_chunk(char* basefifoname, int chunk_index){
   char ci_str[10];
   sprintf(ci_str, "%d", chunk_index);
   
   char fifoname[30];
-  strcpy(fifoname, (char*)"fft_fifo");
+  strcpy(fifoname, basefifoname);
   strcat(fifoname, ci_str);
   //
+  //printf("fifoname=%s\n", fifoname);
   
   mkfifo(fifoname, 0666);
-  
+  printf("read_chunk:: made fifoname=%s\n", fifoname);
   int fd = open(fifoname, O_RDONLY);
-  
+  printf("read_chunk:: opened fifoname=%s\n", fifoname);
   char* chunk = (char*) malloc(CHUNKSIZE+1);
   read(fd, chunk, CHUNKSIZE);
   chunk[CHUNKSIZE]='\0';
-  
-  printf("chunk=%s\n", chunk);
+  printf("read_chunk:: chunk read from fifoname=%s\n", fifoname);
   close(fd);
-  unlink(fifoname);
+  //unlink(fifoname);
   
   return chunk;
 }
 
-void run_fftproc(){
-  char* nextchunk = get_nextchunk(0);
-  free(nextchunk);
+double*** convert_chunk_to3dmat(char* chunk){
+  double*** mat3d = (double***) malloc(NIMGACHUNK*sizeof(double**));
   
-  /*
-  while (stopflag == 0){
-    char* chunk = get_nextchunk();
+  char* chunk_wp = chunk;
+  char animgdata[IMGSIZE];
+  char afloatdata[AFSIZE+1];
+  for (uint64_t i=0; i<NIMGACHUNK; i++){
+    memcpy((char*)animgdata, (char*)chunk_wp, IMGSIZE);
+    chunk_wp += IMGSIZE;
+    char* animgdata_wp = animgdata;
     
+    double** mat2d = alloc_2dmat(DIMX, DIMY);
+    for (uint64_t j = 0; j < DIMX; j++){
+      for (uint64_t k = 0; k < DIMY; k++){
+        memcpy((char*)afloatdata, (char*)animgdata_wp, AFSIZE);
+        animgdata_wp += AFSIZE;
+        
+        afloatdata[AFSIZE] = '\0';
+        mat2d[j][k] = atof(afloatdata);
+      }
+    }
+    mat3d[i] = mat2d;
   }
-  */
+  free(chunk);
+  
+  return mat3d;
 }
 
+void write_chunk(char* basefifoname, int chunk_index, size_t chunksize, char* chunk){
+  char ci_str[10];
+  sprintf(ci_str, "%d", chunk_index);
+  
+  char fifoname[30];
+  strcpy(fifoname, basefifoname);
+  strcat(fifoname, ci_str);
+  //
+  int fd = open(fifoname, O_WRONLY);
+  printf("write_chunk:: opened fifoname=%s\n", fifoname);
+  write(fd, chunk, chunksize);
+  printf("write_chunk:: wrote chunk to fifoname=%s\n", fifoname);
+  if (close(fd) != 0){
+    perror("Error with close(fd)");
+    return;
+  }
+  unlink(fifoname);
+}
+
+char* convert_3dmat_tochunk(double*** mat3d){
+  char* chunk = (char*) malloc(CHUNKSIZE+1);
+  char* chunk_wp = chunk;
+  
+  for (uint64_t i=0; i<NIMGACHUNK; i++){
+    for (uint64_t j = 0; j < DIMX; j++){
+      for (uint64_t k = 0; k < DIMY; k++){
+        char afstr[AFSIZE];
+        sprintf(afstr, "%2.6f", mat3d[i][j][k]);
+        //chunk[i*IMGSIZE+j*DIMY*AFSIZE+i*AFSIZE]
+        memcpy((char*)chunk_wp, (char*)afstr, AFSIZE);
+        chunk_wp += AFSIZE;
+      }
+    }
+  }
+  free(mat3d);
+  
+  chunk[CHUNKSIZE]='\0';
+  return chunk;
+}
+
+int STOPFLAG = 0;
+void* run_fftproc(){
+  printf("run_fftproc:: started\n");
+  double ratio = 1.0E-6;
+  
+  int datafifo_id = 0;
+  while (!STOPFLAG){
+    char* chunk = read_chunk("fifo/fft_datafifo", datafifo_id);
+    //printf("chunk=%s\n", chunk);
+    
+    double*** mat3d = convert_chunk_to3dmat(chunk);
+    //print_3dmat((char*)"mat3d", NIMGACHUNK, DIMX, DIMY, mat3d);
+    
+    //do_fft(double r, NIMGACHUNK, DIMX, DIMY, mat3d);
+    
+    char* chunk_ = convert_3dmat_tochunk(mat3d);
+    //printf("chunk_=%s\n", chunk_);
+    
+    write_chunk("fifo/fft_data_fifo", datafifo_id, CHUNKSIZE, chunk_);
+    
+    datafifo_id += 1;
+  }
+  
+}
 
 int main (int argc, char** argv)
 {
@@ -338,8 +411,14 @@ int main (int argc, char** argv)
     }
   }
   //
-  run_fftproc();
-  
-  
+  pthread_t fft_thread, upsampling_thread, plotting_thread;
+
+  if (pthread_create( &fft_thread, NULL, &run_fftproc, NULL) != 0){
+    perror("Error with pthread_create");
+  }
+  //run_fftproc();
+  printf("Enter\n");
+  scanf("...");
+  STOPFLAG = 1;
   return 0;
 }

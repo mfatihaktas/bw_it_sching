@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import mmap,os,pprint,threading,time,thread,Queue,logging,subprocess,sys
+import mmap,os,pprint,threading,time,thread,Queue,logging,subprocess,sys,errno
 from multiprocessing import Process
 from sender import Sender
 
@@ -13,11 +13,17 @@ NIMGACHUNK  = 100
 CHUNKSIZE = DSIZE*IMGSIZE*NIMGACHUNK
 
 def main():
-  fifoname = 'fft_fifo'+'0'
+  fifoname = 'fft_datafifo'+'0'
   fifo = open(fifoname, 'w')
   # write stuff to fifo
-  print >> fifo, 'h'*CHUNKSIZE
-  fifo.close()
+  print >> fifo, '2'*CHUNKSIZE
+  try:
+    fifo.close()
+  except IOError as e:
+    if not e.errno == errno.EPIPE:
+      print 'Unexpected exception, e.errno=%s' % e.errno
+  #
+  
   
   '''
   print 'python:: here'

@@ -2,8 +2,8 @@
 import sys,socket,json,getopt,struct,time,errno,logging,threading
 #import numpy as np
 
-TXCHUNK_SIZE = 1920 #1024 #4096
-IMGSIZE = 192
+TXCHUNK_SIZE = 24*8*9*10 #1024 #4096
+IMGSIZE = 24*8*9
 
 class Sender(threading.Thread):
   def __init__(self, dst_addr, proto, datasize, tx_type, file_url, logto, numimg, kstardata_url, in_queue=None, out_queue=None):

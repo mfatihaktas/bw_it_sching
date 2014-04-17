@@ -10,7 +10,7 @@ eceiproc: $(eceiproc_sf)
 		gcc -std=gnu99 -o $(eceiproc_tf) $< -L$(FFTWDIR)/lib -I$(FFTWDIR)/include -lfftw3 -lm
 
 eceiproc2: $(eceiproc2_sf)
-		gcc -std=gnu99 -o $(eceiproc2_tf) $< -L$(FFTWDIR)/lib -I$(FFTWDIR)/include -lfftw3 -lm
+		gcc -pthread -std=gnu99 -o $(eceiproc2_tf) $< -L$(FFTWDIR)/lib -I$(FFTWDIR)/include -lfftw3 -lm
 
 clean:
 		rm -rf *o $(eceiproc_tf) $(eceiproc2_tf)

@@ -24,7 +24,7 @@ else:
 def getsizeof(data):
   return sys.getsizeof(data) - PYTHON_STR_HEADER_LEN
 
-CHUNKSIZE = 1024*10 #B
+CHUNKSIZE = 24*8*9*10 #B
 NUMCHUNKS_AFILE = 10
 
 class FilePipeServer(threading.Thread):
@@ -291,12 +291,6 @@ class ItServHandler(threading.Thread):
     #
     self.logger = logging.getLogger('itservhandler_%s' % stpdst)
     #
-    self.func_comp_dict = {'f0':0.5,
-                           'f1':1,
-                           'f2':2,
-                           'f3':3,
-                           'f4':4 }
-    #
     self.stopflag = False
     
     self.num_chunks_afile = NUMCHUNKS_AFILE
@@ -324,20 +318,8 @@ class ItServHandler(threading.Thread):
     self.test_file_size_B = 0 #B
     self.served_size_B = 0 #B
     #
-    self.itfunc_dict = {'f0':self.f0,
-                        'f1':self.f1,
-                        'f2':self.f2,
-                        'f3':self.f3,
-                        'f4':self.f4 }
-    self.func_comp_dict = {'f0':0.5,
-                           'f1':1,
-                           'f2':2,
-                           'f3':3,
-                           'f4':4 }
-    #
     self.startedtohandle_time = None
     self.totalproc_time = 0
-    self.totalproced_datasize = 0
     #
     self.jobtobedone = self.itwork_dict['jobtobedone']
     self.jobremaining = {}
@@ -384,55 +366,67 @@ class ItServHandler(threading.Thread):
         #self.logger.debug('run:: ready proc and forward datasize=%s', datasize)
         
         #print 'itwork_dict=%s' % pprint.pformat(self.itwork_dict)
-        '''
-        [data_, datasize_] = self.proc(jobtobedone = self.jobtobedone,
+        #[datasize_, data_] = [0, None]
+        [datasize_, data_] = self.proc(jobtobedone = self.jobtobedone,
                                        datasize = datasize,
-                                       data = data,
-                                       proc = float(self.itwork_dict['proc']) )
-        '''
-        
+                                       data = data )
         #datasize_ = getsizeof(data_)
         #self.forward_data(data_, datasize_)
-        
         #
         self.served_size_ += self.serv_size
         self.served_size_B_ += datasize
         #
         #self.test_file.write(data)
-        self.logger.debug('run:: acted on datasize=%sB, served_size=%s, served_size_=%s', datasize, self.served_size, self.served_size_)
+        self.logger.debug('run:: acted on datasize=%sB, datasize_=%sB, served_size=%s, served_size_=%s', datasize, datasize_, self.served_size, self.served_size_)
     #
     self.test_file.close()
     self.sock.close()
     self.stoppedtohandle_time = time.time()
     self.logger.info('run:: done, dur=%ssecs, at time=%s', self.stoppedtohandle_time-self.startedtohandle_time, self.stoppedtohandle_time)
-    self.logger.debug('run:: totalproc_time=%s, totalproced_datasize=%s, jobremaining=\n%s', self.totalproc_time, self.totalproced_datasize, pprint.pformat(self.jobremaining))
+    self.logger.debug('run:: totalproc_time=%s, jobremaining=\n%s', self.totalproc_time, pprint.pformat(self.jobremaining))
   
   def proc(self, jobtobedone, datasize, data):
-    
-     
+    data_ = None
+    datasize_ = None
     for ftag in jobtobedone:
       if self.jobremaining[ftag] > 0:
         fifo_id = self.ftag_fifoid_dict[ftag]
         #first create data_fifo
-        data_fifoname = ftag+'_data_fifo'+fifo_id
-        
-        
-        
-        datafifoname = ftag+'_datafifo'+fifo_id
+        data_fifoname = 'fifo/'+ftag+'_data_fifo'+str(fifo_id)
+        try:
+          os.mkfifo(data_fifoname)
+        except OSError as e:
+          if not e.errno == 17: #File exists
+            self.logger.error('Unexpected oserror, errno=%s', e.errno)
+            return [0, None]
+        #
+        self.logger.debug('proc:: made data_fifoname=%s', data_fifoname)
+        #then write data to datafifo
+        datafifoname = 'fifo/'+ftag+'_datafifo'+str(fifo_id)
         self.ftag_fifoid_dict[ftag] += 1
         
         datafifo = open(datafifoname, 'w')
+        
         print >> datafifo, data
-        self.logger.debug('proc:: pushed to datafifo datasize=%s', datasize)
-        
-        
-        #data_ = self.itfunc_dict[ftag](float(datasize)/(1024**2), data, proc)
-        
-        self.jobremaining[ftag] -= datasize
-        
-        self.logger.debug('proc:: %s run on datasize=%s', ftag, datasize)
-        #datasize = getsizeof(data_)
-        #data = data_
+        datafifo.close()
+        try:
+          os.remove(datafifoname)
+        except OSError, e:
+          self.logger.error('Error: %s - %s.' % (e.errno,e.strerror))
+          return [0, None]
+        #
+        self.logger.debug('proc:: wrote to datafifo datasize=%s', datasize)
+        #read data_ from data_fifo
+        data_fifo = open(data_fifoname, 'r')
+        data_ = data_fifo.read()
+        datasize_ = getsizeof(data_)
+        self.logger.debug('proc:: read from data_fifo datasize=%s', datasize_)
+        #
+        self.jobremaining[ftag] -= datasize_
+        self.logger.debug('proc:: %s run on datasize=%s, datasize_=%s', ftag, datasize, datasize_)
+        data = data_
+    #
+    return [datasize_, data_]
   
   def pop_from_pipe(self):
     """ returns:
@@ -538,7 +532,8 @@ func_comp_dict = {'f0':0.5,
                   'f1':1,
                   'f2':2,
                   'f3':3,
-                  'f4':4 }
+                  'f4':4,
+                  'fft':2 }
 
 def proc_time_model(datasize, func_comp, proc_cap):
   proc_t = float(func_comp)*float(8*float(datasize)/64)*float(1/float(proc_cap)) #secs
@@ -690,12 +685,22 @@ class Transit(object):
   
   def test(self):
     self.logger.debug('test')
+    '''
     data = {'comp': 1.99999998665,
             'proto': 6,
             'data_to_ip': u'10.0.0.1',
             'datasize': 7.8125,
             'itfunc_dict': {u'f1': 1.0, u'f2': 0.99999998665},
             'proc': 1, #1.0,
+            's_tp': 6000 }
+    '''
+    imgsize = CHUNKSIZE/10
+    data = {'comp': 2.0,
+            'proto': 6,
+            'data_to_ip': u'10.0.0.1',
+            'datasize': float(imgsize*100)/(1024**2),
+            'itfunc_dict': {u'fft': 2.0},
+            'proc': 1.0,
             's_tp': 6000 }
     self.welcome_s(data)
       

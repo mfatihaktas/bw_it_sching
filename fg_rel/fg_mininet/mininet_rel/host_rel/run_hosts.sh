@@ -90,6 +90,7 @@ elif [ $1  = 'pexp' ]; then
 #eceiprocing
 elif [ $1  = 'den' ]; then
   g++ deneme.c -o deneme
+  ./deneme
   #echo "denememe" | ./deneme
   #dd if=/dev/zero of=stdout bs=1024 count=1 | ./deneme
   #python deneme.py | ./deneme
