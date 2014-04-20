@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys,getopt,commands,pprint,mmap,logging,os,Queue,errno,signal
+import sys,getopt,commands,pprint,mmap,logging,os,Queue,errno,signal,copy
 import SocketServer,threading,time,socket,thread
 from errors import CommandLineOptionError,NoItruleMatchError
 from userdts_comm_intf import UserDTSCommIntf
@@ -321,15 +321,43 @@ class ItServHandler(threading.Thread):
     self.startedtohandle_time = None
     self.totalproc_time = 0
     #
-    self.jobtobedone = self.itwork_dict['jobtobedone']
+    self.uptojobdone = self.itwork_dict['uptojobdone']
+    self.uptorecvsize_dict = {}
+    for ftag,datasize in self.uptojobdone.items():
+      self.uptorecvsize_dict[ftag] = datasize*(1024**2) #B
+    
+    self.jobtobedone_dict = self.itwork_dict['jobtobedone']
     self.jobremaining = {}
-    for ftag,datasize in self.jobtobedone.items():
+    for ftag,datasize in self.jobtobedone_dict.items():
       self.jobremaining[ftag] = datasize*(1024**2) #B
     #to integrate ecei_proc
-    self.ftag_fifoid_dict = {'fft':0, 'upsampling':0, 'plot':0}
+    self.ftag_fifoid_dict = {'fft':0, 'upsample':0, 'plot':0}
+    self.ftag_servsize_dict = {'fft':1, 'upsample':1, 'plot':8} #chunks
     #
     self.logger.debug('itservhandler:: jobremaining=\n%s', pprint.pformat(self.jobremaining))
+  
+  def get_itfunclist_overnextchunk(self):
+    def reorder(itfunc_list):
+      ordered_list = []
+      idealfunc_order = ['fft', 'upsample', 'plot']
+      for func in idealfunc_order:
+        if func in itfunc_list:
+          ordered_list.append(func)
+      #
+      return ordered_list
+    #
+    itfunc_list = []
+    uptoserved_size_B = self.served_size_B + self.served_size_B_
     
+    for ftag in self.jobtobedone_dict:
+      if ftag in self.uptorecvsize_dict:
+        if uptoserved_size_B >= self.uptorecvsize_dict[ftag]:
+          itfunc_list.append(ftag)
+      else:
+        itfunc_list.append(ftag)
+    #
+    return reorder(itfunc_list)
+  
   def run(self):
     self.startedtohandle_time = time.time()
     #
@@ -346,7 +374,15 @@ class ItServHandler(threading.Thread):
         self.stopflag = True
         continue
       #
-      (data, datasize) = self.pop_from_pipe()
+      itfunc_list = self.get_itfunclist_overnextchunk()
+      print 'itfunc_list=%s' % pprint.pformat(itfunc_list)
+      try:
+        firstitfunc = itfunc_list[0]
+      except IndexError as e:
+        firstitfunc = None
+      #
+      (data, datasize) = self.pop_from_pipe(firstitfunc)
+      datasize_t = copy.copy(datasize)
       if data == None:
         if datasize == 0: #failed
           pass
@@ -366,18 +402,23 @@ class ItServHandler(threading.Thread):
         #self.logger.debug('run:: ready proc and forward datasize=%s', datasize)
         
         #print 'itwork_dict=%s' % pprint.pformat(self.itwork_dict)
-        #[datasize_, data_] = [0, None]
-        [datasize_, data_] = self.proc(jobtobedone = self.jobtobedone,
-                                       datasize = datasize,
-                                       data = data )
-        #datasize_ = getsizeof(data_)
-        #self.forward_data(data_, datasize_)
+        [datasize_, data_] = [0, None]
+        for func in itfunc_list:
+          if self.jobremaining[func] > 0:
+            [datasize_, data_] = self.proc(func = func,
+                                           datasize = datasize,
+                                           data = data )
+            self.jobremaining[func] -= datasize
+            datasize = datasize_
+            data = data_
         #
+        #datasize = getsizeof(data)
+        #self.forward_data(data, datasize)
+        
         self.served_size_ += self.serv_size
-        self.served_size_B_ += datasize
-        #
+        self.served_size_B_ += datasize_t
         #self.test_file.write(data)
-        self.logger.debug('run:: acted on datasize=%sB, datasize_=%sB, served_size=%s, served_size_=%s', datasize, datasize_, self.served_size, self.served_size_)
+        self.logger.debug('run:: acted on datasize=%sB, datasize_=%sB, self.served_size_B=%s, self.served_size_B_=%s', datasize_t, datasize_, self.served_size_B, self.served_size_B_)
     #
     self.test_file.close()
     self.sock.close()
@@ -385,50 +426,47 @@ class ItServHandler(threading.Thread):
     self.logger.info('run:: done, dur=%ssecs, at time=%s', self.stoppedtohandle_time-self.startedtohandle_time, self.stoppedtohandle_time)
     self.logger.debug('run:: totalproc_time=%s, jobremaining=\n%s', self.totalproc_time, pprint.pformat(self.jobremaining))
   
-  def proc(self, jobtobedone, datasize, data):
+  def proc(self, func, datasize, data):
     data_ = None
     datasize_ = None
-    for ftag in jobtobedone:
-      if self.jobremaining[ftag] > 0:
-        fifo_id = self.ftag_fifoid_dict[ftag]
-        #first create data_fifo
-        data_fifoname = 'fifo/'+ftag+'_data_fifo'+str(fifo_id)
-        try:
-          os.mkfifo(data_fifoname)
-        except OSError as e:
-          if not e.errno == 17: #File exists
-            self.logger.error('Unexpected oserror, errno=%s', e.errno)
-            return [0, None]
-        #
-        self.logger.debug('proc:: made data_fifoname=%s', data_fifoname)
-        #then write data to datafifo
-        datafifoname = 'fifo/'+ftag+'_datafifo'+str(fifo_id)
-        self.ftag_fifoid_dict[ftag] += 1
-        
-        datafifo = open(datafifoname, 'w')
-        
-        print >> datafifo, data
-        datafifo.close()
-        try:
-          os.remove(datafifoname)
-        except OSError, e:
-          self.logger.error('Error: %s - %s.' % (e.errno,e.strerror))
-          return [0, None]
-        #
-        self.logger.debug('proc:: wrote to datafifo datasize=%s', datasize)
-        #read data_ from data_fifo
-        data_fifo = open(data_fifoname, 'r')
-        data_ = data_fifo.read()
-        datasize_ = getsizeof(data_)
-        self.logger.debug('proc:: read from data_fifo datasize=%s', datasize_)
-        #
-        self.jobremaining[ftag] -= datasize_
-        self.logger.debug('proc:: %s run on datasize=%s, datasize_=%s', ftag, datasize, datasize_)
-        data = data_
+    #
+    fifo_id = self.ftag_fifoid_dict[func]
+    #first create data_fifo
+    data_fifoname = 'fifo/'+func+'_'+str(self.stpdst)+'_data_fifo'+str(fifo_id)
+    try:
+      os.mkfifo(data_fifoname)
+    except OSError as e:
+      if not e.errno == 17: #File exists
+        self.logger.error('Unexpected oserror, errno=%s', e.errno)
+        return [0, None]
+    #
+    self.logger.debug('proc:: made data_fifoname=%s', data_fifoname)
+    #then write data to datafifo
+    datafifoname = 'fifo/'+func+'_'+str(self.stpdst)+'_datafifo'+str(fifo_id)
+    self.ftag_fifoid_dict[func] += 1
+    
+    datafifo = open(datafifoname, 'w')
+    
+    print >> datafifo, data
+    datafifo.close()
+    try:
+      os.remove(datafifoname)
+    except OSError, e:
+      self.logger.error('Error: %s - %s.' % (e.errno,e.strerror))
+      return [0, None]
+    #
+    self.logger.debug('proc:: wrote to datafifo datasize=%s', datasize)
+    #read data_ from data_fifo
+    data_fifo = open(data_fifoname, 'r')
+    data_ = data_fifo.read()
+    datasize_ = getsizeof(data_)
+    self.logger.debug('proc:: read from data_fifo datasize=%s', datasize_)
+    #
+    self.logger.debug('proc:: %s run on datasize=%s, datasize_=%s', func, datasize, datasize_)
     #
     return [datasize_, data_]
   
-  def pop_from_pipe(self):
+  def pop_from_pipe(self, itfunc):
     """ returns:
     (data, datasize): success
     (None, 0): failed
@@ -463,7 +501,10 @@ class ItServHandler(threading.Thread):
         return (None, -3)
     #
     try:
-      chunk = self.pipe_mm.read(self.serv_size_B)
+      if itfunc == None: #no proc will be done, just forward
+        chunk = self.pipe_mm.read(self.serv_size_B)
+      else:
+        chunk = self.pipe_mm.read(self.ftag_servsize_dict[itfunc]*CHUNKSIZE)
     except Exception, e:
       self.logger.error('pop_from_pipe:: \ne.__doc__=%s\n e.message=%s', e.__doc__, e.message)
       return (None, -3)
@@ -533,7 +574,9 @@ func_comp_dict = {'f0':0.5,
                   'f2':2,
                   'f3':3,
                   'f4':4,
-                  'fft':2 }
+                  'fft':2,
+                  'upsample':4,
+                  'plot':6 }
 
 def proc_time_model(datasize, func_comp, proc_cap):
   proc_t = float(func_comp)*float(8*float(datasize)/64)*float(1/float(proc_cap)) #secs
@@ -583,25 +626,6 @@ class Transit(object):
       time.sleep(intereq_time)
     #
     self.logger.debug('manage_stokenq_%s:: stoppped by STOP flag!', stpdst)
-  '''
-  def manage_stokenqs(self):
-    while not self.stopflag:
-      for stpdst, stokenq in self.stokenq_dict.items():
-        procw = self.sinfo_dict[stpdst]['procw']
-        for i in range(int(procw)):
-          try:
-            stokenq.put(CHUNKSIZE, False)
-            #stokenq.put(CHUNKSIZE, True, 1)
-          except Queue.Full:
-            pass
-      #wait untill every stokenq gets empty
-      self.logger.debug('manage_stokenqs:: wait untill every stokenq gets empty')
-      for stpdst, stokenq in self.stokenq_dict.items():
-        while not stokenq.empty():
-          pass
-    #
-    self.logger.debug('manage_stokenqs:: stoppped by STOP flag!')
-  '''
   
   ###  handle dts_comm  ###
   def _handle_recvfromdts(self, msg):
@@ -620,6 +644,11 @@ class Transit(object):
     del data_['data_to_ip']
     
     to_addr = (to_ip, stpdst) #goes into s_info_dict
+    #
+    uptojobdone = {}
+    for ftag,comp in data_['uptoitfunc_dict'].items():
+      uptojobdone[ftag] = data_['datasize']*comp/func_comp_dict[ftag]
+    data_.update( {'uptojobdone': uptojobdone} )
     #
     jobtobedone = {}
     for ftag,comp in data_['itfunc_dict'].items():
@@ -699,7 +728,8 @@ class Transit(object):
             'proto': 6,
             'data_to_ip': u'10.0.0.1',
             'datasize': float(imgsize*100)/(1024**2),
-            'itfunc_dict': {u'fft': 2.0},
+            'itfunc_dict': {'upsample': 2.0},
+            'uptoitfunc_dict': {'fft': 2.0, 'upsample': 2.0 }, #{'fft': 1.0},
             'proc': 1.0,
             's_tp': 6000 }
     self.welcome_s(data)
@@ -709,6 +739,7 @@ class Transit(object):
             'data_to_ip': u'10.0.0.1',
             'datasize': 7.8125,
             'itfunc_dict': {u'f1': 1.0, u'f2': 0.99999998665},
+            'uptoitfunc_dict': {},
             'proc': 2, #1.0,
             's_tp': 6001 }
     self.welcome_s(data)

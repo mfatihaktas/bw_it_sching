@@ -48,6 +48,7 @@ elif [ $1  = 't31' ]; then
 elif [ $1  = 's' ]; then
   #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console
   python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=100 --kstardata_url=/media/portable_large/ecei_data.bp
+  #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=100 --kstardata_url=/media/mehmet/portable_large/ecei_data.bp
 elif [ $1  = 's1' ]; then
   python sender.py --dst_ip=127.0.0.1 --dst_lport=6001 --datasize=20 --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console
 elif [ $1  = 'r' ]; then
@@ -101,7 +102,7 @@ elif [ $1  = 'ep' ]; then
              --compfname "fft_1.dat"
 elif [ $1  = 'ep2' ]; then
   make eceiproc2
-  ./eceiproc2
+  ./eceiproc2 --stpdst=6000
   
 else
 	echo "Argument did not match !"

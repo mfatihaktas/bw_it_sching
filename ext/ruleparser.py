@@ -59,6 +59,12 @@ class RuleParser (object):
       for itjobrule in itjobrule_list:
         new_itjob = ET.SubElement(new_conn, 'itjob')
         #
+        new_uptojobinfo = ET.SubElement(new_itjob, 'uptojobinfo')
+        for itfunc,comp in itjobrule['completeduptohere_job'].items():
+          new_itfunc = ET.SubElement(new_uptojobinfo, 'func')
+          new_itfunc.set('comp',str(comp))
+          new_itfunc.set('tag',itfunc)
+        #
         new_jobinfo = ET.SubElement(new_itjob, 'jobinfo')
         ji_dict = itjobrule['assigned_job']
         new_jobinfo.set('proc', str(ji_dict['proc']))
@@ -97,12 +103,19 @@ class RuleParser (object):
           for itjob in conn.iter('itjob'):
             itjob_dict = {}
             #
+            uptojobinfo = itjob.find('uptojobinfo')
+            uptoitfunc_dict = {}
+            for func in uptojobinfo.iter('func'):
+              uptoitfunc_dict[func.get('tag')] = float(func.get('comp'))
+            #
             jobinfo = itjob.find('jobinfo')
             itfunc_dict = {}
             for func in jobinfo.iter('func'):
               itfunc_dict[func.get('tag')] = float(func.get('comp'))
+            #
             itjob_dict['jobinfo'] = {'comp':float(jobinfo.get('comp')),
                                      'proc':float(jobinfo.get('proc')),
+                                     'uptoitfunc_dict':uptoitfunc_dict,
                                      'itfunc_dict':itfunc_dict,
                                      'proto':int(jobinfo.get('proto')),
                                      's_tp':int(jobinfo.get('s_tp')),

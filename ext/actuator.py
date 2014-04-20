@@ -79,6 +79,7 @@ class Actuator (object):
       itjob_rule = data_['itjob_rule']
       #print 'walk_rule: '
       #pprint.pprint(walk_rule)
+      #pprint.pprint(itjob_rule)
       #updating global dicts based on the input rxed from scher
       if not (s_id in info_dict['sid_pidlist_dict']):
         info_dict['sid_pidlist_dict'][s_id] = []
@@ -149,8 +150,8 @@ class Actuator (object):
   #########################  install_*** methods  #######################
   def install_proactive_scheditjob(self, s_id, p_id):
     dict_ = ruleparser.get_itjobruledict_forsp(str(s_id), str(p_id))
-    #print 'itjobdict:'
-    #pprint.pprint(dict_)
+    print 'itjobdict:'
+    pprint.pprint(dict_)
     for dpid in dict_:
       itnodeinfo_list = dict_[dpid]
       for itnodeinfo in itnodeinfo_list:

@@ -410,7 +410,8 @@ class SchingOptimizer:
       return eval('self.%s.value' % name)
     else:
       return eval('self.%s[%s,%s].value' % (name,i,j) )
-  
+  ###to make itprocing 
+  ###
   def grab_sching_result(self):
     ###S-WISE
     for i in range(0, self.N):

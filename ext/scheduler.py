@@ -382,8 +382,8 @@ class Scheduler(object):
         elif self.data_over_tp == 'udp':
           sp_walk__tprrule = \
           self.get_overudp_spwalkrule__sptprrule(s_id, p_id,
-                                         p_walk = p_walk,
-                                         pitwalkbundle_dict = itwalkinfo_dict[p_id])
+                                                 p_walk = p_walk,
+                                                 pitwalkbundle_dict = itwalkinfo_dict[p_id])
         #
         #logging.info('sp_walk__tprrule=\n%s', pprint.pformat(sp_walk__tprrule))
         logging.info('for s_id=%s, p_id=%s;', s_id, p_id)
@@ -459,6 +459,8 @@ class Scheduler(object):
     from_mac = p_info_dict['mac']
     to_mac = c_info_dict['mac']
     #
+    uptoitr_func_dict = {}
+    #
     for i,pwalk_chop in list(enumerate(chopped_pwalk_list)):
       chop_wr = [] #chop_walk_rule
       head_i, tail_i = 0, len(pwalk_chop)-1
@@ -513,13 +515,15 @@ class Scheduler(object):
                         'wc':[head_ip,to_ip,6,-1,int(s_tp_dst)],
                         'rule':[tail_ip, tail_mac, totail_swportname, duration] })
         #fill up it_job_rule for the itres
+        assigned_job = pitwalkbundle_dict['itbundle'][tail_str]
         if not (tailsw['dpid'] in itjob_rule_dict):
           itjob_rule_dict[tailsw['dpid']] = [{
             'proto': 6,
             'tpr_ip': tail_ip,
             'tpr_mac': tail_mac,
-            'swdev_to_tpr': totail_swportname ,
-            'assigned_job': pitwalkbundle_dict['itbundle'][tail_str],
+            'swdev_to_tpr': totail_swportname,
+            'assigned_job': assigned_job,
+            'completeduptohere_job': uptoitr_func_dict.copy(),
             'session_tp': int(s_tp_dst),
             'consumer_ip': to_ip,
             'datasize': pitwalkbundle_dict['p_info']['datasize'] }]
@@ -528,11 +532,20 @@ class Scheduler(object):
             'proto': 6,
             'tpr_ip': tail_ip,
             'tpr_mac': tail_mac,
-            'swdev_to_tpr': totail_swportname ,
-            'assigned_job': pitwalkbundle_dict['itbundle'][tail_str],
+            'swdev_to_tpr': totail_swportname,
+            'assigned_job': assigned_job,
+            'completeduptohere_job': uptoitr_func_dict.copy(),
             'session_tp': int(s_tp_dst),
             'consumer_ip': to_ip,
             'datasize': pitwalkbundle_dict['p_info']['datasize'] }] )
+        #
+        #update__uptoitr_func_dict
+        for ftag in assigned_job:
+          if ftag in uptoitr_func_dict:
+            uptoitr_func_dict[ftag] += assigned_job[ftag]
+          else:
+            uptoitr_func_dict[ftag] = assigned_job[ftag]
+        #
       #
       
       #extract modify_backward route to head
@@ -553,6 +566,7 @@ class Scheduler(object):
       #print 'chop_wr='
       #pprint.pprint(chop_wr)
       walk_rule += chop_wr
+      
     return {'walk_rule':walk_rule, 'itjob_rule':itjob_rule_dict}
 
   def get_overudp_spwalkrule__sptprrule(self,s_id,p_id,p_walk,pitwalkbundle_dict):
@@ -669,7 +683,7 @@ class Scheduler(object):
                         gw_dpid = userinfo['gw_dpid'],
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
-    num_session = 1
+    num_session = 3
     #data_size (MB) slack_metric (ms)
     req_dict_list = [ {'data_size':1, 'slack_metric':1000, 'func_list':['f1','f2','f3'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':1, 'slack_metric':1000, 'func_list':['f1','f2','f3'], 'parism_level':1, 'par_share':[1]},

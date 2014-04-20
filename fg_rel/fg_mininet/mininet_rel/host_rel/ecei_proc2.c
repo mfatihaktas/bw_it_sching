@@ -159,14 +159,14 @@ void do_upsampling(size_t dimx, size_t dimy, double** X,
 
                           if (o1 < 0) o1=0;
                           if (o2 < 0) o2=0;
-                          if (o1 > dimx-1) o1 = dimx;
-                          if (o2 > dimy-1) o2 = dimy;
+                          if (o1 > dimx-1) o1 = dimx-1;
+                          if (o2 > dimy-1) o2 = dimy-1;
 
-                          p[t2][t1] = X[o2][o1];
+                          p[t1][t2] = X[o1][o2];
                       }
                   
                   //DUMP("%ld %ld", jj, ii);
-                  Y[ii][jj] = bicubicInterpolate(p, (double)jk/scale, (double)ik/scale);
+                  Y[ii][jj] = bicubicInterpolate(p, (double)ik/scale, (double)jk/scale);
               }
 }
 
@@ -217,9 +217,9 @@ void do_plot(const char *outdir, size_t len, size_t dimx, size_t dimy, double***
 
 /* MFA functions */
 void print_3dmat(const char* matname, uint64_t len, size_t dimx, size_t dimy, double*** mat){ //double mat[][dimy][dimx]
-  printf("print_3dmat:: matname=%s, len=%d, dimx=%d, dimy=%d\n", matname, len, dimx, dimy);
+  printf("print_3dmat:: matname=%s, len=%zd, dimx=%zd, dimy=%zd\n", matname, len, dimx, dimy);
   for (uint64_t t = 0; t < len; t++){
-    printf("t=%lld\n", t);
+    printf("t=%lld\n", (long long)t);
     for (uint64_t i = 0; i < dimx; i++){
       for (uint64_t j = 0; j < dimy; j++){
         printf("%2.3f,", mat[t][i][j]);
@@ -231,10 +231,10 @@ void print_3dmat(const char* matname, uint64_t len, size_t dimx, size_t dimy, do
 }
 
 void print_2dmat(const char* matname, size_t dimx, size_t dimy, double** mat){ //double mat[dimx][dimy]
-  printf("print_2dmat:: matname=%s, dimx=%d, dimy=%d\n", matname, dimx, dimy);
-  for (uint64_t i = 0; i < dimx; i++){
-    printf("row%d:", i);
-    for (uint64_t j = 0; j < dimy; j++){
+  printf("print_2dmat:: matname=%s, dimx=%zd, dimy=%zd\n", matname, dimx, dimy);
+  for (size_t i = 0; i < dimx; i++){
+    printf("row%zd:", i);
+    for (size_t j = 0; j < dimy; j++){
       printf("%2.2f,", mat[i][j]);
     }
     printf("\n");
@@ -249,12 +249,24 @@ double** alloc_2dmat(size_t dimx, size_t dimy) {
   return mat;  
 }
 
+double*** alloc_3dmat(uint64_t len, size_t dimx, size_t dimy) {
+  double*** mat;
+  mat = (double***) malloc(len*sizeof(double**));
+  for (uint64_t i = 0; i < len; i++)
+     mat[i] = alloc_2dmat(dimx, dimy);
+  return mat; 
+}
+
 #define AFSIZE (sizeof(double) + 1) //+1 for floating point
 #define IMGSIZE DIMX*DIMY*AFSIZE //floats
 #define NIMGACHUNK 10
 #define CHUNKSIZE IMGSIZE*NIMGACHUNK
+#define SCALE 8
+#define CHUNKSIZE_ SCALE*SCALE*CHUNKSIZE
+#define DIMX_ DIMX*SCALE
+#define DIMY_ DIMY*SCALE
 
-char* read_chunk(char* basefifoname, int chunk_index){
+char* read_chunk(char* basefifoname, int chunk_index, int chunksize){
   char ci_str[10];
   sprintf(ci_str, "%d", chunk_index);
   
@@ -268,30 +280,31 @@ char* read_chunk(char* basefifoname, int chunk_index){
   printf("read_chunk:: made fifoname=%s\n", fifoname);
   int fd = open(fifoname, O_RDONLY);
   printf("read_chunk:: opened fifoname=%s\n", fifoname);
-  char* chunk = (char*) malloc(CHUNKSIZE+1);
-  read(fd, chunk, CHUNKSIZE);
-  chunk[CHUNKSIZE]='\0';
+  char* chunk = (char*) malloc(chunksize+1);
+  read(fd, chunk, chunksize);
+  chunk[chunksize]='\0';
   printf("read_chunk:: chunk read from fifoname=%s\n", fifoname);
-  close(fd);
+  //close(fd);
   //unlink(fifoname);
   
   return chunk;
 }
 
-double*** convert_chunk_to3dmat(char* chunk){
-  double*** mat3d = (double***) malloc(NIMGACHUNK*sizeof(double**));
+double*** convert_chunk_to3dmat(int chunksize, char* chunk, size_t len, size_t dimx, size_t dimy){
+  double*** mat3d = (double***) malloc(len*sizeof(double**));
   
   char* chunk_wp = chunk;
-  char animgdata[IMGSIZE];
+  size_t imgsize = dimx*dimy*AFSIZE;
+  char animgdata[imgsize];
   char afloatdata[AFSIZE+1];
-  for (uint64_t i=0; i<NIMGACHUNK; i++){
-    memcpy((char*)animgdata, (char*)chunk_wp, IMGSIZE);
-    chunk_wp += IMGSIZE;
+  for (uint64_t i=0; i<len; i++){
+    memcpy((char*)animgdata, (char*)chunk_wp, imgsize);
+    chunk_wp += imgsize;
     char* animgdata_wp = animgdata;
     
-    double** mat2d = alloc_2dmat(DIMX, DIMY);
-    for (uint64_t j = 0; j < DIMX; j++){
-      for (uint64_t k = 0; k < DIMY; k++){
+    double** mat2d = alloc_2dmat(dimx, dimy);
+    for (uint64_t j = 0; j < dimx; j++){
+      for (uint64_t k = 0; k < dimy; k++){
         memcpy((char*)afloatdata, (char*)animgdata_wp, AFSIZE);
         animgdata_wp += AFSIZE;
         
@@ -304,6 +317,27 @@ double*** convert_chunk_to3dmat(char* chunk){
   free(chunk);
   
   return mat3d;
+}
+
+char* convert_3dmat_tochunk(size_t len, size_t dimx, size_t dimy, double*** mat3d, int chunksize){
+  char* chunk = (char*) malloc(chunksize+1);
+  char* chunk_wp = chunk;
+  for (size_t i=0; i<len; i++){
+    for (size_t j = 0; j < dimx; j++){
+      for (size_t k = 0; k < dimy; k++){
+        char afstr[AFSIZE];
+        sprintf(afstr, "%2.6f", mat3d[i][j][k]);
+        //chunk[i*IMGSIZE+j*DIMY*AFSIZE+i*AFSIZE]
+        memcpy((char*)chunk_wp, (char*)afstr, AFSIZE);
+        chunk_wp += AFSIZE;
+        //printf("i=%zd, j=%zd, k=%zd\n", i,j,k);
+      }
+    }
+  }
+  free(mat3d);
+  
+  chunk[chunksize]='\0';
+  return chunk;
 }
 
 void write_chunk(char* basefifoname, int chunk_index, size_t chunksize, char* chunk){
@@ -325,46 +359,148 @@ void write_chunk(char* basefifoname, int chunk_index, size_t chunksize, char* ch
   unlink(fifoname);
 }
 
-char* convert_3dmat_tochunk(double*** mat3d){
-  char* chunk = (char*) malloc(CHUNKSIZE+1);
+char* convert_plots_tochunk(char* plotdir, char* baseplotname, size_t hmplots){
+  size_t chunksize = CHUNKSIZE*hmplots;
+  char* chunk = (char*)malloc(chunksize+1);
   char* chunk_wp = chunk;
   
-  for (uint64_t i=0; i<NIMGACHUNK; i++){
-    for (uint64_t j = 0; j < DIMX; j++){
-      for (uint64_t k = 0; k < DIMY; k++){
-        char afstr[AFSIZE];
-        sprintf(afstr, "%2.6f", mat3d[i][j][k]);
-        //chunk[i*IMGSIZE+j*DIMY*AFSIZE+i*AFSIZE]
-        memcpy((char*)chunk_wp, (char*)afstr, AFSIZE);
-        chunk_wp += AFSIZE;
+  char plottailname[8];
+  for (size_t i=0; i<hmplots; i++){
+    char plotname[50];
+    strcpy(plotname, plotdir);
+    strcat(plotname, baseplotname);
+    sprintf(plottailname, "%07ld", i);
+    strcat(plotname, plottailname);
+    strcat(plotname, (char*)".png");
+    printf("convert_plots_tochunk:: converting %s\n", plotname);
+    //
+    FILE* plotp = fopen(plotname, "r");
+    if (plotp == NULL){
+      perror ("Error opening file");
+      return NULL;
+    }
+    
+    char* plotdata = (char*) malloc(CHUNKSIZE);
+    size_t readsize = fread(plotdata,1,CHUNKSIZE,plotp);
+    printf("convert_plots_tochunk:: readsize=%zd\n", readsize);
+    /*
+    if (readsize != CHUNKSIZE){ //needs padding
+      char* plotdata_wp = plotdata;
+      plotdata_wp += readsize;
+      size_t padding_size = CHUNKSIZE - readsize;
+      for (int p=0; p<padding_size; p++){
+        memcpy(plotdata_wp, (char*)" ", 1);
+        plotdata_wp += 1;
       }
     }
+    */
+    //fclose(plotp);
+    memcpy(chunk_wp, plotdata, CHUNKSIZE);
   }
-  free(mat3d);
-  
-  chunk[CHUNKSIZE]='\0';
+  chunk_wp = NULL;
+  chunk[chunksize] = '\0';
   return chunk;
 }
 
+/* Thread functions */
 int STOPFLAG = 0;
-void* run_fftproc(){
-  printf("run_fftproc:: started\n");
-  double ratio = 1.0E-6;
-  
+
+void* run_plot(void* stpdst){
+  printf("run_plot:: started\n");
   int datafifo_id = 0;
+  
+  char datafifo_basename[50];
+  strcpy(datafifo_basename, (char*)"fifo/plot_");
+  strcat(datafifo_basename, (char*)stpdst);
+  strcat(datafifo_basename, (char*)"_datafifo");
+  
+  char data_fifo_basename[50];
+  strcpy(data_fifo_basename, (char*)"fifo/fft_");
+  strcat(data_fifo_basename, (char*)stpdst);
+  strcat(data_fifo_basename, (char*)"_plot_fifo");
+  //
   while (!STOPFLAG){
-    char* chunk = read_chunk("fifo/fft_datafifo", datafifo_id);
+    char* chunk = read_chunk(datafifo_basename, datafifo_id, CHUNKSIZE_);
     //printf("chunk=%s\n", chunk);
     
-    double*** mat3d = convert_chunk_to3dmat(chunk);
-    //print_3dmat((char*)"mat3d", NIMGACHUNK, DIMX, DIMY, mat3d);
+    double*** mat3d_ = convert_chunk_to3dmat(CHUNKSIZE_, chunk, NIMGACHUNK, DIMX_, DIMY_);
+    //print_3dmat((char*)"mat3d_", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
     
-    //do_fft(double r, NIMGACHUNK, DIMX, DIMY, mat3d);
+    do_plot((char*)"fifo/plot", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
     
-    char* chunk_ = convert_3dmat_tochunk(mat3d);
+    char* chunk_ = convert_plots_tochunk((char*)"fifo/plot/", (char*)"ecei-", NIMGACHUNK);
     //printf("chunk_=%s\n", chunk_);
     
-    write_chunk("fifo/fft_data_fifo", datafifo_id, CHUNKSIZE, chunk_);
+    write_chunk(data_fifo_basename, datafifo_id, CHUNKSIZE, chunk_);
+    
+    datafifo_id += 1;
+  }
+}
+
+void* run_fft(void* stpdst){
+  printf("run_fft:: started\n");
+  double ratio = 1.0E-6;
+  int datafifo_id = 0;
+  
+  char datafifo_basename[50];
+  strcpy(datafifo_basename, (char*)"fifo/fft_");
+  strcat(datafifo_basename, (char*)stpdst);
+  strcat(datafifo_basename, (char*)"_datafifo");
+  
+  char data_fifo_basename[50];
+  strcpy(data_fifo_basename, (char*)"fifo/fft_");
+  strcat(data_fifo_basename, (char*)stpdst);
+  strcat(data_fifo_basename, (char*)"_data_fifo");
+  //
+  while (!STOPFLAG){
+    char* chunk = read_chunk(datafifo_basename, datafifo_id, CHUNKSIZE);
+    //printf("chunk=%s\n", chunk);
+    
+    double*** mat3d = convert_chunk_to3dmat(CHUNKSIZE, chunk, NIMGACHUNK, DIMX, DIMY);
+    //print_3dmat((char*)"mat3d", NIMGACHUNK, DIMX, DIMY, mat3d);
+    
+    do_fft(ratio, NIMGACHUNK, DIMX, DIMY, mat3d);
+    
+    char* chunk_ = convert_3dmat_tochunk(NIMGACHUNK, DIMX, DIMY, mat3d, CHUNKSIZE);
+    //printf("chunk_=%s\n", chunk_);
+    
+    write_chunk(data_fifo_basename, datafifo_id, CHUNKSIZE, chunk_);
+    
+    datafifo_id += 1;
+  }
+}
+
+void* run_upsample(void* stpdst){
+  printf("run_upsample:: started\n");
+  int datafifo_id = 0;
+  
+  char datafifo_basename[50];
+  strcpy(datafifo_basename, (char*)"fifo/upsample_");
+  strcat(datafifo_basename, (char*)stpdst);
+  strcat(datafifo_basename, (char*)"_datafifo");
+  
+  char data_fifo_basename[50];
+  strcpy(data_fifo_basename, (char*)"fifo/upsample_");
+  strcat(data_fifo_basename, (char*)stpdst);
+  strcat(data_fifo_basename, (char*)"_data_fifo");
+  //
+  while (!STOPFLAG){
+    char* chunk = read_chunk(datafifo_basename, datafifo_id, CHUNKSIZE);
+    //printf("chunk=%s\n", chunk);
+    
+    double*** mat3d = convert_chunk_to3dmat(CHUNKSIZE, chunk, NIMGACHUNK, DIMX, DIMY);
+    //print_3dmat((char*)"mat3d", NIMGACHUNK, DIMX, DIMY, mat3d);
+    
+    double*** mat3d_ = alloc_3dmat(NIMGACHUNK, DIMX_, DIMY_);
+    for (int i=0; i<NIMGACHUNK; i++) {
+        do_upsampling(DIMX, DIMY, (double**)mat3d[i], SCALE, 
+                      DIMX_, DIMY_, (double**)mat3d_[i]);
+    }
+    //print_3dmat((char*)"mat3d_", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
+    char* chunk_ = convert_3dmat_tochunk(NIMGACHUNK, DIMX_, DIMY_, mat3d_, CHUNKSIZE_);
+    //printf("chunk_=%s\n", chunk_);
+    
+    write_chunk(data_fifo_basename, datafifo_id, CHUNKSIZE_, chunk_);
     
     datafifo_id += 1;
   }
@@ -373,15 +509,12 @@ void* run_fftproc(){
 
 int main (int argc, char** argv)
 {
-  //char* datafname = "deneme.bp";
-  char* datafname;
-  char* outdir;
-  char* compfname;
+  char* stpdst;
   int c;
   while (1){
     static struct option long_options[] =
     {
-      {"outdir",  required_argument, 0, 'o'},
+      {"stpdst",  required_argument, 0, 's'},
       {0, 0, 0, 0}
     };
      /* getopt_long stores the option index here. */
@@ -399,9 +532,9 @@ int main (int argc, char** argv)
         if (optarg)
           printf (" with arg %s\n", optarg);
           break;
-      case 'o':
-        outdir = optarg;
-        printf ("option -o with value `%s'\n", optarg);
+      case 's':
+        stpdst = optarg;
+        printf ("option -s with value `%s'\n", optarg);
         break;
       case '?':
         /* getopt_long already printed an error message. */
@@ -411,12 +544,18 @@ int main (int argc, char** argv)
     }
   }
   //
-  pthread_t fft_thread, upsampling_thread, plotting_thread;
+  char* chunk = convert_plots_tochunk((char*)"fifo/plot/", (char*)"ecei-", 1);
+  //printf("chunksize=%s\n", sizeof(chunk));
+  printf("chunk=%s\n", chunk);
+  
+  /*
+  pthread_t fft_thread, upsample_thread, plot_thread;
 
-  if (pthread_create( &fft_thread, NULL, &run_fftproc, NULL) != 0){
+  if ((pthread_create( &fft_thread, NULL, &run_fft, (void*)stpdst ) != 0) ||
+      (pthread_create( &upsample_thread, NULL, &run_upsample, (void*)stpdst ) != 0)){
     perror("Error with pthread_create");
   }
-  //run_fftproc();
+  */
   printf("Enter\n");
   scanf("...");
   STOPFLAG = 1;

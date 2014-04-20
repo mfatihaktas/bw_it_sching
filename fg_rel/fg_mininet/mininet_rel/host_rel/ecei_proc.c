@@ -181,14 +181,14 @@ void do_upsampling(size_t dimx, size_t dimy, double** X,
 
                             if (o1 < 0) o1=0;
                             if (o2 < 0) o2=0;
-                            if (o1 > dimx-1) o1 = dimx;
-                            if (o2 > dimy-1) o2 = dimy;
+                            if (o1 > dimx-1) o1 = dimx-1;
+                            if (o2 > dimy-1) o2 = dimy-1;
 
-                            p[t2][t1] = X[o2][o1];
+                            p[t1][t2] = X[o1][o2];
                         }
                     
                     //DUMP("%ld %ld", jj, ii);
-                    Y[ii][jj] = bicubicInterpolate(p, (double)jk/scale, (double)ik/scale);
+                    Y[ii][jj] = bicubicInterpolate(p, (double)ik/scale, (double)jk/scale);
                 }
 }
 
@@ -350,14 +350,13 @@ void do_pipeline(uint64_t len, size_t dimx, size_t dimy, FILE* datafilep){
   double ratio = 1.0E-6; //1.0E-1;
   do_fft(ratio, len, dimx, dimy, matX);
   //print_3dmat("matX", len, dimx, dimy, matX);
-  /*
+  //do_plot((char*)"images", len, dimx, dimy, matX);
+  
   // Step #2 - Upsampling
   printf(">>> resize\n");
   int step = 1;
   int leny = len/step;
   
-  //double (*matY)[dimx*SCALE][dimy*SCALE];
-  //matY = malloc (leny * sizeof(*matY));
   size_t DIMX_ = dimx*SCALE;
   size_t DIMY_ = dimy*SCALE;
   double*** matY =  alloc_3dmat(leny, dimx*SCALE, dimy*SCALE);
@@ -373,8 +372,8 @@ void do_pipeline(uint64_t len, size_t dimx, size_t dimy, FILE* datafilep){
   
   do_plot(outdir, len, DIMX_, DIMY_, matY);
   //do_plot(outdir, len, dimx, dimy, matX);
+  
   free(matY);
-  */
   free(matX);
 }
 
@@ -506,18 +505,7 @@ int main (int argc, char** argv)
     exit(0);
   }
   
-  
-  struct timeval ts, te;
-  double elapsed_t;
-  
-  gettimeofday(&ts, NULL);
-  deneme(50000, datafilep);
-  gettimeofday(&te, NULL);
-    
-  elapsed_t = (te.tv_sec - ts.tv_sec) * 1000.0;      // sec to ms
-  elapsed_t += (te.tv_usec - ts.tv_usec) / 1000.0;   // us to ms
-  elapsed_t = elapsed_t/1000.0; //msec to sec
-  printf("done, celapsed_t=%fsec\n", elapsed_t);
+  deneme(10, datafilep);
   
   //comp_analysis(outdir, compfname, datafilep);
   
