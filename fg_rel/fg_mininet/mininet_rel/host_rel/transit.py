@@ -51,6 +51,7 @@ class FilePipeServer(threading.Thread):
   def open_socket(self):
     try:
       self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      self.server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
       self.server_sock.bind(self.server_addr)
       self.server_sock.listen(0) #only single client can be served
     except socket.error, (value,message):
@@ -321,6 +322,16 @@ class ItServHandler(threading.Thread):
     self.startedtohandle_time = None
     self.totalproc_time = 0
     #
+    #to integrate ecei_proc
+    self.ftag_fifoid_dict = {'fft':0, 'upsample':0, 'plot':0}
+    self.ftag_servsize_dict = {'fft':1, 'upsample':1, 'plot':64} #chunks
+    
+    self.procsock_dict = {'fft': None, 'upsample': None, 'plot': None}
+    self.toprocaddr_dict = {'fft': ('127.0.0.1', 7000),
+                            'upsample': ('127.0.0.1', 7001),
+                            'plot': ('127.0.0.1', 7002) }
+    
+    
     self.uptojobdone = self.itwork_dict['uptojobdone']
     self.uptorecvsize_dict = {}
     for ftag,datasize in self.uptojobdone.items():
@@ -329,10 +340,7 @@ class ItServHandler(threading.Thread):
     self.jobtobedone_dict = self.itwork_dict['jobtobedone']
     self.jobremaining = {}
     for ftag,datasize in self.jobtobedone_dict.items():
-      self.jobremaining[ftag] = datasize*(1024**2) #B
-    #to integrate ecei_proc
-    self.ftag_fifoid_dict = {'fft':0, 'upsample':0, 'plot':0}
-    self.ftag_servsize_dict = {'fft':1, 'upsample':1, 'plot':8} #chunks
+      self.jobremaining[ftag] = datasize*(1024**2)*self.ftag_servsize_dict[ftag] #B
     #
     self.logger.debug('itservhandler:: jobremaining=\n%s', pprint.pformat(self.jobremaining))
   
@@ -358,7 +366,15 @@ class ItServHandler(threading.Thread):
     #
     return reorder(itfunc_list)
   
+  def init_procsock(self):
+    for func in self.procsock_dict:
+      sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      sock.connect(self.toprocaddr_dict[func])
+      self.procsock_dict[ftag] = sock
+    #
+  
   def run(self):
+    self.init_procsock()
     self.startedtohandle_time = time.time()
     #
     while not self.stopflag:
@@ -417,7 +433,7 @@ class ItServHandler(threading.Thread):
         
         self.served_size_ += self.serv_size
         self.served_size_B_ += datasize_t
-        #self.test_file.write(data)
+        self.test_file.write(data)
         self.logger.debug('run:: acted on datasize=%sB, datasize_=%sB, self.served_size_B=%s, self.served_size_B_=%s', datasize_t, datasize_, self.served_size_B, self.served_size_B_)
     #
     self.test_file.close()
@@ -430,6 +446,19 @@ class ItServHandler(threading.Thread):
     data_ = None
     datasize_ = None
     #
+    sock = self.procsock_dict[func]
+    sock.sendall(data)
+    self.logger.debug('proc:: wrote to %s_procsock, datasize=%s', func, datasize)
+    
+    data_ = ''
+    readsize = 0
+    while readsize < self.procrwsize_dict[func]:
+      data_ += sock.recv(RXCHUNK_SIZE)
+    
+    datasize_ = getsizeof(data_)
+    self.logger.debug('proc:: read from %s_procsock, datasize=%s', func, datasize_)
+    
+    '''
     fifo_id = self.ftag_fifoid_dict[func]
     #first create data_fifo
     data_fifoname = 'fifo/'+func+'_'+str(self.stpdst)+'_data_fifo'+str(fifo_id)
@@ -449,11 +478,13 @@ class ItServHandler(threading.Thread):
     
     print >> datafifo, data
     datafifo.close()
+    """
     try:
       os.remove(datafifoname)
     except OSError, e:
       self.logger.error('Error: %s - %s.' % (e.errno,e.strerror))
       return [0, None]
+    """
     #
     self.logger.debug('proc:: wrote to datafifo datasize=%s', datasize)
     #read data_ from data_fifo
@@ -461,6 +492,7 @@ class ItServHandler(threading.Thread):
     data_ = data_fifo.read()
     datasize_ = getsizeof(data_)
     self.logger.debug('proc:: read from data_fifo datasize=%s', datasize_)
+    '''
     #
     self.logger.debug('proc:: %s run on datasize=%s, datasize_=%s', func, datasize, datasize_)
     #
@@ -576,7 +608,7 @@ func_comp_dict = {'f0':0.5,
                   'f4':4,
                   'fft':2,
                   'upsample':4,
-                  'plot':6 }
+                  'plot':4 }
 
 def proc_time_model(datasize, func_comp, proc_cap):
   proc_t = float(func_comp)*float(8*float(datasize)/64)*float(1/float(proc_cap)) #secs
@@ -724,12 +756,13 @@ class Transit(object):
             's_tp': 6000 }
     '''
     imgsize = CHUNKSIZE/10
+    #'uptoitfunc_dict': {'fft': 2.0, 'upsample': 2.0 }, #{'fft': 1.0},
     data = {'comp': 2.0,
             'proto': 6,
             'data_to_ip': u'10.0.0.1',
             'datasize': float(imgsize*100)/(1024**2),
-            'itfunc_dict': {'upsample': 2.0},
-            'uptoitfunc_dict': {'fft': 2.0, 'upsample': 2.0 }, #{'fft': 1.0},
+            'itfunc_dict': {'fft': 2.0}, #{'fft': 2.0, 'upsample': 4.0, 'plot': 4.0},
+            'uptoitfunc_dict': {},
             'proc': 1.0,
             's_tp': 6000 }
     self.welcome_s(data)

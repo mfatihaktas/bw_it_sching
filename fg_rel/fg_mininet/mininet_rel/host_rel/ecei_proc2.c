@@ -22,6 +22,9 @@
 #include <sys/time.h>
 #include <getopt.h>
 #include <pthread.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <stdio.h>
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
@@ -265,7 +268,7 @@ double*** alloc_3dmat(uint64_t len, size_t dimx, size_t dimy) {
 #define CHUNKSIZE_ SCALE*SCALE*CHUNKSIZE
 #define DIMX_ DIMX*SCALE
 #define DIMY_ DIMY*SCALE
-
+/*
 char* read_chunk(char* basefifoname, int chunk_index, int chunksize){
   char ci_str[10];
   sprintf(ci_str, "%d", chunk_index);
@@ -288,6 +291,77 @@ char* read_chunk(char* basefifoname, int chunk_index, int chunksize){
   //unlink(fifoname);
   
   return chunk;
+}
+*/
+//0:fft, 1:upsample, 2:plot
+#define numfs 3
+int connfd[numfs];
+struct sockaddr_in cliaddr[numfs];
+socklen_t clilen[numfs];
+
+void init_chunkrw_socks(){
+  int listenfd[numfs];
+  struct sockaddr_in servaddr[numfs];
+  int baseport = 7000;
+  
+  for (int i=0; i<numfs; i++, baseport++){
+    listenfd[i] = socket(AF_INET,SOCK_STREAM,0);
+    bzero(&servaddr[i],sizeof(servaddr[i]));
+    servaddr[i].sin_family = AF_INET;
+    servaddr[i].sin_addr.s_addr=htonl(INADDR_ANY);
+    servaddr[i].sin_port=htons(baseport);
+    bind(listenfd[i],(struct sockaddr *)&servaddr[i],sizeof(servaddr[i]));
+    
+    listen(listenfd[i],1);
+  
+    clilen[i]=sizeof(cliaddr[i]);
+    connfd[i] = accept(listenfd[i],(struct sockaddr *)&cliaddr[i],&clilen[i]);
+    printf("init_chunkrw_socks:: for func%d, connfd=%d.\n", i, connfd[i]);
+  }
+}
+
+char* read_chunk(int chunksize){
+  char* chunk = (char*) malloc(chunksize);
+  int readsize = recvfrom(connfd,chunk,chunksize,0,(struct sockaddr *)&cliaddr,&clilen);
+  printf("read_chunkoversock:: readsize=%d\n", readsize);
+  
+  return chunk;
+  //sendto(connfd,mesg,n,0,(struct sockaddr *)&cliaddr,sizeof(cliaddr));
+  //close(connfd);
+}
+
+void write_chunk(char* basefifoname, int chunk_index, size_t chunksize, char* chunk){
+  char ci_str[10];
+  sprintf(ci_str, "%d", chunk_index);
+  
+  char fifoname[30];
+  strcpy(fifoname, basefifoname);
+  strcat(fifoname, ci_str);
+  //
+  int fd = open(fifoname, O_WRONLY);
+  printf("write_chunk:: opened fifoname=%s\n", fifoname);
+  write(fd, chunk, chunksize);
+  printf("write_chunk:: wrote chunk to fifoname=%s\n", fifoname);
+  if (close(fd) != 0){
+    perror("Error with close(fd)");
+    return;
+  }
+  unlink(fifoname);
+}
+
+void write_chunk_tofile(char* outdir, char* fname, size_t chunksize, char* chunk){
+  char wholefname[50];
+  strcpy(wholefname, outdir);
+  strcat(wholefname, fname);
+  //
+  FILE* fp = fopen(wholefname, "w");
+  if (fp == NULL){
+    perror ("Error opening file");
+    return;
+  }
+  fwrite(chunk,1,chunksize,fp);
+  printf("write_chunk_tofile:: wrote to wholefname=%s, chunksize=%zd\n", wholefname, chunksize);
+  fclose(fp);
 }
 
 double*** convert_chunk_to3dmat(int chunksize, char* chunk, size_t len, size_t dimx, size_t dimy){
@@ -340,25 +414,6 @@ char* convert_3dmat_tochunk(size_t len, size_t dimx, size_t dimy, double*** mat3
   return chunk;
 }
 
-void write_chunk(char* basefifoname, int chunk_index, size_t chunksize, char* chunk){
-  char ci_str[10];
-  sprintf(ci_str, "%d", chunk_index);
-  
-  char fifoname[30];
-  strcpy(fifoname, basefifoname);
-  strcat(fifoname, ci_str);
-  //
-  int fd = open(fifoname, O_WRONLY);
-  printf("write_chunk:: opened fifoname=%s\n", fifoname);
-  write(fd, chunk, chunksize);
-  printf("write_chunk:: wrote chunk to fifoname=%s\n", fifoname);
-  if (close(fd) != 0){
-    perror("Error with close(fd)");
-    return;
-  }
-  unlink(fifoname);
-}
-
 char* convert_plots_tochunk(char* plotdir, char* baseplotname, size_t hmplots){
   size_t chunksize = CHUNKSIZE*hmplots;
   char* chunk = (char*)malloc(chunksize+1);
@@ -394,8 +449,9 @@ char* convert_plots_tochunk(char* plotdir, char* baseplotname, size_t hmplots){
       }
     }
     */
-    //fclose(plotp);
+    fclose(plotp);
     memcpy(chunk_wp, plotdata, CHUNKSIZE);
+    chunk_wp += CHUNKSIZE;
   }
   chunk_wp = NULL;
   chunk[chunksize] = '\0';
@@ -404,39 +460,6 @@ char* convert_plots_tochunk(char* plotdir, char* baseplotname, size_t hmplots){
 
 /* Thread functions */
 int STOPFLAG = 0;
-
-void* run_plot(void* stpdst){
-  printf("run_plot:: started\n");
-  int datafifo_id = 0;
-  
-  char datafifo_basename[50];
-  strcpy(datafifo_basename, (char*)"fifo/plot_");
-  strcat(datafifo_basename, (char*)stpdst);
-  strcat(datafifo_basename, (char*)"_datafifo");
-  
-  char data_fifo_basename[50];
-  strcpy(data_fifo_basename, (char*)"fifo/fft_");
-  strcat(data_fifo_basename, (char*)stpdst);
-  strcat(data_fifo_basename, (char*)"_plot_fifo");
-  //
-  while (!STOPFLAG){
-    char* chunk = read_chunk(datafifo_basename, datafifo_id, CHUNKSIZE_);
-    //printf("chunk=%s\n", chunk);
-    
-    double*** mat3d_ = convert_chunk_to3dmat(CHUNKSIZE_, chunk, NIMGACHUNK, DIMX_, DIMY_);
-    //print_3dmat((char*)"mat3d_", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
-    
-    do_plot((char*)"fifo/plot", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
-    
-    char* chunk_ = convert_plots_tochunk((char*)"fifo/plot/", (char*)"ecei-", NIMGACHUNK);
-    //printf("chunk_=%s\n", chunk_);
-    
-    write_chunk(data_fifo_basename, datafifo_id, CHUNKSIZE, chunk_);
-    
-    datafifo_id += 1;
-  }
-}
-
 void* run_fft(void* stpdst){
   printf("run_fft:: started\n");
   double ratio = 1.0E-6;
@@ -453,7 +476,8 @@ void* run_fft(void* stpdst){
   strcat(data_fifo_basename, (char*)"_data_fifo");
   //
   while (!STOPFLAG){
-    char* chunk = read_chunk(datafifo_basename, datafifo_id, CHUNKSIZE);
+    char* chunk = read_chunkoversock(CHUNKSIZE);
+    //char* chunk = read_chunk(datafifo_basename, datafifo_id, CHUNKSIZE);
     //printf("chunk=%s\n", chunk);
     
     double*** mat3d = convert_chunk_to3dmat(CHUNKSIZE, chunk, NIMGACHUNK, DIMX, DIMY);
@@ -504,7 +528,38 @@ void* run_upsample(void* stpdst){
     
     datafifo_id += 1;
   }
+}
+
+void* run_plot(void* stpdst){
+  printf("run_plot:: started\n");
+  int datafifo_id = 0;
   
+  char datafifo_basename[50];
+  strcpy(datafifo_basename, (char*)"fifo/plot_");
+  strcat(datafifo_basename, (char*)stpdst);
+  strcat(datafifo_basename, (char*)"_datafifo");
+  
+  char data_fifo_basename[50];
+  strcpy(data_fifo_basename, (char*)"fifo/plot_");
+  strcat(data_fifo_basename, (char*)stpdst);
+  strcat(data_fifo_basename, (char*)"_data_fifo");
+  //
+  while (!STOPFLAG){
+    char* chunk = read_chunk(datafifo_basename, datafifo_id, CHUNKSIZE_);
+    //printf("chunk=%s\n", chunk);
+    
+    double*** mat3d_ = convert_chunk_to3dmat(CHUNKSIZE_, chunk, NIMGACHUNK, DIMX_, DIMY_);
+    //print_3dmat((char*)"mat3d_", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
+    
+    do_plot((char*)"fifo/plot", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
+    
+    char* chunk_ = convert_plots_tochunk((char*)"fifo/plot/", (char*)"ecei-", NIMGACHUNK);
+    //write_chunk_tofile((char*)"fifo/plot/", (char*)"checkfile.png", CHUNKSIZE, char* chunk){
+    
+    write_chunk(data_fifo_basename, datafifo_id, CHUNKSIZE, chunk_);
+    
+    datafifo_id += 1;
+  }
 }
 
 int main (int argc, char** argv)
@@ -543,16 +598,19 @@ int main (int argc, char** argv)
         abort ();
     }
   }
-  //
-  char* chunk = convert_plots_tochunk((char*)"fifo/plot/", (char*)"ecei-", 1);
-  //printf("chunksize=%s\n", sizeof(chunk));
-  printf("chunk=%s\n", chunk);
+  init_chunkrw_socks();
+  pthread_t fft_thread, upsample_thread, plot_thread;
+
+  if ((pthread_create( &fft_thread, NULL, &run_fft, (void*)stpdst ) != 0)){
+    perror("Error with pthread_create");
+  }
   
   /*
   pthread_t fft_thread, upsample_thread, plot_thread;
 
   if ((pthread_create( &fft_thread, NULL, &run_fft, (void*)stpdst ) != 0) ||
-      (pthread_create( &upsample_thread, NULL, &run_upsample, (void*)stpdst ) != 0)){
+      (pthread_create( &upsample_thread, NULL, &run_upsample, (void*)stpdst ) != 0) ||
+      (pthread_create( &fft_thread, NULL, &run_plot, (void*)stpdst ) != 0)){
     perror("Error with pthread_create");
   }
   */
