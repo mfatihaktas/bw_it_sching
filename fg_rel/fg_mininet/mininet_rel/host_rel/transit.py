@@ -28,7 +28,7 @@ CHUNKSIZE = 24*8*9*10 #B
 NUMCHUNKS_AFILE = 10
 
 class FilePipeServer(threading.Thread):
-  def __init__(self, server_addr, itwork_dict, to_addr, sflagq, stokenq):
+  def __init__(self, server_addr, itwork_dict, to_addr, sflagq, stokenq, intereq_time):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
@@ -38,6 +38,7 @@ class FilePipeServer(threading.Thread):
     self.to_addr = to_addr
     self.sflagq = sflagq
     self.stokenq = stokenq
+    self.intereq_time = intereq_time
     #
     self.logger = logging.getLogger('filepipeserver')
     #
@@ -83,7 +84,8 @@ class FilePipeServer(threading.Thread):
                                         to_addr = self.to_addr,
                                         pipefileurl_q = self.pipefileurl_q,
                                         flagq = self.flagq_tosubthreads,
-                                        stokenq = self.stokenq )
+                                        stokenq = self.stokenq,
+                                        intereq_time = self.intereq_time )
     self.itserv_handler.start()
     #
     self.logger.debug('run:: server_addr=%s started.', self.server_addr)
@@ -279,7 +281,7 @@ class SessionClientHandler(threading.Thread):
 
 class ItServHandler(threading.Thread):
   def __init__(self, itwork_dict, stpdst, to_addr,
-               pipefileurl_q, flagq, stokenq):
+               pipefileurl_q, flagq, stokenq, intereq_time):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
@@ -289,6 +291,7 @@ class ItServHandler(threading.Thread):
     self.pipefileurl_q = pipefileurl_q
     self.flagq = flagq
     self.stokenq = stokenq
+    self.intereq_time = intereq_time
     #
     self.logger = logging.getLogger('itservhandler_%s' % stpdst)
     #
@@ -425,6 +428,7 @@ class ItServHandler(threading.Thread):
         #self.logger.debug('run:: ready proc and forward datasize=%s', datasize)
         
         #print 'itwork_dict=%s' % pprint.pformat(self.itwork_dict)
+        procstart_time = time.time()
         [datasize_, data_] = [0, None]
         for func in itfunc_list:
           if self.jobremaining[func] > 0:
@@ -441,7 +445,10 @@ class ItServHandler(threading.Thread):
         self.served_size_ += self.serv_size
         self.served_size_B_ += datasize_t
         self.test_file.write(data)
-        self.logger.debug('run:: acted on datasize=%sB, datasize_=%sB, self.served_size_B=%s, self.served_size_B_=%s', datasize_t, datasize_, self.served_size_B, self.served_size_B_)
+        procdur = time.time() - procstart_time
+        self.logger.debug('run:: acted on procdur=%s, datasize=%sB, datasize_=%sB, self.served_size_B=%s, self.served_size_B_=%s', procdur, datasize_t, datasize_, self.served_size_B, self.served_size_B_)
+        if procdur > self.intereq_time:
+          self.logger.warning('run:: !!! procdur > intereq_time !!!')
     #
     self.test_file.close()
     self.sock.close()
@@ -580,9 +587,9 @@ func_comp_dict = {'f0':0.5,
                   'f2':2,
                   'f3':3,
                   'f4':4,
-                  'fft':2,
-                  'upsample':4,
-                  'plot':4 }
+                  'fft':2*3,
+                  'upsample':4*3,
+                  'plot':4*3 }
 
 def proc_time_model(datasize, func_comp, proc_cap):
   proc_t = float(func_comp)*float(8*float(datasize)/64)*float(1/float(proc_cap)) #secs
@@ -675,6 +682,7 @@ class Transit(object):
     #
     nchunks = float(data_['datasize'])*(1024**2)/CHUNKSIZE
     intereq_time = modelproct/nchunks
+    self.logger.warning('welcome_s:: nchunks=%s, intereq_time=%s', nchunks, intereq_time)
     threading.Thread(target = self.manage_stokenq,
                      kwargs = {'stpdst':stpdst,
                                'intereq_time':intereq_time } ).start()
@@ -684,7 +692,8 @@ class Transit(object):
                                        itwork_dict = data_,
                                        to_addr = to_addr,
                                        sflagq = sflagq,
-                                       stokenq = stokenq )
+                                       stokenq = stokenq,
+                                       intereq_time = intereq_time )
       self.sinfo_dict[stpdst] = {'itjobrule':data_,
                                  'to_addr': to_addr,
                                  's_server_thread': s_server_thread,
@@ -731,11 +740,11 @@ class Transit(object):
     '''
     imgsize = CHUNKSIZE/10
     #'uptoitfunc_dict': {'fft': 2.0, 'upsample': 2.0 }, #{'fft': 1.0},
-    data = {'comp': 2.0,
+    data = {'comp': 6.0,
             'proto': 6,
             'data_to_ip': u'10.0.0.1',
-            'datasize': float(imgsize*100)/(1024**2),
-            'itfunc_dict': {'fft': 2.0}, #'upsample': 4.0, 'plot': 4.0},
+            'datasize': float(imgsize*100000)/(1024**2),
+            'itfunc_dict': {'fft': 6.0}, #'upsample': 4.0, 'plot': 4.0},
             'uptoitfunc_dict': {},
             'proc': 1.0,
             's_tp': 6000 }
