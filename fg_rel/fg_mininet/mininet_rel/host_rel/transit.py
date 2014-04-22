@@ -735,7 +735,7 @@ class Transit(object):
             'proto': 6,
             'data_to_ip': u'10.0.0.1',
             'datasize': float(imgsize*100)/(1024**2),
-            'itfunc_dict': {'fft': 2.0, 'upsample': 4.0, 'plot': 4.0},
+            'itfunc_dict': {'fft': 2.0}, #'upsample': 4.0, 'plot': 4.0},
             'uptoitfunc_dict': {},
             'proc': 1.0,
             's_tp': 6000 }

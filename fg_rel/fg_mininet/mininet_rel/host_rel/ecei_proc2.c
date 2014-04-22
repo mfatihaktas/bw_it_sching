@@ -51,86 +51,83 @@
  * FFTW
  */
 
-double fftw_abs(const fftw_complex x)
-{
-    
-    return sqrt(x[0]*x[0] + x[1]*x[1]);
+double fftw_abs(const fftw_complex x){
+  return sqrt(x[0]*x[0] + x[1]*x[1]);
 }
 
 void do_fft(double r, uint64_t len, size_t dimx, size_t dimy, double*** mat){ //double (*mat)[dimy][dimx]
-    double *vec = malloc(sizeof(double) * len);
-    fftw_complex *out;
-    fftw_plan p0, p1;
+  double *vec = malloc(sizeof(double) * len);
+  fftw_complex *out;
+  fftw_plan p0, p1;
 
-    int N = (len/2) + 1;
-    out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+  int N = (len/2) + 1;
+  out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
 
-    for (size_t ix = 0; ix < dimx; ix++){
-      for (size_t iy = 0; iy < dimy; iy++){
-        for (size_t it = 0; it < len; it++)
-            vec[it] = mat[it][ix][iy];
-          
-        p0 = fftw_plan_dft_r2c_1d(len, vec, out, FFTW_ESTIMATE);
-        fftw_execute(p0);
+  for (size_t ix = 0; ix < dimx; ix++){
+    for (size_t iy = 0; iy < dimy; iy++){
+      for (size_t it = 0; it < len; it++)
+          vec[it] = mat[it][ix][iy];
+        
+      p0 = fftw_plan_dft_r2c_1d(len, vec, out, FFTW_ESTIMATE);
+      fftw_execute(p0);
 
-        double maxmag = 0.0;
-        for (size_t i = 0; i < N; i++)
-        {
-            double m = fftw_abs(out[i]);
-            if (m > maxmag) 
-                maxmag = m;
-        }
-
-        //DUMP("(%ld, %ld) maxmag: %g", ix, iy, maxmag);
-
-        // Remove noise
-        for (size_t i = 0; i < N; i++)
-        {
-            out[i][0] = trunc(out[i][0]/maxmag/r)*maxmag*r;
-            out[i][1] = trunc(out[i][1]/maxmag/r)*maxmag*r;
-        }
-
-        p1 = fftw_plan_dft_c2r_1d(len, out, vec, FFTW_ESTIMATE);
-        fftw_execute(p1);
-
-        /*
-          for (size_t it = 0; it < len; it++)
-          {
-          printf("mat(%ld,%ld,%ld) %g %g\n", 
-          it, iy, ix, mat[it][iy][ix], vec[it]/(double)len);
-          }
-        */
-        /*
-        printf("vec=\n");
-        for (size_t it = 0; it < len; it++)
-        {
-          printf("vec[%ld]=%g", it, vec[it]/(double)len);
-        }
-        */
-        // Reconstruct from fft (note: scale)
-        for (size_t it = 0; it < len; it++)
-            mat[it][ix][iy] = vec[it]/(double)len;
-
-        fftw_destroy_plan(p0);
-        fftw_destroy_plan(p1);
+      double maxmag = 0.0;
+      for (size_t i = 0; i < N; i++)
+      {
+          double m = fftw_abs(out[i]);
+          if (m > maxmag) 
+              maxmag = m;
       }
+
+      //DUMP("(%ld, %ld) maxmag: %g", ix, iy, maxmag);
+
+      // Remove noise
+      for (size_t i = 0; i < N; i++)
+      {
+          out[i][0] = trunc(out[i][0]/maxmag/r)*maxmag*r;
+          out[i][1] = trunc(out[i][1]/maxmag/r)*maxmag*r;
+      }
+
+      p1 = fftw_plan_dft_c2r_1d(len, out, vec, FFTW_ESTIMATE);
+      fftw_execute(p1);
+
+      /*
+        for (size_t it = 0; it < len; it++)
+        {
+        printf("mat(%ld,%ld,%ld) %g %g\n", 
+        it, iy, ix, mat[it][iy][ix], vec[it]/(double)len);
+        }
+      */
+      /*
+      printf("vec=\n");
+      for (size_t it = 0; it < len; it++)
+      {
+        printf("vec[%ld]=%g", it, vec[it]/(double)len);
+      }
+      */
+      // Reconstruct from fft (note: scale)
+      for (size_t it = 0; it < len; it++)
+          mat[it][ix][iy] = vec[it]/(double)len;
+
+      fftw_destroy_plan(p0);
+      fftw_destroy_plan(p1);
     }
-    fftw_free(out);
-    free(vec);
+  }
+  fftw_free(out);
+  free(vec);
+  //printf("do_fft:: done.\n");
 }
 
 /*
  * Bicubic interpolation functions
  */
-double cubicInterpolate(double p[4], double x)
-{
+double cubicInterpolate(double p[4], double x){
   return p[1] + 0.5 * x*(p[2] - p[0] + 
                          x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + 
                             x*(3.0*(p[1] - p[2]) + p[3] - p[0])));
 }
 
-double bicubicInterpolate (double p[4][4], double x, double y) 
-{
+double bicubicInterpolate (double p[4][4], double x, double y) {
 	double arr[4];
 	arr[0] = cubicInterpolate(p[0], y);
 	arr[1] = cubicInterpolate(p[1], y);
@@ -172,6 +169,8 @@ void do_upsampling(size_t dimx, size_t dimy, double** X,
                   //DUMP("%ld %ld", jj, ii);
                   Y[ii][jj] = bicubicInterpolate(p, (double)ik/scale, (double)jk/scale);
               }
+
+  //printf("do_upsampling:: done.\n");
 }
 
 /*
@@ -179,8 +178,6 @@ void do_upsampling(size_t dimx, size_t dimy, double** X,
  */
 void do_plot(const char *outdir, size_t len, size_t dimx, size_t dimy, double*** X)
 {
-    FILE *pipe = popen("gnuplot", "w");
-
     double m1=DBL_MAX, m2=-DBL_MAX;
 
     for (size_t t=0; t<len; t++)
@@ -193,6 +190,7 @@ void do_plot(const char *outdir, size_t len, size_t dimx, size_t dimy, double***
     //DUMP("[min, max] = [%g, %g]:", m1, m2);
 
     for (size_t t=0; t<len; t++){
+      FILE *pipe = popen("gnuplot", "w");
       fprintf(pipe, "set term png enhanced font '/usr/share/fonts/liberation/LiberationSans-Regular.ttf' 12\n");
       fprintf(pipe, "set output '%s/ecei-%03ld.png'\n", outdir, t);
       fprintf(pipe, "set view map\n");
@@ -266,7 +264,8 @@ double*** alloc_3dmat(uint64_t len, size_t dimx, size_t dimy) {
 #define NIMGACHUNK 10
 #define CHUNKSIZE IMGSIZE*NIMGACHUNK
 #define SCALE 8
-#define CHUNKSIZE_ SCALE*SCALE*CHUNKSIZE
+#define CHUNKSIZE64 SCALE*SCALE*CHUNKSIZE
+#define CHUNKSIZE10 10*CHUNKSIZE
 #define DIMX_ DIMX*SCALE
 #define DIMY_ DIMY*SCALE
 
@@ -407,22 +406,51 @@ char* convert_3dmat_tochunk(size_t len, size_t dimx, size_t dimy, double*** mat3
   return chunk;
 }
 
-char* convert_plots_tochunk(char* plotdir, char* baseplotname, size_t hmplots){
-  size_t chunksize = CHUNKSIZE*hmplots;
+char* doplot_returnchunk(const char *outdir, size_t len, size_t dimx, size_t dimy, double*** X){
+  size_t chunksize = CHUNKSIZE*len;
   char* chunk = (char*)malloc(chunksize);
   char* chunk_wp = chunk;
-  
-  char plottailname[8];
-  for (size_t i=0; i<hmplots; i++){
+  //
+  double m1=DBL_MAX, m2=-DBL_MAX;
+  for (size_t t=0; t<len; t++)
+    for (size_t i=0; i<dimx; i++)
+      for (size_t j=0; j<dimy; j++){
+        if (m1 > X[t][i][j])  m1 = X[t][i][j];
+        if (m2 < X[t][i][j])  m2 = X[t][i][j];
+      }
+  for (size_t t=0; t<len; t++){
+    FILE *pipe = popen("gnuplot", "w");
+    fprintf(pipe, "set term png enhanced font '/usr/share/fonts/liberation/LiberationSans-Regular.ttf' 12\n");
+    fprintf(pipe, "set output '%s/ecei-%03ld.png'\n", outdir, t);
+    fprintf(pipe, "set view map\n");
+    fprintf(pipe, "set xrange [0:%ld]\n", dimy-1);
+    fprintf(pipe, "set yrange [0:%ld] reverse\n", dimx-1);
+    fprintf(pipe, "set cbrange [%g:%g]\n", m1, m2);
+    fprintf(pipe, "set datafile missing \"nan\"\n");
+    fprintf(pipe, "splot '-' matrix with image\n");
+
+    for (size_t i=0; i<dimx; i++){
+      for (size_t j=0; j<dimy; j++){
+        fprintf(pipe, "%g ", X[t][i][j]);
+      }
+      fprintf(pipe, "\n");
+    }
+
+    fprintf(pipe, "e\n");
+    fprintf(pipe, "e\n");
+    fflush (pipe);
+    fclose(pipe);
+    
+    //read plotdata
     char plotname[50];
-    strcpy(plotname, plotdir);
-    strcat(plotname, baseplotname);
-    sprintf(plottailname, "%03ld", i);
+    char plottailname[8];
+    strcpy(plotname, outdir);
+    strcat(plotname, (char*)"ecei-");
+    sprintf(plottailname, "%03ld", t);
     strcat(plotname, plottailname);
     strcat(plotname, (char*)".png");
-    //strcat(plotname, (char*)"deneme.png");
-    printf("convert_plots_tochunk:: converting %s\n", plotname);
-    //
+    //printf("doplot_returnchunk:: converting %s\n", plotname);
+    
     FILE* plotp = fopen(plotname, "r");
     if (plotp == NULL || ferror(plotp)){
       perror ("Error opening file");
@@ -433,35 +461,29 @@ char* convert_plots_tochunk(char* plotdir, char* baseplotname, size_t hmplots){
     
     fseek(plotp, 0L, SEEK_END);
     size_t plotsize = ftell(plotp);
-    printf("convert_plots_tochunk:: plotsize=%zd\n", plotsize);
+    //printf("doplot_returnchunk:: plotsize=%zd\n", plotsize);
     fseek(plotp, 0L, SEEK_SET);
     size_t readsize = fread(plotdata,1,plotsize,plotp);
-    printf("convert_plots_tochunk:: readsize=%zd\n", readsize);
+    //printf("doplot_returnchunk:: readsize=%zd\n", readsize);
     if (feof(plotp)){
-      printf("convert_plots_tochunk:: reading; EOF reached\n");
+      printf("doplot_returnchunk:: reading; EOF reached\n");
     }
     else if (ferror(plotp)){
-      perror("convert_plots_tochunk:: reading; Error occured\n");
+      perror("doplot_returnchunk:: reading; Error occured\n");
     }
-    /*
-    if (readsize != CHUNKSIZE){ //needs padding
-      char* plotdata_wp = plotdata;
-      plotdata_wp += readsize;
-      size_t padding_size = CHUNKSIZE - readsize;
-      for (int p=0; p<padding_size; p++){
-        memcpy(plotdata_wp, (char*)" ", 1);
-        plotdata_wp += 1;
-      }
-    }
-    */
     fclose(plotp);
     memcpy(chunk_wp, plotdata, CHUNKSIZE);
     chunk_wp += CHUNKSIZE;
     free(plotdata);
     plotp = NULL;
     plotdata = NULL;
+    ///*
+    if(remove(plotname) != 0)
+      perror( "Error deleting file" );
+    //*/
   }
   chunk_wp = NULL;
+  //printf("doplot_returnchunk:: done\n");
   return chunk;
 }
 
@@ -517,11 +539,11 @@ void* run_upsample(void* stpdst){
                       DIMX_, DIMY_, (double**)mat3d_[i]);
     }
     //print_3dmat((char*)"mat3d_", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
-    char* chunk_ = convert_3dmat_tochunk(NIMGACHUNK, DIMX_, DIMY_, mat3d_, CHUNKSIZE_);
+    char* chunk_ = convert_3dmat_tochunk(NIMGACHUNK, DIMX_, DIMY_, mat3d_, CHUNKSIZE64);
     //printf("chunk_=%s\n", chunk_);
     
-    write_chunk((char*)"upsample", 1, CHUNKSIZE_, chunk_);
-    //write_chunk(data_fifo_basename, datafifo_id, CHUNKSIZE_, chunk_);
+    write_chunk((char*)"upsample", 1, CHUNKSIZE64, chunk_);
+    //write_chunk(data_fifo_basename, datafifo_id, CHUNKSIZE64, chunk_);
   }
 }
 
@@ -530,23 +552,24 @@ void* run_plot(void* stpdst){
   init_chunkrw_sock((void*)"2");
   //
   while (!STOPFLAG){
-    char* chunk = read_chunk((char*)"plot", 2, CHUNKSIZE_);
+    char* chunk = read_chunk((char*)"plot", 2, CHUNKSIZE64);
     if (chunk == NULL){
       printf("run_plot:: chunk is returned NULL! Aborting...\n");
       return NULL;
     }
-    //char* chunk = read_chunk(datafifo_basename, datafifo_id, CHUNKSIZE_);
+    //char* chunk = read_chunk(datafifo_basename, datafifo_id, CHUNKSIZE64);
     //printf("chunk=%s\n", chunk);
     
-    double*** mat3d_ = convert_chunk_to3dmat(CHUNKSIZE_, chunk, NIMGACHUNK, DIMX_, DIMY_);
+    double*** mat3d_ = convert_chunk_to3dmat(CHUNKSIZE64, chunk, NIMGACHUNK, DIMX_, DIMY_);
     //print_3dmat((char*)"mat3d_", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
     
-    do_plot((char*)"plots/", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
+    char* chunk_ = doplot_returnchunk((char*)"plots/", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
+    //do_plot((char*)"plots/", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
     
-    char* chunk_ = convert_plots_tochunk((char*)"plots/", (char*)"ecei-", NIMGACHUNK);
+    //char* chunk_ = convert_plots_tochunk((char*)"plots/", (char*)"ecei-", NIMGACHUNK);
     //write_chunk_tofile((char*)"fifo/plot/", (char*)"checkfile.png", CHUNKSIZE, char* chunk){
     
-    write_chunk((char*)"plot", 2, CHUNKSIZE_, chunk_);
+    write_chunk((char*)"plot", 2, CHUNKSIZE10, chunk_);
     //write_chunk(data_fifo_basename, datafifo_id, CHUNKSIZE, chunk_);
   }
 }
