@@ -13,4 +13,4 @@ eceiproc2: $(eceiproc2_sf)
 		gcc -pthread -std=gnu99 -o $(eceiproc2_tf) $< -L$(FFTWDIR)/lib -I$(FFTWDIR)/include -lfftw3 -lm
 
 clean:
-		rm -rf *o $(eceiproc_tf) $(eceiproc2_tf)
+		rm -f $(eceiproc_tf) $(eceiproc2_tf)

@@ -25,6 +25,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <stdio.h>
+#include <errno.h>
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
@@ -189,11 +190,11 @@ void do_plot(const char *outdir, size_t len, size_t dimx, size_t dimy, double***
           if (m2 < X[t][i][j])  m2 = X[t][i][j];
         }
 
-    DUMP("[min, max] = [%g, %g]:", m1, m2);
+    //DUMP("[min, max] = [%g, %g]:", m1, m2);
 
     for (size_t t=0; t<len; t++){
       fprintf(pipe, "set term png enhanced font '/usr/share/fonts/liberation/LiberationSans-Regular.ttf' 12\n");
-      fprintf(pipe, "set output '%s/ecei-%07ld.png'\n", outdir, t);
+      fprintf(pipe, "set output '%s/ecei-%03ld.png'\n", outdir, t);
       fprintf(pipe, "set view map\n");
       fprintf(pipe, "set xrange [0:%ld]\n", dimy-1);
       fprintf(pipe, "set yrange [0:%ld] reverse\n", dimx-1);
@@ -282,6 +283,10 @@ void* init_chunkrw_sock(void* fi){
   int i = atoi((char*)fi);
   
   listenfd[i] = socket(AF_INET,SOCK_STREAM,0);
+  if (listenfd[i] == -1){
+    printf("init_chunkrw_sock:: Error while creating socket; fi=%d, errno=%d\n",i,errno);
+      exit(0);
+  }
   int on = 1;
   setsockopt( listenfd[i], SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on) );
   
@@ -298,17 +303,6 @@ void* init_chunkrw_sock(void* fi){
   printf("init_chunkrw_socks:: for func%d, connfd=%d.\n", i, connfd[i]);
 }
 
-void init_chunkrw_socks(){
-  pthread_t initfftsock_thread, initupsamplesock_thread, initplotsock_thread;
-  
-  if ((pthread_create( &initfftsock_thread, NULL, &init_chunkrw_sock, (void*)"0" ) != 0) ||
-      (pthread_create( &initupsamplesock_thread, NULL, &init_chunkrw_sock, (void*)"1" ) != 0)){
-    perror("Error with pthread_create");
-  }
-  //pthread_create( &initplotsock_thread, NULL, &init_chunkrw_sock, (void*)"2" ) != 0)
-  init_chunkrw_sock((void*)"2"); //to block; not to let read...
-}
-
 char* read_chunk(char* func, int fi, int chunksize){
   char* chunk = (char*) malloc(chunksize);
   int readsize = 0;
@@ -317,8 +311,20 @@ char* read_chunk(char* func, int fi, int chunksize){
   char* temp = (char*) malloc(chunksize);
   while (readsize < chunksize){
     int readsize_ = recvfrom(connfd[fi],temp,chunksize,0,(struct sockaddr *)&cliaddr[fi],&clilen[fi]);
+    if (readsize_ == 0){
+      printf("read_chunk:: %s conn is closed at other side, partial_readsize=%d\n", func, readsize_);
+      close(connfd[fi]);
+      return NULL;
+    }
+    else if (readsize_ == -1)
+    {
+      //error (1, 0, "reading from server: %s", SOCK_STRERROR (SOCK_ERRNO));
+      printf("read_chunk:: Error while reading socket; func=%s, errno=%d\n",func,errno);
+      exit(0);
+    }
+    //printf("read_chunk:: func=%s, partial_readsize=%d\n", func, readsize_);
     readsize += readsize_;
-    memcpy(chunk_wp, temp, readsize);
+    memcpy(chunk_wp, temp, readsize_);
     chunk_wp += readsize_;
   }
   chunk_wp = NULL;
@@ -348,7 +354,7 @@ void write_chunk_tofile(char* outdir, char* fname, size_t chunksize, char* chunk
   }
   fwrite(chunk,1,chunksize,fp);
   printf("write_chunk_tofile:: wrote to wholefname=%s, chunksize=%zd\n", wholefname, chunksize);
-  fclose(fp);
+  free(chunk);
 }
 
 double*** convert_chunk_to3dmat(int chunksize, char* chunk, size_t len, size_t dimx, size_t dimy){
@@ -403,7 +409,7 @@ char* convert_3dmat_tochunk(size_t len, size_t dimx, size_t dimy, double*** mat3
 
 char* convert_plots_tochunk(char* plotdir, char* baseplotname, size_t hmplots){
   size_t chunksize = CHUNKSIZE*hmplots;
-  char* chunk = (char*)malloc(chunksize+1);
+  char* chunk = (char*)malloc(chunksize);
   char* chunk_wp = chunk;
   
   char plottailname[8];
@@ -411,20 +417,32 @@ char* convert_plots_tochunk(char* plotdir, char* baseplotname, size_t hmplots){
     char plotname[50];
     strcpy(plotname, plotdir);
     strcat(plotname, baseplotname);
-    sprintf(plottailname, "%07ld", i);
+    sprintf(plottailname, "%03ld", i);
     strcat(plotname, plottailname);
     strcat(plotname, (char*)".png");
+    //strcat(plotname, (char*)"deneme.png");
     printf("convert_plots_tochunk:: converting %s\n", plotname);
     //
     FILE* plotp = fopen(plotname, "r");
-    if (plotp == NULL){
+    if (plotp == NULL || ferror(plotp)){
       perror ("Error opening file");
       return NULL;
     }
     
     char* plotdata = (char*) malloc(CHUNKSIZE);
-    size_t readsize = fread(plotdata,1,CHUNKSIZE,plotp);
+    
+    fseek(plotp, 0L, SEEK_END);
+    size_t plotsize = ftell(plotp);
+    printf("convert_plots_tochunk:: plotsize=%zd\n", plotsize);
+    fseek(plotp, 0L, SEEK_SET);
+    size_t readsize = fread(plotdata,1,plotsize,plotp);
     printf("convert_plots_tochunk:: readsize=%zd\n", readsize);
+    if (feof(plotp)){
+      printf("convert_plots_tochunk:: reading; EOF reached\n");
+    }
+    else if (ferror(plotp)){
+      perror("convert_plots_tochunk:: reading; Error occured\n");
+    }
     /*
     if (readsize != CHUNKSIZE){ //needs padding
       char* plotdata_wp = plotdata;
@@ -439,9 +457,11 @@ char* convert_plots_tochunk(char* plotdir, char* baseplotname, size_t hmplots){
     fclose(plotp);
     memcpy(chunk_wp, plotdata, CHUNKSIZE);
     chunk_wp += CHUNKSIZE;
+    free(plotdata);
+    plotp = NULL;
+    plotdata = NULL;
   }
   chunk_wp = NULL;
-  chunk[chunksize] = '\0';
   return chunk;
 }
 
@@ -449,11 +469,16 @@ char* convert_plots_tochunk(char* plotdir, char* baseplotname, size_t hmplots){
 int STOPFLAG = 0;
 void* run_fft(void* stpdst){
   printf("run_fft:: started\n");
-  double ratio = 1.0E-6;
-
+  init_chunkrw_sock((void*)"0");
   //
+  double ratio = 1.0E-6;
+  
   while (!STOPFLAG){
     char* chunk = read_chunk((char*)"fft", 0, CHUNKSIZE);
+    if (chunk == NULL){
+      printf("run_fft:: chunk is returned NULL! Aborting...\n");
+      return NULL;
+    }
     //char* chunk = read_chunk(datafifo_basename, datafifo_id, CHUNKSIZE);
     //printf("chunk=%s\n", chunk);
     
@@ -472,9 +497,14 @@ void* run_fft(void* stpdst){
 
 void* run_upsample(void* stpdst){
   printf("run_upsample:: started\n");
+  init_chunkrw_sock((void*)"1");
   //
   while (!STOPFLAG){
     char* chunk = read_chunk((char*)"upsample", 1, CHUNKSIZE);
+    if (chunk == NULL){
+      printf("run_upsample:: chunk is returned NULL! Aborting...\n");
+      return NULL;
+    }
     //char* chunk = read_chunk(datafifo_basename, datafifo_id, CHUNKSIZE);
     //printf("chunk=%s\n", chunk);
     
@@ -490,27 +520,33 @@ void* run_upsample(void* stpdst){
     char* chunk_ = convert_3dmat_tochunk(NIMGACHUNK, DIMX_, DIMY_, mat3d_, CHUNKSIZE_);
     //printf("chunk_=%s\n", chunk_);
     
-    write_chunk((char*)"upsample", 1, CHUNKSIZE, chunk_);
+    write_chunk((char*)"upsample", 1, CHUNKSIZE_, chunk_);
     //write_chunk(data_fifo_basename, datafifo_id, CHUNKSIZE_, chunk_);
   }
 }
 
 void* run_plot(void* stpdst){
   printf("run_plot:: started\n");
+  init_chunkrw_sock((void*)"2");
+  //
   while (!STOPFLAG){
-    char* chunk = read_chunk((char*)"plot", 2, CHUNKSIZE);
+    char* chunk = read_chunk((char*)"plot", 2, CHUNKSIZE_);
+    if (chunk == NULL){
+      printf("run_plot:: chunk is returned NULL! Aborting...\n");
+      return NULL;
+    }
     //char* chunk = read_chunk(datafifo_basename, datafifo_id, CHUNKSIZE_);
     //printf("chunk=%s\n", chunk);
     
     double*** mat3d_ = convert_chunk_to3dmat(CHUNKSIZE_, chunk, NIMGACHUNK, DIMX_, DIMY_);
     //print_3dmat((char*)"mat3d_", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
     
-    do_plot((char*)"fifo/plot", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
+    do_plot((char*)"plots/", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
     
-    char* chunk_ = convert_plots_tochunk((char*)"fifo/plot/", (char*)"ecei-", NIMGACHUNK);
+    char* chunk_ = convert_plots_tochunk((char*)"plots/", (char*)"ecei-", NIMGACHUNK);
     //write_chunk_tofile((char*)"fifo/plot/", (char*)"checkfile.png", CHUNKSIZE, char* chunk){
     
-    write_chunk((char*)"plot", 2, CHUNKSIZE, chunk_);
+    write_chunk((char*)"plot", 2, CHUNKSIZE_, chunk_);
     //write_chunk(data_fifo_basename, datafifo_id, CHUNKSIZE, chunk_);
   }
 }
@@ -551,23 +587,19 @@ int main (int argc, char** argv)
         abort ();
     }
   }
-  init_chunkrw_socks();
   
   pthread_t fft_thread, upsample_thread, plot_thread;
-  if ((pthread_create( &fft_thread, NULL, &run_fft, (void*)stpdst ) != 0)){
-    perror("Error with pthread_create");
-  }
-  /*
-  pthread_t fft_thread, upsample_thread, plot_thread;
-
   if ((pthread_create( &fft_thread, NULL, &run_fft, (void*)stpdst ) != 0) ||
       (pthread_create( &upsample_thread, NULL, &run_upsample, (void*)stpdst ) != 0) ||
       (pthread_create( &fft_thread, NULL, &run_plot, (void*)stpdst ) != 0)){
     perror("Error with pthread_create");
   }
-  */
+  //
   printf("Enter\n");
   scanf("...");
   STOPFLAG = 1;
+  for (int i=0; i<numfs; i++){
+    close(connfd[i]);
+  }
   return 0;
 }

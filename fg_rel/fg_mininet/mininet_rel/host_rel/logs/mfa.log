@@ -5,15 +5,18 @@ INFO:t:welcome_s:: welcome stpdst=6000, s_info=
 {'intereq_time': 0.004119873046875,
  'itjobrule': {'comp': 2.0,
                'datasize': 0.164794921875,
-               'itfunc_dict': {'fft': 2.0},
-               'jobtobedone': {'fft': 0.164794921875},
+               'itfunc_dict': {'fft': 2.0, 'plot': 4.0, 'upsample': 4.0},
+               'jobtobedone': {'fft': 0.164794921875,
+                               'plot': 0.164794921875,
+                               'upsample': 0.164794921875},
                'proc': 1.0,
                'uptoitfunc_dict': {},
                'uptojobdone': {}},
  'modelproct': 0.04119873046875,
  'proc': 1.0,
- 's_server_thread': <FilePipeServer(Thread-3, started daemon 140506387715840)>,
+ 's_server_thread': <FilePipeServer(Thread-3, started daemon 139842740721408)>,
  'to_addr': (u'10.0.0.1', 6000)}
+DEBUG:filepipeserver:run:: serversock_stpdst=6000 is opened; waiting for client.
 INFO:t:welcome_s:: welcome stpdst=6001, s_info=
 {'intereq_time': 0.0020599365096874238,
  'itjobrule': {'comp': 1.99999998665,
@@ -25,13 +28,12 @@ INFO:t:welcome_s:: welcome stpdst=6001, s_info=
                'uptojobdone': {}},
  'modelproct': 0.9765624934814453,
  'proc': 2.0,
- 's_server_thread': <FilePipeServer(Thread-5, started daemon 140506164098816)>,
+ 's_server_thread': <FilePipeServer(Thread-5, started daemon 139842514052864)>,
  'to_addr': (u'10.0.0.1', 6001)}
-DEBUG:filepipeserver:run:: serversock_stpdst=6000 is opened; waiting for client.
 DEBUG:filepipeserver:run:: serversock_stpdst=6001 is opened; waiting for client.
-DEBUG:sessionclienthandler_6000:run:: sclient_addr=('127.0.0.1', 57218)
 DEBUG:itservhandler_6000:itservhandler:: jobremaining=
-{'fft': 172800.0}
+{'fft': 172800.0, 'plot': 11059200.0, 'upsample': 172800.0}
+DEBUG:sessionclienthandler_6000:run:: sclient_addr=('127.0.0.1', 58771)
 DEBUG:filepipeserver:run:: server_addr=('127.0.0.1', 6000) started.
 INFO:sessionclienthandler_6000:init_rx:: stpdst=6000; rxed datasize=17280B
 DEBUG:sessionclienthandler_6000:push_to_pipe:: datasize=17280 pushed to pipe, pipe_size_B_=17280, overflow_size=-155520
@@ -61,60 +63,46 @@ DEBUG:sessionclienthandler_6000:run:: stopped by EOF.
 DEBUG:itservhandler_6000:pop_from_pipe:: pipe_mm.size()=172800, served_size=0
 DEBUG:sessionclienthandler_6000:run:: done. 
 	pipe_size=11, pipe_size_B=172800
-	in dur=0.00355005264282secs, at t=1398180078.59;
+	in dur=0.00290417671204secs, at t=1398195337.82;
 DEBUG:itservhandler_6000:run:: datasize=17280 popped.
 DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:run:: acted on datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=17280
+DEBUG:itservhandler_6000:proc:: wrote to upsample_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: read from upsample_procsock, datasize=1105920
+DEBUG:itservhandler_6000:proc:: upsample run on datasize=17280, datasize_=1105920
+DEBUG:itservhandler_6000:proc:: wrote to plot_procsock, datasize=1105920
+DEBUG:itservhandler_6000:proc:: read from plot_procsock, datasize=180224
+DEBUG:itservhandler_6000:proc:: plot run on datasize=1105920, datasize_=180224
+DEBUG:itservhandler_6000:run:: acted on datasize=17280B, datasize_=180224B, self.served_size_B=0, self.served_size_B_=17280
 DEBUG:itservhandler_6000:run:: datasize=17280 popped.
 DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:run:: acted on datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=34560
+DEBUG:itservhandler_6000:proc:: wrote to upsample_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: read from upsample_procsock, datasize=1105920
+DEBUG:itservhandler_6000:proc:: upsample run on datasize=17280, datasize_=1105920
+DEBUG:itservhandler_6000:proc:: wrote to plot_procsock, datasize=1105920
+DEBUG:itservhandler_6000:proc:: read from plot_procsock, datasize=229376
+DEBUG:itservhandler_6000:proc:: plot run on datasize=1105920, datasize_=229376
+DEBUG:itservhandler_6000:run:: acted on datasize=17280B, datasize_=229376B, self.served_size_B=0, self.served_size_B_=34560
 DEBUG:itservhandler_6000:run:: datasize=17280 popped.
 DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:run:: acted on datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=51840
+DEBUG:itservhandler_6000:proc:: wrote to upsample_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: read from upsample_procsock, datasize=1105920
+DEBUG:itservhandler_6000:proc:: upsample run on datasize=17280, datasize_=1105920
+DEBUG:itservhandler_6000:proc:: wrote to plot_procsock, datasize=1105920
+DEBUG:itservhandler_6000:proc:: read from plot_procsock, datasize=172800
+DEBUG:itservhandler_6000:proc:: plot run on datasize=1105920, datasize_=172800
+DEBUG:itservhandler_6000:run:: acted on datasize=17280B, datasize_=172800B, self.served_size_B=0, self.served_size_B_=51840
 DEBUG:itservhandler_6000:run:: datasize=17280 popped.
 DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:run:: acted on datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=69120
-DEBUG:itservhandler_6000:run:: datasize=17280 popped.
-DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:run:: acted on datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=86400
-DEBUG:itservhandler_6000:run:: datasize=17280 popped.
-DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:run:: acted on datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=103680
-DEBUG:itservhandler_6000:run:: datasize=17280 popped.
-DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:run:: acted on datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=120960
-DEBUG:itservhandler_6000:run:: datasize=17280 popped.
-DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:run:: acted on datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=138240
-DEBUG:itservhandler_6000:run:: datasize=17280 popped.
-DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:run:: acted on datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=155520
-DEBUG:itservhandler_6000:run:: datasize=17280 popped.
-DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:run:: acted on datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=172800
-DEBUG:itservhandler_6000:delete_pipe_file:: cur_fileurl=pipe/pipe_tpdst=6000_0.dat is deleted from pipe
-DEBUG:itservhandler_6000:pop_from_pipe:: cur_fileurl=EOF
-DEBUG:itservhandler_6000:run:: fileurl=EOF
-INFO:itservhandler_6000:run:: done, dur=0.0517640113831secs, at time=1398180078.64
-DEBUG:itservhandler_6000:run:: totalproc_time=0, jobremaining=
-{'fft': 0.0}
+INFO:userdts_comm_intf:close:: closed.
+INFO:userdts_comm_intf:init_rx:: rxed stop_rxing
+DEBUG:t:shutdown:: shutdown.
+INFO:filepipeserver:shutdown.
+DEBUG:filepipeserver:run:: done.
+DEBUG:t:manage_stokenq_6001:: stoppped by STOP flag!
+DEBUG:t:manage_stokenq_6000:: stoppped by STOP flag!

@@ -468,42 +468,6 @@ class ItServHandler(threading.Thread):
     datasize_ = readsize
     self.logger.debug('proc:: read from %s_procsock, datasize=%s', func, datasize_)
     
-    '''
-    fifo_id = self.ftag_fifoid_dict[func]
-    #first create data_fifo
-    data_fifoname = 'fifo/'+func+'_'+str(self.stpdst)+'_data_fifo'+str(fifo_id)
-    try:
-      os.mkfifo(data_fifoname)
-    except OSError as e:
-      if not e.errno == 17: #File exists
-        self.logger.error('Unexpected oserror, errno=%s', e.errno)
-        return [0, None]
-    #
-    self.logger.debug('proc:: made data_fifoname=%s', data_fifoname)
-    #then write data to datafifo
-    datafifoname = 'fifo/'+func+'_'+str(self.stpdst)+'_datafifo'+str(fifo_id)
-    self.ftag_fifoid_dict[func] += 1
-    
-    datafifo = open(datafifoname, 'w')
-    
-    print >> datafifo, data
-    datafifo.close()
-    """
-    try:
-      os.remove(datafifoname)
-    except OSError, e:
-      self.logger.error('Error: %s - %s.' % (e.errno,e.strerror))
-      return [0, None]
-    """
-    #
-    self.logger.debug('proc:: wrote to datafifo datasize=%s', datasize)
-    #read data_ from data_fifo
-    data_fifo = open(data_fifoname, 'r')
-    data_ = data_fifo.read()
-    datasize_ = getsizeof(data_)
-    self.logger.debug('proc:: read from data_fifo datasize=%s', datasize_)
-    '''
-    #
     self.logger.debug('proc:: %s run on datasize=%s, datasize_=%s', func, datasize, datasize_)
     #
     return [datasize_, data_]
@@ -771,7 +735,7 @@ class Transit(object):
             'proto': 6,
             'data_to_ip': u'10.0.0.1',
             'datasize': float(imgsize*100)/(1024**2),
-            'itfunc_dict': {'fft': 2.0}, #{'fft': 2.0, 'upsample': 4.0, 'plot': 4.0},
+            'itfunc_dict': {'fft': 2.0, 'upsample': 4.0, 'plot': 4.0},
             'uptoitfunc_dict': {},
             'proc': 1.0,
             's_tp': 6000 }
