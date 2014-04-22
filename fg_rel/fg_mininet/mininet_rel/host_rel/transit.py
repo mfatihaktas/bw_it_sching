@@ -327,9 +327,16 @@ class ItServHandler(threading.Thread):
     self.ftag_servsize_dict = {'fft':1, 'upsample':1, 'plot':64} #chunks
     
     self.procsock_dict = {'fft': None, 'upsample': None, 'plot': None}
-    self.toprocaddr_dict = {'fft': ('127.0.0.1', 7000),
-                            'upsample': ('127.0.0.1', 7001),
-                            'plot': ('127.0.0.1', 7002) }
+    self.toprocaddr_dict = {'fft': ('127.0.0.1', 8000),
+                            'upsample': ('127.0.0.1', 8001),
+                            'plot': ('127.0.0.1', 8002) }
+    self.procwrsize_dict = {'fft': {'wsize': CHUNKSIZE,
+                                    'rsize': CHUNKSIZE },
+                            'upsample': {'wsize': CHUNKSIZE,
+                                         'rsize': 64*CHUNKSIZE },
+                            'plot': {'wsize': 64*CHUNKSIZE,
+                                     'rsize': 10*CHUNKSIZE }
+                            }
     
     
     self.uptojobdone = self.itwork_dict['uptojobdone']
@@ -366,15 +373,15 @@ class ItServHandler(threading.Thread):
     #
     return reorder(itfunc_list)
   
-  def init_procsock(self):
+  def init_procsocks(self):
     for func in self.procsock_dict:
       sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
       sock.connect(self.toprocaddr_dict[func])
-      self.procsock_dict[ftag] = sock
+      self.procsock_dict[func] = sock
     #
   
   def run(self):
-    self.init_procsock()
+    self.init_procsocks()
     self.startedtohandle_time = time.time()
     #
     while not self.stopflag:
@@ -451,11 +458,14 @@ class ItServHandler(threading.Thread):
     self.logger.debug('proc:: wrote to %s_procsock, datasize=%s', func, datasize)
     
     data_ = ''
+    readsize_ = self.procwrsize_dict[func]['rsize']
     readsize = 0
-    while readsize < self.procrwsize_dict[func]:
-      data_ += sock.recv(RXCHUNK_SIZE)
+    while readsize < readsize_:
+      readdata = sock.recv(readsize_)
+      readsize += getsizeof(readdata)
+      data_ += readdata
     
-    datasize_ = getsizeof(data_)
+    datasize_ = readsize
     self.logger.debug('proc:: read from %s_procsock, datasize=%s', func, datasize_)
     
     '''
