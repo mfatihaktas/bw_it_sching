@@ -19,6 +19,8 @@ FVRELDIR=./fg_controller/fv_rel
 #MINRELDIR=./../net_config/mininet_rel
 MINRELDIR=./fg_mininet/mininet_rel
 KSTARDATADIR=./../../ecei_data.bp
+FFTW3DIR=./fg_mininet/mininet_rel/host_rel/fftw3
+FONTDIR=//usr/share/fonts
 
 if [ $1  = 'ssh' ]; then
   ssh mfa51@india.futuregrid.org
@@ -45,20 +47,15 @@ elif [ $1  = 'fvm' ]; then
 elif [ $1  = 'tvm' ]; then
   #scp -v -r $FGRELDIR -i $VMKEYDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]}:~/
   if [ $2 = 0 ]; then
-	#scp ./cvxpy_test.log -i $VMKEYDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]}:~/cvxpy_deneme
-    #tar czf - $CVXOPTDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r ~$CVXOPTDIR ~/; rm -r ~/home"
-    
-    #tar czf - $POXEXTDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r ~$POXEXTDIR ~/; rm -r ~/home; cp -r ~/ext ~/pox; rm -r ~/ext"
-    
     tar czf - $POXEXTDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r ~/ext ~/pox; rm -r ~/ext"
     #tar czf - $MINRELDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r $MINRELDIR ~/; rm -r ~/fg_mininet; cp -r ~/mininet_rel ~/mininet; rm -r ~/mininet_rel"
-    
-    #tar czf - $FVRELDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r ~$FVRELDIR ~/; rm -r ~/home"
     #tar czf - $FVRELDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r ~/fg_controller/fv_rel ~/; rm -r ~/fg_controller"
   else
     #tar czf - $MINRELDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r ~$MINRELDIR ~/; rm -r ~/home; cp -r ~/mininet_rel ~/mininet; rm -r ~/mininet_rel"
     tar czf - $MINRELDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r $MINRELDIR ~/; rm -r ~/fg_mininet; cp -r ~/mininet_rel ~/mininet; rm -r ~/mininet_rel"
     #tar czf - $KSTARDATADIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -"
+    #tar czf - $FFTW3DIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r $FFTW3DIR ~/; rm -r ~/fg_mininet"
+    #tar czf - $FONTDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -"
   fi
 elif [ $1  = 'scpinstalldirs' ]; then
   #only for snap_controller

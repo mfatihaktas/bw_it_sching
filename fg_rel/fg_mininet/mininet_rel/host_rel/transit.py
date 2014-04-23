@@ -328,7 +328,7 @@ class ItServHandler(threading.Thread):
     #to integrate ecei_proc
     self.ftag_servsize_dict = {'fft':1, 'upsample':1, 'plot':64, 'upsampleplot':1} #chunks
     
-    self.procsock_dict = {'fft': None, 'upsample': None, 'plot': None, 'upsampleplot': None}
+    self.procsock_dict = {'fft': None, 'upsampleplot': None}
     self.toprocaddr_dict = {'fft': ('127.0.0.1', 8000),
                             'upsample': ('127.0.0.1', 8001),
                             'plot': ('127.0.0.1', 8002),
@@ -693,7 +693,7 @@ class Transit(object):
     self.stokenq_dict[stpdst] = stokenq
     #
     nchunks = float(data_['datasize'])*(1024**2)/CHUNKSIZE
-    intereq_time = (modelproct/nchunks)*0.95
+    intereq_time = 0 #(modelproct/nchunks)*0.95
     self.logger.warning('welcome_s:: nchunks=%s, intereq_time=%s, nchunks*intereq_time=%s', nchunks, intereq_time, nchunks*intereq_time)
     threading.Thread(target = self.manage_stokenq,
                      kwargs = {'stpdst':stpdst,
@@ -741,34 +741,28 @@ class Transit(object):
   
   def test(self):
     self.logger.debug('test')
-    '''
-    data = {'comp': 1.99999998665,
-            'proto': 6,
-            'data_to_ip': u'10.0.0.1',
-            'datasize': 7.8125,
-            'itfunc_dict': {u'f1': 1.0, u'f2': 0.99999998665},
-            'proc': 1, #1.0,
-            's_tp': 6000 }
-    '''
+    
+    nimg = 10000
     imgsize = CHUNKSIZE/10
-    #'uptoitfunc_dict': {'fft': 2.0, 'upsample': 2.0 }, #{'fft': 1.0},
+    datasize = float(imgsize*nimg)/(1024**2)
+    #
     data = {'comp': 14.0,
             'proto': 6,
             'data_to_ip': u'10.0.0.1',
-            'datasize': float(imgsize*100)/(1024**2),
-            'itfunc_dict': {'fft': 6.0, 'upsampleplot': 8},
+            'datasize': datasize,
+            'itfunc_dict': {'fft': 6.0},
             'uptoitfunc_dict': {},
             'proc': 1.0,
             's_tp': 6000 }
     self.welcome_s(data)
       
-    data = {'comp': 1.99999998665,
+    data = {'comp': 14.0,
             'proto': 6,
             'data_to_ip': u'10.0.0.1',
-            'datasize': 7.8125,
-            'itfunc_dict': {u'f1': 1.0, u'f2': 0.99999998665},
+            'datasize': datasize,
+            'itfunc_dict': {'upsampleplot': 8},
             'uptoitfunc_dict': {},
-            'proc': 2, #1.0,
+            'proc': 1.0,
             's_tp': 6001 }
     self.welcome_s(data)
     

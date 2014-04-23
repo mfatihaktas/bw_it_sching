@@ -339,6 +339,7 @@ char* read_chunk(char* func, int fi, int chunksize){
 void write_chunk(char* func, int fi, int chunksize, char* chunk){
   sendto(connfd[fi],chunk,chunksize,0,(struct sockaddr *)&cliaddr[fi],sizeof(cliaddr[fi]));
   printf("write_chunk:: func=%s, wrotesize=%d\n", func, chunksize);
+  free(chunk);
 }
 
 void write_chunk_tofile(char* outdir, char* fname, size_t chunksize, char* chunk){
@@ -400,6 +401,14 @@ char* convert_3dmat_tochunk(size_t len, size_t dimx, size_t dimy, double*** mat3
       }
     }
   }
+  
+  //free
+  for (size_t k=0; k<len; k++){
+    for (size_t i = 0; i < dimx; i++){
+        free(mat3d[k][i]);
+    }
+    free(mat3d[k]);
+  }
   free(mat3d);
   
   chunk[chunksize]='\0';
@@ -428,6 +437,13 @@ double** convert_3dmat_2dmat(size_t len, size_t dimx, size_t dimy, double*** mat
     }
   }
   
+  //free
+  for (size_t k=0; k<len; k++){
+    for (size_t i = 0; i < dimx; i++){
+        free(mat3d[k][i]);
+    }
+    free(mat3d[k]);
+  }
   free(mat3d);
   
   return mat2d;
@@ -583,6 +599,11 @@ char* do_plotfor2dmat_returnchunk(const char *outdir, size_t dimx, size_t dimy, 
   fprintf(pipe, "e\n");
   fprintf(pipe, "e\n");
   fflush (pipe);
+  
+  for (size_t i=0; i<dimx; i++){
+    free(X[i]);
+  }
+  free(X);
   //
   char plotname[50];
   strcpy(plotname, outdir);
@@ -608,10 +629,10 @@ char* do_plotfor2dmat_returnchunk(const char *outdir, size_t dimx, size_t dimy, 
     perror("do_plotfor2dmat_returnchunk:: reading; Error occured\n");
   }
   fclose(plotp);
-  /*
+  
   if(remove(plotname) != 0)
     perror( "Error deleting file" );
-  */
+  
   return chunk;
 }
 
@@ -766,14 +787,14 @@ int main (int argc, char** argv)
         abort ();
     }
   }
-  /*
+  
   pthread_t fft_thread, upsampleplot_thread;
   if ((pthread_create( &fft_thread, NULL, &run_fft, (void*)stpdst ) != 0) ||
       (pthread_create( &fft_thread, NULL, &run_upsampleplot, (void*)stpdst ) != 0)){
     perror("Error with pthread_create");
   }
-  */
   
+  /*
   pthread_t fft_thread, upsample_thread, plot_thread, upsampleplot_thread;
   if ((pthread_create( &fft_thread, NULL, &run_fft, (void*)stpdst ) != 0) ||
       (pthread_create( &upsample_thread, NULL, &run_upsample, (void*)stpdst ) != 0) ||
@@ -781,6 +802,7 @@ int main (int argc, char** argv)
       (pthread_create( &fft_thread, NULL, &run_upsampleplot, (void*)stpdst ) != 0)){
     perror("Error with pthread_create");
   }
+  */
   //
   printf("Enter\n");
   scanf("...");
