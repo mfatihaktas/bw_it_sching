@@ -326,19 +326,21 @@ class ItServHandler(threading.Thread):
     self.totalproc_time = 0
     #
     #to integrate ecei_proc
-    self.ftag_fifoid_dict = {'fft':0, 'upsample':0, 'plot':0}
-    self.ftag_servsize_dict = {'fft':1, 'upsample':1, 'plot':64} #chunks
+    self.ftag_servsize_dict = {'fft':1, 'upsample':1, 'plot':64, 'upsampleplot':1} #chunks
     
-    self.procsock_dict = {'fft': None, 'upsample': None, 'plot': None}
+    self.procsock_dict = {'fft': None, 'upsample': None, 'plot': None, 'upsampleplot': None}
     self.toprocaddr_dict = {'fft': ('127.0.0.1', 8000),
                             'upsample': ('127.0.0.1', 8001),
-                            'plot': ('127.0.0.1', 8002) }
+                            'plot': ('127.0.0.1', 8002),
+                            'upsampleplot': ('127.0.0.1', 8003) }
     self.procwrsize_dict = {'fft': {'wsize': CHUNKSIZE,
                                     'rsize': CHUNKSIZE },
                             'upsample': {'wsize': CHUNKSIZE,
                                          'rsize': 64*CHUNKSIZE },
                             'plot': {'wsize': 64*CHUNKSIZE,
-                                     'rsize': 10*CHUNKSIZE }
+                                     'rsize': CHUNKSIZE },
+                            'upsampleplot': {'wsize': CHUNKSIZE,
+                                             'rsize': CHUNKSIZE }
                             }
     
     
@@ -357,7 +359,7 @@ class ItServHandler(threading.Thread):
   def get_itfunclist_overnextchunk(self):
     def reorder(itfunc_list):
       ordered_list = []
-      idealfunc_order = ['fft', 'upsample', 'plot']
+      idealfunc_order = ['fft', 'upsample', 'plot', 'upsampleplot']
       for func in idealfunc_order:
         if func in itfunc_list:
           ordered_list.append(func)
@@ -372,7 +374,8 @@ class ItServHandler(threading.Thread):
         if uptoserved_size_B >= self.uptorecvsize_dict[ftag]:
           itfunc_list.append(ftag)
       else:
-        itfunc_list.append(ftag)
+        if self.jobremaining[ftag] > 0:
+          itfunc_list.append(ftag)
     #
     return reorder(itfunc_list)
   
@@ -440,13 +443,12 @@ class ItServHandler(threading.Thread):
         procstart_time = time.time()
         [datasize_, data_] = [0, None]
         for func in itfunc_list:
-          if self.jobremaining[func] > 0:
-            [datasize_, data_] = self.proc(func = func,
-                                           datasize = datasize,
-                                           data = data )
-            self.jobremaining[func] -= datasize
-            datasize = datasize_
-            data = data_
+          [datasize_, data_] = self.proc(func = func,
+                                         datasize = datasize,
+                                         data = data )
+          self.jobremaining[func] -= datasize
+          datasize = datasize_
+          data = data_
         #
         #datasize = getsizeof(data)
         #self.forward_data(data, datasize)
@@ -478,6 +480,7 @@ class ItServHandler(threading.Thread):
     while readsize < readsize_:
       readdata = sock.recv(readsize_)
       readsize += getsizeof(readdata)
+      #self.logger.debug('proc:: readsize=%s', readsize)
       data_ += readdata
     
     datasize_ = readsize
@@ -597,7 +600,8 @@ func_comp_dict = {'f0':0.5,
                   'f4':4,
                   'fft':6,
                   'upsample':8,
-                  'plot':4*3 }
+                  'plot':8,
+                  'upsampleplot':8 }
 
 def proc_time_model(datasize, func_comp, proc_cap):
   proc_t = float(func_comp)*float(8*float(datasize)/64)*float(1/float(proc_cap)) #secs
@@ -748,11 +752,11 @@ class Transit(object):
     '''
     imgsize = CHUNKSIZE/10
     #'uptoitfunc_dict': {'fft': 2.0, 'upsample': 2.0 }, #{'fft': 1.0},
-    data = {'comp': 6.0,
+    data = {'comp': 14.0,
             'proto': 6,
             'data_to_ip': u'10.0.0.1',
             'datasize': float(imgsize*100)/(1024**2),
-            'itfunc_dict': {'fft': 6.0, 'upsample': 8.0, 'plot': 8.0},
+            'itfunc_dict': {'fft': 6.0, 'upsampleplot': 8},
             'uptoitfunc_dict': {},
             'proc': 1.0,
             's_tp': 6000 }

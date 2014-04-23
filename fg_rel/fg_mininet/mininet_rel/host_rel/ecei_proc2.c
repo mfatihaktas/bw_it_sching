@@ -269,14 +269,14 @@ double*** alloc_3dmat(uint64_t len, size_t dimx, size_t dimy) {
 #define DIMX_ DIMX*SCALE
 #define DIMY_ DIMY*SCALE
 
-//0:fft, 1:upsample, 2:plot
-#define numfs 3
+//0:fft, 1:upsample, 2:plot, 3:upsampleplot
+#define numfs 4
 int connfd[numfs];
 struct sockaddr_in cliaddr[numfs];
 socklen_t clilen[numfs];
 int listenfd[numfs];
 struct sockaddr_in servaddr[numfs];
-int port[3] = {8000, 8001, 8002};
+int port[numfs] = {8000, 8001, 8002, 8003};
 
 void* init_chunkrw_sock(void* fi){
   int i = atoi((char*)fi);
@@ -406,6 +406,33 @@ char* convert_3dmat_tochunk(size_t len, size_t dimx, size_t dimy, double*** mat3
   return chunk;
 }
 
+double** convert_3dmat_2dmat(size_t len, size_t dimx, size_t dimy, double*** mat3d){
+  double** mat2d = alloc_2dmat(dimx, dimy);
+  for (size_t i = 0; i < dimx; i++){
+    for (size_t j = 0; j < dimy; j++){
+      mat2d[i][j] = 0;
+    }
+  }
+  
+  for (size_t k=0; k<len; k++){
+    for (size_t i = 0; i < dimx; i++){
+      for (size_t j = 0; j < dimy; j++){
+        mat2d[i][j] += mat3d[k][i][j];
+      }
+    }
+  }
+  
+  for (size_t i = 0; i < dimx; i++){
+    for (size_t j = 0; j < dimy; j++){
+      mat2d[i][j] = mat2d[i][j]/len;
+    }
+  }
+  
+  free(mat3d);
+  
+  return mat2d;
+}
+
 char* doplot_returnchunk(const char *outdir, size_t len, size_t dimx, size_t dimy, double*** X){
   size_t chunksize = CHUNKSIZE*len;
   char* chunk = (char*)malloc(chunksize);
@@ -425,7 +452,7 @@ char* doplot_returnchunk(const char *outdir, size_t len, size_t dimx, size_t dim
     fprintf(pipe, "set view map\n");
     fprintf(pipe, "set xrange [0:%ld]\n", dimy-1);
     fprintf(pipe, "set yrange [0:%ld] reverse\n", dimx-1);
-    fprintf(pipe, "set cbrange [%.1g:%.1g]\n", m1, m2);
+    fprintf(pipe, "set cbrange [%g:%g]\n", m1, m2);
     fprintf(pipe, "set datafile missing \"nan\"\n");
     fprintf(pipe, "splot '-' matrix with image\n");
 
@@ -484,6 +511,107 @@ char* doplot_returnchunk(const char *outdir, size_t len, size_t dimx, size_t dim
   }
   chunk_wp = NULL;
   //printf("doplot_returnchunk:: done\n");
+  return chunk;
+}
+
+void do_bigplot(const char *outdir, size_t len, size_t dimx, size_t dimy, double*** X){
+  double m1=DBL_MAX, m2=-DBL_MAX;
+  for (size_t t=0; t<len; t++)
+    for (size_t i=0; i<dimx; i++)
+      for (size_t j=0; j<dimy; j++){
+        if (m1 > X[t][i][j])  m1 = X[t][i][j];
+        if (m2 < X[t][i][j])  m2 = X[t][i][j];
+      }
+  //
+  FILE *pipe = popen("gnuplot", "w");
+  fprintf(pipe, "set term png size 2000,1000\n"); //size 2800,1400
+  fprintf(pipe, "set output '%s/mal.png'\n", outdir);
+  fprintf(pipe, "set multiplot layout %d,%d\n", 2, 5);
+  for (size_t t=0; t<len; t++){
+    //fprintf(pipe, "set output '%s/mal.png'\n", outdir);
+    fprintf(pipe, "set title \"%ld\"\n", t);
+    fprintf(pipe, "set view map\n");
+    fprintf(pipe, "set xrange [0:%ld]\n", dimy-1);
+    fprintf(pipe, "set yrange [0:%ld] reverse\n", dimx-1);
+    fprintf(pipe, "set cbrange [%g:%g]\n", m1, m2);
+    fprintf(pipe, "set datafile missing \"nan\"\n");
+    fprintf(pipe, "splot '-' matrix with image\n");
+    
+    for (size_t i=0; i<dimx; i++){
+      for (size_t j=0; j<dimy; j++){
+        fprintf(pipe, "%g ", X[t][i][j]);
+      }
+      fprintf(pipe, "\n");
+    }
+    
+    fprintf(pipe, "e\n");
+    fprintf(pipe, "e\n");
+    fprintf(pipe, "\n");
+  }
+  fprintf(pipe, "unset multiplot\n");
+  fflush(pipe);
+  fclose(pipe);
+}
+
+char* do_plotfor2dmat_returnchunk(const char *outdir, size_t dimx, size_t dimy, double** X, size_t chunksize){
+  char* chunk = (char*)malloc(chunksize);
+  //
+  double m1=DBL_MAX, m2=-DBL_MAX;
+  for (size_t i=0; i<dimx; i++)
+    for (size_t j=0; j<dimy; j++){
+      if (m1 > X[i][j])  m1 = X[i][j];
+      if (m2 < X[i][j])  m2 = X[i][j];
+    }
+
+  FILE *pipe = popen("gnuplot", "w");
+  fprintf(pipe, "set term png enhanced font '/usr/share/fonts/liberation/LiberationSans-Regular.ttf' 12\n");
+  fprintf(pipe, "set output '%s/ecei-for2d.png'\n", outdir);
+  fprintf(pipe, "set view map\n");
+  fprintf(pipe, "set xrange [0:%ld]\n", dimy-1);
+  fprintf(pipe, "set yrange [0:%ld] reverse\n", dimx-1);
+  fprintf(pipe, "set cbrange [%g:%g]\n", m1, m2);
+  fprintf(pipe, "set datafile missing \"nan\"\n");
+  fprintf(pipe, "splot '-' matrix with image\n");
+
+  for (size_t i=0; i<dimx; i++){
+    for (size_t j=0; j<dimy; j++){
+      fprintf(pipe, "%g ", X[i][j]);
+    }
+    fprintf(pipe, "\n");
+  }
+
+  fprintf(pipe, "e\n");
+  fprintf(pipe, "e\n");
+  fflush (pipe);
+  //
+  char plotname[50];
+  strcpy(plotname, outdir);
+  strcat(plotname, (char*)"ecei-for2d.png");
+  //printf("do_plotfor2dmat_returnchunk:: converting %s\n", plotname);
+  
+  FILE* plotp = fopen(plotname, "r");
+  if (plotp == NULL || ferror(plotp)){
+    perror ("Error opening file");
+    return NULL;
+  }
+  
+  fseek(plotp, 0L, SEEK_END);
+  size_t plotsize = ftell(plotp);
+  //printf("do_plotfor2dmat_returnchunk:: plotsize=%zd\n", plotsize);
+  fseek(plotp, 0L, SEEK_SET);
+  size_t readsize = fread(chunk,1,plotsize,plotp);
+  //printf("do_plotfor2dmat_returnchunk:: readsize=%zd\n", readsize);
+  if (feof(plotp)){
+    printf("do_plotfor2dmat_returnchunk:: reading; EOF reached\n");
+  }
+  else if (ferror(plotp)){
+    perror("do_plotfor2dmat_returnchunk:: reading; Error occured\n");
+  }
+  fclose(plotp);
+  /*
+  if(remove(plotname) != 0)
+    perror( "Error deleting file" );
+  */
   return chunk;
 }
 
@@ -557,20 +685,48 @@ void* run_plot(void* stpdst){
       printf("run_plot:: chunk is returned NULL! Aborting...\n");
       return NULL;
     }
-    //char* chunk = read_chunk(datafifo_basename, datafifo_id, CHUNKSIZE64);
     //printf("chunk=%s\n", chunk);
     
     double*** mat3d_ = convert_chunk_to3dmat(CHUNKSIZE64, chunk, NIMGACHUNK, DIMX_, DIMY_);
     //print_3dmat((char*)"mat3d_", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
     
-    char* chunk_ = doplot_returnchunk((char*)"plots/", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
+    //char* chunk_ = doplot_returnchunk((char*)"plots/", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
+    //char* chunk_ = do_bigplot((char*)"plots", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
+    double** mat2d_ = convert_3dmat_2dmat(NIMGACHUNK, DIMX_, DIMY_, mat3d_);
+    char* chunk_ = do_plotfor2dmat_returnchunk((char*)"plots/", DIMX_, DIMY_, mat2d_, CHUNKSIZE);
     //do_plot((char*)"plots/", NIMGACHUNK, DIMX_, DIMY_, mat3d_);
     
     //char* chunk_ = convert_plots_tochunk((char*)"plots/", (char*)"ecei-", NIMGACHUNK);
     //write_chunk_tofile((char*)"fifo/plot/", (char*)"checkfile.png", CHUNKSIZE, char* chunk){
     
-    write_chunk((char*)"plot", 2, CHUNKSIZE10, chunk_);
-    //write_chunk(data_fifo_basename, datafifo_id, CHUNKSIZE, chunk_);
+    write_chunk((char*)"plot", 2, CHUNKSIZE, chunk_);
+  }
+}
+
+void* run_upsampleplot(void* stpdst){
+  printf("run_upsampleplot:: started\n");
+  init_chunkrw_sock((void*)"3");
+  //
+  while (!STOPFLAG){
+    char* chunk = read_chunk((char*)"upsampleplot", 3, CHUNKSIZE);
+    if (chunk == NULL){
+      printf("run_upsampleplot:: chunk is returned NULL! Aborting...\n");
+      return NULL;
+    }
+    //printf("chunk=%s\n", chunk);
+    //upsample
+    double*** mat3d = convert_chunk_to3dmat(CHUNKSIZE, chunk, NIMGACHUNK, DIMX, DIMY);
+    
+    double*** mat3d_ = alloc_3dmat(NIMGACHUNK, DIMX_, DIMY_);
+    for (int i=0; i<NIMGACHUNK; i++) {
+        do_upsampling(DIMX, DIMY, (double**)mat3d[i], SCALE, 
+                      DIMX_, DIMY_, (double**)mat3d_[i]);
+    }
+    //plot
+    double** mat2d_ = convert_3dmat_2dmat(NIMGACHUNK, DIMX_, DIMY_, mat3d_);
+    char* chunk_ = do_plotfor2dmat_returnchunk((char*)"plots/", DIMX_, DIMY_, mat2d_, CHUNKSIZE);
+    
+    write_chunk((char*)"upsampleplot", 3, CHUNKSIZE, chunk_);
   }
 }
 
@@ -610,11 +766,19 @@ int main (int argc, char** argv)
         abort ();
     }
   }
+  /*
+  pthread_t fft_thread, upsampleplot_thread;
+  if ((pthread_create( &fft_thread, NULL, &run_fft, (void*)stpdst ) != 0) ||
+      (pthread_create( &fft_thread, NULL, &run_upsampleplot, (void*)stpdst ) != 0)){
+    perror("Error with pthread_create");
+  }
+  */
   
-  pthread_t fft_thread, upsample_thread, plot_thread;
+  pthread_t fft_thread, upsample_thread, plot_thread, upsampleplot_thread;
   if ((pthread_create( &fft_thread, NULL, &run_fft, (void*)stpdst ) != 0) ||
       (pthread_create( &upsample_thread, NULL, &run_upsample, (void*)stpdst ) != 0) ||
-      (pthread_create( &fft_thread, NULL, &run_plot, (void*)stpdst ) != 0)){
+      (pthread_create( &fft_thread, NULL, &run_plot, (void*)stpdst ) != 0) ||
+      (pthread_create( &fft_thread, NULL, &run_upsampleplot, (void*)stpdst ) != 0)){
     perror("Error with pthread_create");
   }
   //

@@ -1,21 +1,20 @@
 INFO:userdts_comm_intf:UserDTSCommIntf inited, user_addr=('127.0.0.1', 7001), dts_addr=('127.0.0.1', 7002)
 INFO:t:mfa is ready...
 DEBUG:t:test
-WARNING:t:welcome_s:: nchunks=10.0, intereq_time=0.0117416381836, nchunks*intereq_time=0.117416381836
+WARNING:t:welcome_s:: nchunks=10.0, intereq_time=0.0273971557617, nchunks*intereq_time=0.273971557617
 INFO:t:welcome_s:: welcome stpdst=6000, s_info=
-{'intereq_time': 0.01174163818359375,
- 'itjobrule': {'comp': 6.0,
+{'intereq_time': 0.02739715576171875,
+ 'itjobrule': {'comp': 14.0,
                'datasize': 0.164794921875,
-               'itfunc_dict': {'fft': 6.0, 'plot': 8.0, 'upsample': 8.0},
+               'itfunc_dict': {'fft': 6.0, 'upsampleplot': 8},
                'jobtobedone': {'fft': 0.164794921875,
-                               'plot': 0.10986328125,
-                               'upsample': 0.164794921875},
+                               'upsampleplot': 0.164794921875},
                'proc': 1.0,
                'uptoitfunc_dict': {},
                'uptojobdone': {}},
- 'modelproct': 0.12359619140625,
+ 'modelproct': 0.28839111328125,
  'proc': 1.0,
- 's_server_thread': <FilePipeServer(Thread-3, started daemon 139921981437696)>,
+ 's_server_thread': <FilePipeServer(Thread-3, started daemon 140642073605888)>,
  'to_addr': (u'10.0.0.1', 6000)}
 WARNING:t:welcome_s:: nchunks=474.074074074, intereq_time=0.0019569396842, nchunks*intereq_time=0.927734368807
 DEBUG:filepipeserver:run:: serversock_stpdst=6000 is opened; waiting for client.
@@ -30,18 +29,20 @@ INFO:t:welcome_s:: welcome stpdst=6001, s_info=
                'uptojobdone': {}},
  'modelproct': 0.9765624934814453,
  'proc': 2.0,
- 's_server_thread': <FilePipeServer(Thread-5, started daemon 139921960457984)>,
+ 's_server_thread': <FilePipeServer(Thread-5, started daemon 140641847731968)>,
  'to_addr': (u'10.0.0.1', 6001)}
 DEBUG:filepipeserver:run:: serversock_stpdst=6001 is opened; waiting for client.
 DEBUG:itservhandler_6000:itservhandler:: jobremaining=
-{'fft': 172800.0, 'plot': 7372800.0, 'upsample': 172800.0}
-DEBUG:sessionclienthandler_6000:run:: sclient_addr=('127.0.0.1', 32903)
+{'fft': 172800.0, 'upsampleplot': 172800.0}
+DEBUG:sessionclienthandler_6000:run:: sclient_addr=('127.0.0.1', 36385)
 INFO:sessionclienthandler_6000:init_rx:: stpdst=6000; rxed datasize=17280B
 DEBUG:sessionclienthandler_6000:push_to_pipe:: datasize=17280 pushed to pipe, pipe_size_B_=17280, overflow_size=-155520
+DEBUG:filepipeserver:run:: server_addr=('127.0.0.1', 6000) started.
 INFO:sessionclienthandler_6000:init_rx:: stpdst=6000; rxed datasize=17280B
 DEBUG:sessionclienthandler_6000:push_to_pipe:: datasize=17280 pushed to pipe, pipe_size_B_=34560, overflow_size=-138240
 INFO:sessionclienthandler_6000:init_rx:: stpdst=6000; rxed datasize=17280B
 DEBUG:sessionclienthandler_6000:push_to_pipe:: datasize=17280 pushed to pipe, pipe_size_B_=51840, overflow_size=-120960
+WARNING:itservhandler_6000:run:: runround_dur=1.4066696167e-05
 INFO:sessionclienthandler_6000:init_rx:: stpdst=6000; rxed datasize=17280B
 DEBUG:sessionclienthandler_6000:push_to_pipe:: datasize=17280 pushed to pipe, pipe_size_B_=69120, overflow_size=-103680
 INFO:sessionclienthandler_6000:init_rx:: stpdst=6000; rxed datasize=17280B
@@ -59,145 +60,122 @@ DEBUG:sessionclienthandler_6000:push_to_pipe:: datasize=17280 pushed to pipe, pi
 INFO:sessionclienthandler_6000:init_rx:: stpdst=6000; rxed datasize=3B
 DEBUG:sessionclienthandler_6000:flush_pipe_mm:: pipe_file_id=0 is ready; btw flushed pipe_size_B_=172800
 INFO:sessionclienthandler_6000:init_rx:: EOF is rxed...
+DEBUG:itservhandler_6000:pop_from_pipe:: cur_fileurl=pipe/pipe_tpdst=6000_0.dat
 DEBUG:sessionclienthandler_6000:run:: stopped by EOF.
+DEBUG:itservhandler_6000:pop_from_pipe:: pipe_mm.size()=172800, served_size=0
 DEBUG:sessionclienthandler_6000:run:: done. 
 	pipe_size=11, pipe_size_B=172800
-	in dur=0.00289702415466secs, at t=1398217288.33;
-DEBUG:filepipeserver:run:: server_addr=('127.0.0.1', 6000) started.
-WARNING:itservhandler_6000:run:: runround_dur=8.82148742676e-06
-DEBUG:itservhandler_6000:pop_from_pipe:: cur_fileurl=pipe/pipe_tpdst=6000_0.dat
-DEBUG:itservhandler_6000:pop_from_pipe:: pipe_mm.size()=172800, served_size=0
+	in dur=0.00307893753052secs, at t=1398282597.78;
 DEBUG:itservhandler_6000:run:: datasize=17280 popped.
 DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:proc:: wrote to upsample_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: read from upsample_procsock, datasize=1105920
-DEBUG:itservhandler_6000:proc:: upsample run on datasize=17280, datasize_=1105920
-DEBUG:itservhandler_6000:proc:: wrote to plot_procsock, datasize=1105920
-DEBUG:itservhandler_6000:proc:: read from plot_procsock, datasize=172800
-DEBUG:itservhandler_6000:proc:: plot run on datasize=1105920, datasize_=172800
-DEBUG:itservhandler_6000:run:: acted on procdur=1.76397109032, datasize=17280B, datasize_=172800B, self.served_size_B=0, self.served_size_B_=17280
+DEBUG:itservhandler_6000:proc:: wrote to upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: read from upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: upsampleplot run on datasize=17280, datasize_=17280
+DEBUG:itservhandler_6000:run:: acted on procdur=0.0561740398407, datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=17280
 WARNING:itservhandler_6000:run:: !!! procdur > intereq_time !!!
-WARNING:itservhandler_6000:run:: runround_dur=1.76452803612
+WARNING:itservhandler_6000:run:: runround_dur=0.0584869384766
 DEBUG:itservhandler_6000:run:: datasize=17280 popped.
 DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:proc:: wrote to upsample_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: read from upsample_procsock, datasize=1105920
-DEBUG:itservhandler_6000:proc:: upsample run on datasize=17280, datasize_=1105920
-DEBUG:itservhandler_6000:proc:: wrote to plot_procsock, datasize=1105920
-DEBUG:itservhandler_6000:proc:: read from plot_procsock, datasize=172800
-DEBUG:itservhandler_6000:proc:: plot run on datasize=1105920, datasize_=172800
-DEBUG:itservhandler_6000:run:: acted on procdur=1.18871688843, datasize=17280B, datasize_=172800B, self.served_size_B=0, self.served_size_B_=34560
+DEBUG:itservhandler_6000:proc:: wrote to upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: read from upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: upsampleplot run on datasize=17280, datasize_=17280
+DEBUG:itservhandler_6000:run:: acted on procdur=0.0617549419403, datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=34560
 WARNING:itservhandler_6000:run:: !!! procdur > intereq_time !!!
-WARNING:itservhandler_6000:run:: runround_dur=1.18902111053
+WARNING:itservhandler_6000:run:: runround_dur=0.062038898468
 DEBUG:itservhandler_6000:run:: datasize=17280 popped.
 DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:proc:: wrote to upsample_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: read from upsample_procsock, datasize=1105920
-DEBUG:itservhandler_6000:proc:: upsample run on datasize=17280, datasize_=1105920
-DEBUG:itservhandler_6000:proc:: wrote to plot_procsock, datasize=1105920
-DEBUG:itservhandler_6000:proc:: read from plot_procsock, datasize=172800
-DEBUG:itservhandler_6000:proc:: plot run on datasize=1105920, datasize_=172800
-DEBUG:itservhandler_6000:run:: acted on procdur=1.12408518791, datasize=17280B, datasize_=172800B, self.served_size_B=0, self.served_size_B_=51840
+DEBUG:itservhandler_6000:proc:: wrote to upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: read from upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: upsampleplot run on datasize=17280, datasize_=17280
+DEBUG:itservhandler_6000:run:: acted on procdur=0.0594520568848, datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=51840
 WARNING:itservhandler_6000:run:: !!! procdur > intereq_time !!!
-WARNING:itservhandler_6000:run:: runround_dur=1.12438011169
+WARNING:itservhandler_6000:run:: runround_dur=0.0597450733185
 DEBUG:itservhandler_6000:run:: datasize=17280 popped.
 DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:proc:: wrote to upsample_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: read from upsample_procsock, datasize=1105920
-DEBUG:itservhandler_6000:proc:: upsample run on datasize=17280, datasize_=1105920
-DEBUG:itservhandler_6000:proc:: wrote to plot_procsock, datasize=1105920
-DEBUG:itservhandler_6000:proc:: read from plot_procsock, datasize=172800
-DEBUG:itservhandler_6000:proc:: plot run on datasize=1105920, datasize_=172800
-DEBUG:itservhandler_6000:run:: acted on procdur=0.877573013306, datasize=17280B, datasize_=172800B, self.served_size_B=0, self.served_size_B_=69120
+DEBUG:itservhandler_6000:proc:: wrote to upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: read from upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: upsampleplot run on datasize=17280, datasize_=17280
+DEBUG:itservhandler_6000:run:: acted on procdur=0.060898065567, datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=69120
 WARNING:itservhandler_6000:run:: !!! procdur > intereq_time !!!
-WARNING:itservhandler_6000:run:: runround_dur=0.877878904343
+WARNING:itservhandler_6000:run:: runround_dur=0.061182975769
 DEBUG:itservhandler_6000:run:: datasize=17280 popped.
 DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:proc:: wrote to upsample_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: read from upsample_procsock, datasize=1105920
-DEBUG:itservhandler_6000:proc:: upsample run on datasize=17280, datasize_=1105920
-DEBUG:itservhandler_6000:proc:: wrote to plot_procsock, datasize=1105920
-DEBUG:itservhandler_6000:proc:: read from plot_procsock, datasize=172800
-DEBUG:itservhandler_6000:proc:: plot run on datasize=1105920, datasize_=172800
-DEBUG:itservhandler_6000:run:: acted on procdur=0.846333026886, datasize=17280B, datasize_=172800B, self.served_size_B=0, self.served_size_B_=86400
+DEBUG:itservhandler_6000:proc:: wrote to upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: read from upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: upsampleplot run on datasize=17280, datasize_=17280
+DEBUG:itservhandler_6000:run:: acted on procdur=0.0607528686523, datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=86400
 WARNING:itservhandler_6000:run:: !!! procdur > intereq_time !!!
-WARNING:itservhandler_6000:run:: runround_dur=0.846628904343
+WARNING:itservhandler_6000:run:: runround_dur=0.0610449314117
 DEBUG:itservhandler_6000:run:: datasize=17280 popped.
 DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:proc:: wrote to upsample_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: read from upsample_procsock, datasize=1105920
-DEBUG:itservhandler_6000:proc:: upsample run on datasize=17280, datasize_=1105920
-DEBUG:itservhandler_6000:proc:: wrote to plot_procsock, datasize=1105920
-DEBUG:itservhandler_6000:proc:: read from plot_procsock, datasize=172800
-DEBUG:itservhandler_6000:proc:: plot run on datasize=1105920, datasize_=172800
-DEBUG:itservhandler_6000:run:: acted on procdur=0.870625972748, datasize=17280B, datasize_=172800B, self.served_size_B=0, self.served_size_B_=103680
+DEBUG:itservhandler_6000:proc:: wrote to upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: read from upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: upsampleplot run on datasize=17280, datasize_=17280
+DEBUG:itservhandler_6000:run:: acted on procdur=0.0598089694977, datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=103680
 WARNING:itservhandler_6000:run:: !!! procdur > intereq_time !!!
-WARNING:itservhandler_6000:run:: runround_dur=0.870921850204
+WARNING:itservhandler_6000:run:: runround_dur=0.0600941181183
 DEBUG:itservhandler_6000:run:: datasize=17280 popped.
 DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:proc:: wrote to upsample_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: read from upsample_procsock, datasize=1105920
-DEBUG:itservhandler_6000:proc:: upsample run on datasize=17280, datasize_=1105920
-DEBUG:itservhandler_6000:proc:: wrote to plot_procsock, datasize=1105920
-DEBUG:itservhandler_6000:proc:: read from plot_procsock, datasize=172800
-DEBUG:itservhandler_6000:proc:: plot run on datasize=1105920, datasize_=172800
-DEBUG:itservhandler_6000:run:: acted on procdur=0.853549957275, datasize=17280B, datasize_=172800B, self.served_size_B=0, self.served_size_B_=120960
+DEBUG:itservhandler_6000:proc:: wrote to upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: read from upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: upsampleplot run on datasize=17280, datasize_=17280
+DEBUG:itservhandler_6000:run:: acted on procdur=0.0614068508148, datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=120960
 WARNING:itservhandler_6000:run:: !!! procdur > intereq_time !!!
-WARNING:itservhandler_6000:run:: runround_dur=0.853854894638
+WARNING:itservhandler_6000:run:: runround_dur=0.0616910457611
 DEBUG:itservhandler_6000:run:: datasize=17280 popped.
 DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:proc:: wrote to upsample_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: read from upsample_procsock, datasize=1105920
-DEBUG:itservhandler_6000:proc:: upsample run on datasize=17280, datasize_=1105920
-DEBUG:itservhandler_6000:run:: acted on procdur=0.0740041732788, datasize=17280B, datasize_=1105920B, self.served_size_B=0, self.served_size_B_=138240
+DEBUG:itservhandler_6000:proc:: wrote to upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: read from upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: upsampleplot run on datasize=17280, datasize_=17280
+DEBUG:itservhandler_6000:run:: acted on procdur=0.0597860813141, datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=138240
 WARNING:itservhandler_6000:run:: !!! procdur > intereq_time !!!
-WARNING:itservhandler_6000:run:: runround_dur=0.0743548870087
+WARNING:itservhandler_6000:run:: runround_dur=0.0600731372833
 DEBUG:itservhandler_6000:run:: datasize=17280 popped.
 DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:proc:: wrote to upsample_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: read from upsample_procsock, datasize=1105920
-DEBUG:itservhandler_6000:proc:: upsample run on datasize=17280, datasize_=1105920
-DEBUG:itservhandler_6000:run:: acted on procdur=0.0723481178284, datasize=17280B, datasize_=1105920B, self.served_size_B=0, self.served_size_B_=155520
+DEBUG:itservhandler_6000:proc:: wrote to upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: read from upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: upsampleplot run on datasize=17280, datasize_=17280
+DEBUG:itservhandler_6000:run:: acted on procdur=0.0602829456329, datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=155520
 WARNING:itservhandler_6000:run:: !!! procdur > intereq_time !!!
-WARNING:itservhandler_6000:run:: runround_dur=0.0727531909943
+WARNING:itservhandler_6000:run:: runround_dur=0.060576915741
 DEBUG:itservhandler_6000:run:: datasize=17280 popped.
 DEBUG:itservhandler_6000:proc:: wrote to fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: read from fft_procsock, datasize=17280
 DEBUG:itservhandler_6000:proc:: fft run on datasize=17280, datasize_=17280
-DEBUG:itservhandler_6000:proc:: wrote to upsample_procsock, datasize=17280
-DEBUG:itservhandler_6000:proc:: read from upsample_procsock, datasize=1105920
-DEBUG:itservhandler_6000:proc:: upsample run on datasize=17280, datasize_=1105920
-DEBUG:itservhandler_6000:run:: acted on procdur=0.07439494133, datasize=17280B, datasize_=1105920B, self.served_size_B=0, self.served_size_B_=172800
+DEBUG:itservhandler_6000:proc:: wrote to upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: read from upsampleplot_procsock, datasize=17280
+DEBUG:itservhandler_6000:proc:: upsampleplot run on datasize=17280, datasize_=17280
+DEBUG:itservhandler_6000:run:: acted on procdur=0.0605881214142, datasize=17280B, datasize_=17280B, self.served_size_B=0, self.served_size_B_=172800
 WARNING:itservhandler_6000:run:: !!! procdur > intereq_time !!!
-WARNING:itservhandler_6000:run:: runround_dur=0.0747361183167
+WARNING:itservhandler_6000:run:: runround_dur=0.0608859062195
 DEBUG:itservhandler_6000:delete_pipe_file:: cur_fileurl=pipe/pipe_tpdst=6000_0.dat is deleted from pipe
 DEBUG:itservhandler_6000:pop_from_pipe:: cur_fileurl=EOF
 DEBUG:itservhandler_6000:run:: fileurl=EOF
-INFO:itservhandler_6000:run:: done, dur=7.75023889542secs, stoppedtohandle_time=1398217296.08, startedtohandle_time=1398217288.33
-DEBUG:itservhandler_6000:run:: totalrunround_dur=7.74906682968, jobremaining=
-{'fft': 0.0, 'plot': -368640.0, 'upsample': 0.0}
-INFO:userdts_comm_intf:close:: closed.
+INFO:itservhandler_6000:run:: done, dur=0.60692191124secs, stoppedtohandle_time=1398282598.38, startedtohandle_time=1398282597.78
+DEBUG:itservhandler_6000:run:: totalrunround_dur=0.605834007263, jobremaining=
+{'fft': 0.0, 'upsampleplot': 0.0}
 INFO:userdts_comm_intf:init_rx:: rxed stop_rxing
-DEBUG:t:shutdown:: shutdown.
 INFO:filepipeserver:shutdown.
 DEBUG:filepipeserver:run:: done.
+INFO:userdts_comm_intf:close:: closed.
 DEBUG:t:manage_stokenq_6001:: stoppped by STOP flag!
+DEBUG:t:shutdown:: shutdown.
 DEBUG:t:manage_stokenq_6000:: stoppped by STOP flag!
