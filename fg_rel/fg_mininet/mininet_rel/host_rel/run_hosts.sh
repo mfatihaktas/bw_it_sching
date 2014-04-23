@@ -47,8 +47,8 @@ elif [ $1  = 't31' ]; then
   python transit.py --nodename=t31 --intf=eth0 --dtsl_ip=10.0.0.255 --dtsl_port=7001 --dtst_port=7001 --logto=file --trans_type=file
 elif [ $1  = 's' ]; then
   #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console
-  #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=10000 --kstardata_url=/media/portable_large/ecei_data.bp
-  python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=100000 --kstardata_url=/home/ubuntu/ecei_data.bp
+  python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=100 --kstardata_url=/media/portable_large/ecei_data.bp
+  #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=100000 --kstardata_url=/home/ubuntu/ecei_data.bp
   #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=100 --kstardata_url=/media/mehmet/portable_large/ecei_data.bp
 elif [ $1  = 's1' ]; then
   python sender.py --dst_ip=127.0.0.1 --dst_lport=6001 --datasize=20 --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console

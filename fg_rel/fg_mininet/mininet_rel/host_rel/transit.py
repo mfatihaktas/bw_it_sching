@@ -386,10 +386,19 @@ class ItServHandler(threading.Thread):
   def run(self):
     self.init_procsocks()
     self.startedtohandle_time = time.time()
+    
+    startrunround_time = time.time()
+    runround_dur = 0
+    totalrunround_dur = 0
     #
     while not self.stopflag:
       #wait for the proc turn
       stoken = self.stokenq.get(True, None)
+      
+      runround_dur = time.time()-startrunround_time
+      self.logger.warning('run:: runround_dur=%s', runround_dur)
+      totalrunround_dur += runround_dur
+      startrunround_time = time.time()
       if stoken == CHUNKSIZE:
         pass
       elif stoken == -1:
@@ -441,7 +450,6 @@ class ItServHandler(threading.Thread):
         #
         #datasize = getsizeof(data)
         #self.forward_data(data, datasize)
-        
         self.served_size_ += self.serv_size
         self.served_size_B_ += datasize_t
         self.test_file.write(data)
@@ -453,8 +461,8 @@ class ItServHandler(threading.Thread):
     self.test_file.close()
     self.sock.close()
     self.stoppedtohandle_time = time.time()
-    self.logger.info('run:: done, dur=%ssecs, at time=%s', self.stoppedtohandle_time-self.startedtohandle_time, self.stoppedtohandle_time)
-    self.logger.debug('run:: totalproc_time=%s, jobremaining=\n%s', self.totalproc_time, pprint.pformat(self.jobremaining))
+    self.logger.info('run:: done, dur=%ssecs, stoppedtohandle_time=%s, startedtohandle_time=%s', self.stoppedtohandle_time-self.startedtohandle_time, self.stoppedtohandle_time, self.startedtohandle_time)
+    self.logger.debug('run:: totalrunround_dur=%s, jobremaining=\n%s', totalrunround_dur, pprint.pformat(self.jobremaining))
   
   def proc(self, func, datasize, data):
     data_ = None
@@ -587,8 +595,8 @@ func_comp_dict = {'f0':0.5,
                   'f2':2,
                   'f3':3,
                   'f4':4,
-                  'fft':2*3,
-                  'upsample':4*3,
+                  'fft':6,
+                  'upsample':8,
                   'plot':4*3 }
 
 def proc_time_model(datasize, func_comp, proc_cap):
@@ -681,8 +689,8 @@ class Transit(object):
     self.stokenq_dict[stpdst] = stokenq
     #
     nchunks = float(data_['datasize'])*(1024**2)/CHUNKSIZE
-    intereq_time = modelproct/nchunks
-    self.logger.warning('welcome_s:: nchunks=%s, intereq_time=%s', nchunks, intereq_time)
+    intereq_time = (modelproct/nchunks)*0.95
+    self.logger.warning('welcome_s:: nchunks=%s, intereq_time=%s, nchunks*intereq_time=%s', nchunks, intereq_time, nchunks*intereq_time)
     threading.Thread(target = self.manage_stokenq,
                      kwargs = {'stpdst':stpdst,
                                'intereq_time':intereq_time } ).start()
@@ -743,8 +751,8 @@ class Transit(object):
     data = {'comp': 6.0,
             'proto': 6,
             'data_to_ip': u'10.0.0.1',
-            'datasize': float(imgsize*100000)/(1024**2),
-            'itfunc_dict': {'fft': 6.0}, #'upsample': 4.0, 'plot': 4.0},
+            'datasize': float(imgsize*100)/(1024**2),
+            'itfunc_dict': {'fft': 6.0, 'upsample': 8.0, 'plot': 8.0},
             'uptoitfunc_dict': {},
             'proc': 1.0,
             's_tp': 6000 }

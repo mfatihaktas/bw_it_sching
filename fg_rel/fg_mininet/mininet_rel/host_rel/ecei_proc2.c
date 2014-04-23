@@ -425,7 +425,7 @@ char* doplot_returnchunk(const char *outdir, size_t len, size_t dimx, size_t dim
     fprintf(pipe, "set view map\n");
     fprintf(pipe, "set xrange [0:%ld]\n", dimy-1);
     fprintf(pipe, "set yrange [0:%ld] reverse\n", dimx-1);
-    fprintf(pipe, "set cbrange [%g:%g]\n", m1, m2);
+    fprintf(pipe, "set cbrange [%.1g:%.1g]\n", m1, m2);
     fprintf(pipe, "set datafile missing \"nan\"\n");
     fprintf(pipe, "splot '-' matrix with image\n");
 
@@ -477,10 +477,10 @@ char* doplot_returnchunk(const char *outdir, size_t len, size_t dimx, size_t dim
     free(plotdata);
     plotp = NULL;
     plotdata = NULL;
-    ///*
+    /*
     if(remove(plotname) != 0)
       perror( "Error deleting file" );
-    //*/
+    */
   }
   chunk_wp = NULL;
   //printf("doplot_returnchunk:: done\n");
