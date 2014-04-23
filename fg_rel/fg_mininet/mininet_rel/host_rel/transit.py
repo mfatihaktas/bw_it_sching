@@ -760,7 +760,7 @@ class Transit(object):
             'proto': 6,
             'data_to_ip': u'10.0.0.1',
             'datasize': datasize,
-            'itfunc_dict': {'upsampleplot': 8},
+            'itfunc_dict': {'fft': 6.0, 'upsampleplot': 8},
             'uptoitfunc_dict': {},
             'proc': 1.0,
             's_tp': 6001 }

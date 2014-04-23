@@ -599,7 +599,9 @@ char* do_plotfor2dmat_returnchunk(const char *outdir, size_t dimx, size_t dimy, 
   fprintf(pipe, "e\n");
   fprintf(pipe, "e\n");
   fflush (pipe);
+  fclose(pipe);
   
+  //free
   for (size_t i=0; i<dimx; i++){
     free(X[i]);
   }
