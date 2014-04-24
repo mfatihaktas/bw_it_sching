@@ -272,34 +272,37 @@ double*** alloc_3dmat(uint64_t len, size_t dimx, size_t dimy) {
 //0:fft, 1:upsample, 2:plot, 3:upsampleplot
 #define numfs 4
 int connfd[numfs];
-struct sockaddr_in cliaddr[numfs];
-socklen_t clilen[numfs];
+struct sockaddr_un cliaddr[numfs];
+socklen_t cliaddrlen[numfs];
 int listenfd[numfs];
-struct sockaddr_in servaddr[numfs];
-int port[numfs] = {8000, 8001, 8002, 8003};
+struct sockaddr_un servaddr[numfs];
+char sockpath[numfs][50] = {"/fft", "/upsample", "/plot", "/upsampleplot"};
 
 void* init_chunkrw_sock(void* fi){
   int i = atoi((char*)fi);
-  
-  listenfd[i] = socket(AF_INET,SOCK_STREAM,0);
-  if (listenfd[i] == -1){
+  //
+  if ((listenfd[i] = socket(AF_UNIX,SOCK_STREAM,0)) == -1){
     printf("init_chunkrw_sock:: Error while creating socket; fi=%d, errno=%d\n",i,errno);
       exit(0);
   }
-  int on = 1;
-  setsockopt( listenfd[i], SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on) );
-  
-  bzero(&servaddr[i],sizeof(servaddr[i]));
-  servaddr[i].sin_family = AF_INET;
-  servaddr[i].sin_addr.s_addr=htonl(INADDR_ANY);
-  servaddr[i].sin_port=htons(port[i]);
-  bind(listenfd[i],(struct sockaddr *)&servaddr[i],sizeof(servaddr[i]));
-  printf("init_chunkrw_socks:: listening over port=%d.\n", port[i]);
-  listen(listenfd[i],1);
-
-  clilen[i]=sizeof(cliaddr[i]);
-  connfd[i] = accept(listenfd[i],(struct sockaddr *)&cliaddr[i],&clilen[i]);
-  printf("init_chunkrw_socks:: for func%d, connfd=%d.\n", i, connfd[i]);
+  memset(&servaddr[i], 0, sizeof(struct sockaddr_un));
+  servaddr[i].sun_family = AF_UNIX;
+  strcpy(servaddr[i].sun_path, sockpath[i]);
+  unlink(servaddr[i].sun_path);
+  int len = strlen(servaddr[i].sun_path) + sizeof(servaddr[i].sun_family);
+  if (bind(listenfd[i], (struct sockaddr *)&servaddr[i], len) == -1) {
+      perror("init_chunkrw_sock:: bind");
+      exit(0);
+  }
+  if (listen(listenfd[i], 1) == -1) {
+      perror("listen");
+      exit(0);
+  }
+  if ((connfd[i] = accept(listenfd[i], (struct sockaddr *)&cliaddr[i], &cliaddrlen[i])) == -1) {
+      perror("accept");
+      exit(1);
+  }
+  printf("init_chunkrw_socks:: done; func%d, connfd=%d.\n", i, connfd[i]);
 }
 
 char* read_chunk(char* func, int fi, int chunksize){
@@ -309,15 +312,14 @@ char* read_chunk(char* func, int fi, int chunksize){
   char* chunk_wp = chunk;
   char* temp = (char*) malloc(chunksize);
   while (readsize < chunksize){
-    int readsize_ = recvfrom(connfd[fi],temp,chunksize,0,(struct sockaddr *)&cliaddr[fi],&clilen[fi]);
+    int readsize_ = recv(connfd[fi],temp,chunksize,0);
     if (readsize_ == 0){
-      printf("read_chunk:: %s conn is closed at other side, partial_readsize=%d\n", func, readsize_);
+      printf("read_chunk:: %s conn is closed at other side, readsize_=%d\n", func, readsize_);
       close(connfd[fi]);
       return NULL;
     }
     else if (readsize_ == -1)
     {
-      //error (1, 0, "reading from server: %s", SOCK_STRERROR (SOCK_ERRNO));
       printf("read_chunk:: Error while reading socket; func=%s, errno=%d\n",func,errno);
       exit(0);
     }
@@ -331,13 +333,11 @@ char* read_chunk(char* func, int fi, int chunksize){
   
   printf("read_chunk:: func=%s, readsize=%d\n", func, readsize);
   
-  //close(connfd);
-  
   return chunk;
 }
 
 void write_chunk(char* func, int fi, int chunksize, char* chunk){
-  sendto(connfd[fi],chunk,chunksize,0,(struct sockaddr *)&cliaddr[fi],sizeof(cliaddr[fi]));
+  send(connfd[fi],chunk,chunksize,0);
   printf("write_chunk:: func=%s, wrotesize=%d\n", func, chunksize);
   free(chunk);
 }
