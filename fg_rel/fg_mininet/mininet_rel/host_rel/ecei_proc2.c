@@ -23,9 +23,9 @@
 #include <getopt.h>
 #include <pthread.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <errno.h>
+#include <sys/un.h>
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
@@ -276,7 +276,7 @@ struct sockaddr_un cliaddr[numfs];
 socklen_t cliaddrlen[numfs];
 int listenfd[numfs];
 struct sockaddr_un servaddr[numfs];
-char sockpath[numfs][50] = {"/fft", "/upsample", "/plot", "/upsampleplot"};
+char sockpath[numfs][50] = {"fft", "upsample", "plot", "upsampleplot"};
 
 void* init_chunkrw_sock(void* fi){
   int i = atoi((char*)fi);

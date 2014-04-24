@@ -329,10 +329,10 @@ class ItServHandler(threading.Thread):
     self.ftag_servsize_dict = {'fft':1, 'upsample':1, 'plot':64, 'upsampleplot':1} #chunks
     
     self.procsock_dict = {'fft': None, 'upsampleplot': None}
-    self.toprocaddr_dict = {'fft': ('127.0.0.1', 8000),
-                            'upsample': ('127.0.0.1', 8001),
-                            'plot': ('127.0.0.1', 8002),
-                            'upsampleplot': ('127.0.0.1', 8003) }
+    self.procsockpath_dict = {'fft': 'fft',
+                              'upsample': 'upsample',
+                              'plot': 'plot',
+                              'upsampleplot': 'upsampleplot' }
     self.procwrsize_dict = {'fft': {'wsize': CHUNKSIZE,
                                     'rsize': CHUNKSIZE },
                             'upsample': {'wsize': CHUNKSIZE,
@@ -381,8 +381,8 @@ class ItServHandler(threading.Thread):
   
   def init_procsocks(self):
     for func in self.procsock_dict:
-      sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-      sock.connect(self.toprocaddr_dict[func])
+      sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+      sock.connect(self.procsockpath_dict[func])
       self.procsock_dict[func] = sock
     #
   

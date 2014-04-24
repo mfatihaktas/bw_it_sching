@@ -1,6 +1,6 @@
-#FFTWDIR3=/media/portable_large/cb_sim_rel/fg_rel/fg_mininet/mininet_rel/host_rel/fftw3
+FFTWDIR3=/media/portable_large/cb_sim_rel/fg_rel/fg_mininet/mininet_rel/host_rel/fftw3
 #FFTWDIR3=/media/mehmet/portable_large/cb_sim_rel/fg_rel/fg_mininet/mininet_rel/host_rel/fftw3
-FFTWDIR3=/home/ubuntu/fftw3
+#FFTWDIR3=/home/ubuntu/fftw3
 
 eceiproc_sf=ecei_proc.c
 eceiproc_tf=eceiproc
