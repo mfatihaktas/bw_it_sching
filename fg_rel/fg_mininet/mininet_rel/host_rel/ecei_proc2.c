@@ -278,6 +278,9 @@ int listenfd[numfs];
 struct sockaddr_un servaddr[numfs];
 char sockpath[numfs][50] = {"fft", "upsample", "plot", "upsampleplot"};
 
+double totalfftelapsed_t = 0;
+double totalupsampleplotelapsed_t = 0;
+
 void* init_chunkrw_sock(void* fi){
   int i = atoi((char*)fi);
   //
@@ -645,26 +648,32 @@ void* run_fft(void* stpdst){
   init_chunkrw_sock((void*)"0");
   //
   double ratio = 1.0E-6;
-  
   while (!STOPFLAG){
     char* chunk = read_chunk((char*)"fft", 0, CHUNKSIZE);
     if (chunk == NULL){
       printf("run_fft:: chunk is returned NULL! Aborting...\n");
       return NULL;
     }
-    //char* chunk = read_chunk(datafifo_basename, datafifo_id, CHUNKSIZE);
-    //printf("chunk=%s\n", chunk);
-    
+    struct timeval ts, te;
+    double elapsed_t;
+    gettimeofday(&ts, NULL);
+    //
     double*** mat3d = convert_chunk_to3dmat(CHUNKSIZE, chunk, NIMGACHUNK, DIMX, DIMY);
-    //print_3dmat((char*)"mat3d", NIMGACHUNK, DIMX, DIMY, mat3d);
     
     do_fft(ratio, NIMGACHUNK, DIMX, DIMY, mat3d);
     
     char* chunk_ = convert_3dmat_tochunk(NIMGACHUNK, DIMX, DIMY, mat3d, CHUNKSIZE);
-    //printf("chunk_=%s\n", chunk_);
     
     write_chunk((char*)"fft", 0, CHUNKSIZE, chunk_);
-    //write_chunk(data_fifo_basename, datafifo_id, CHUNKSIZE, chunk_);
+    //
+    gettimeofday(&te, NULL);
+      
+    elapsed_t = (te.tv_sec - ts.tv_sec) * 1000.0;      // sec to ms
+    elapsed_t += (te.tv_usec - ts.tv_usec) / 1000.0;   // us to ms
+    elapsed_t = elapsed_t/1000.0; //msec to sec
+    
+    totalfftelapsed_t += elapsed_t;
+    printf("run_fft:: elapsed_t=%g\n", elapsed_t);
   }
 }
 
@@ -730,13 +739,17 @@ void* run_upsampleplot(void* stpdst){
   printf("run_upsampleplot:: started\n");
   init_chunkrw_sock((void*)"3");
   //
+  double totalelapsed_t = 0;
   while (!STOPFLAG){
     char* chunk = read_chunk((char*)"upsampleplot", 3, CHUNKSIZE);
     if (chunk == NULL){
       printf("run_upsampleplot:: chunk is returned NULL! Aborting...\n");
       return NULL;
     }
-    //printf("chunk=%s\n", chunk);
+    struct timeval ts, te;
+    double elapsed_t;
+    gettimeofday(&ts, NULL);
+    //
     //upsample
     double*** mat3d = convert_chunk_to3dmat(CHUNKSIZE, chunk, NIMGACHUNK, DIMX, DIMY);
     
@@ -750,6 +763,15 @@ void* run_upsampleplot(void* stpdst){
     char* chunk_ = do_plotfor2dmat_returnchunk((char*)"plots/", DIMX_, DIMY_, mat2d_, CHUNKSIZE);
     
     write_chunk((char*)"upsampleplot", 3, CHUNKSIZE, chunk_);
+    //
+    gettimeofday(&te, NULL);
+      
+    elapsed_t = (te.tv_sec - ts.tv_sec) * 1000.0;      // sec to ms
+    elapsed_t += (te.tv_usec - ts.tv_usec) / 1000.0;   // us to ms
+    elapsed_t = elapsed_t/1000.0; //msec to sec
+    
+    totalupsampleplotelapsed_t += elapsed_t;
+    printf("run_upsampleplot:: elapsed_t=%g\n", elapsed_t);
   }
 }
 
@@ -812,5 +834,8 @@ int main (int argc, char** argv)
   for (int i=0; i<numfs; i++){
     close(connfd[i]);
   }
+  printf("totalfftelapsed_t=%g\n", totalfftelapsed_t);
+  printf("totalupsampleplotelapsed_t=%g\n", totalupsampleplotelapsed_t);
+  
   return 0;
 }

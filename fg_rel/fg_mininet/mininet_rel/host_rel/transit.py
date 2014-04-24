@@ -25,7 +25,7 @@ def getsizeof(data):
   return sys.getsizeof(data) - PYTHON_STR_HEADER_LEN
 
 CHUNKSIZE = 24*8*9*10 #B
-NUMCHUNKS_AFILE = 10
+NUMCHUNKS_AFILE = 1000
 
 class FilePipeServer(threading.Thread):
   def __init__(self, server_addr, itwork_dict, to_addr, sflagq, stokenq, intereq_time):
@@ -442,6 +442,7 @@ class ItServHandler(threading.Thread):
         #print 'itwork_dict=%s' % pprint.pformat(self.itwork_dict)
         procstart_time = time.time()
         [datasize_, data_] = [0, None]
+        '''
         for func in itfunc_list:
           [datasize_, data_] = self.proc(func = func,
                                          datasize = datasize,
@@ -452,6 +453,7 @@ class ItServHandler(threading.Thread):
         #
         #datasize = getsizeof(data)
         #self.forward_data(data, datasize)
+        '''
         self.served_size_ += self.serv_size
         self.served_size_B_ += datasize_t
         self.test_file.write(data)
