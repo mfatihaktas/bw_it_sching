@@ -48,10 +48,10 @@ elif [ $1  = 't21' ]; then
 elif [ $1  = 't31' ]; then
   python transit.py --nodename=t31 --intf=eth0 --dtsl_ip=10.0.0.255 --dtsl_port=7001 --dtst_port=7001 --logto=file --trans_type=file
 elif [ $1  = 's' ]; then
-  #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console
-  python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=$NIMG --kstardata_url=/media/portable_large/ecei_data.bp
-  #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=100000 --kstardata_url=/home/ubuntu/ecei_data.bp
-  #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=20 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=100 --kstardata_url=/media/mehmet/portable_large/ecei_data.bp
+  #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=0 --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console --numimg=$NIMG --kstardata_url=/media/portable_large/ecei_data.bp
+  python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=0 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=$NIMG --kstardata_url=/media/portable_large/ecei_data.bp
+  #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=0 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=$NIMG --kstardata_url=/home/ubuntu/ecei_data.bp
+  #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=0 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=$NIMG --kstardata_url=/media/mehmet/portable_large/ecei_data.bp
 elif [ $1  = 's6000' ]; then
   python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=0 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=$NIMG --kstardata_url=/home/ubuntu/ecei_data.bp
 elif [ $1  = 's6001' ]; then
@@ -71,7 +71,7 @@ elif [ $1  = 'rd' ]; then
 elif [ $1  = 'rc' ]; then
   python receiver.py --lintf=c-eth0 --lport=6000 --proto=tcp --rx_type=file --file_url=rx.dat --logto=console
 elif [ $1  = 'glf' ]; then
-	dd if=/dev/urandom of=ltx.dat bs=1024 count=8000 #outputs bs x count Bs 
+	dd if=/dev/urandom of=ltx.dat bs=1728 count=10000 #outputs bs x count Bs 
 elif [ $1  = 'iperf-ts1' ]; then
   iperf -s -p 6000
 elif [ $1  = 'iperf-tc1' ]; then

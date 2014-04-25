@@ -131,9 +131,9 @@ class Sender(threading.Thread):
     #to emulate tcp byte streaming behavior on lo. e.g.
     #untill whole file is txed
     #  send m*chunk where m is random btw [0.5,1.5]
-    #import random
-    l = f.read(TXCHUNK_SIZE)
-    #l = f.read(int(random.uniform(0.5,1.5)*TXCHUNK_SIZE) )
+    import random
+    #l = f.read(TXCHUNK_SIZE)
+    l = f.read(int(random.uniform(0.5,1.5)*TXCHUNK_SIZE) )
     #
     while (l):
       c_len_ = len(l)
@@ -157,8 +157,8 @@ class Sender(threading.Thread):
         #
       elif self.proto == 'udp':
         self.sock.sendto(l, self.dst_addr)
-      l = f.read(TXCHUNK_SIZE)
-      #l = f.read(int(random.uniform(0.5,1.5)*TXCHUNK_SIZE) )
+      #l = f.read(TXCHUNK_SIZE)
+      l = f.read(int(random.uniform(0.5,1.5)*TXCHUNK_SIZE) )
     #
     if self.proto == 'tcp':
       self.sock.sendall('EOF')
