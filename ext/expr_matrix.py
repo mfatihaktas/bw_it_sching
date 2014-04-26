@@ -27,7 +27,7 @@ class Expr:
     self.m[r][c] = expr
     
   def add_to(self, (r,c), expr):
-    try:
+    try:c
       self.m[r][c] += expr
     except Exception, e:
       logging.error('Expr__add_to:: \ne.__doc__=%s\n e.message=%s', e.__doc__, e.message)

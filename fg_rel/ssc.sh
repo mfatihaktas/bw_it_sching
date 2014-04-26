@@ -18,7 +18,7 @@ FVRELDIR=./fg_controller/fv_rel
 #MINRELDIR=~/Dropbox/sim_rel/net_config/mininet_rel
 #MINRELDIR=./../net_config/mininet_rel
 MINRELDIR=./fg_mininet/mininet_rel
-KSTARDATADIR=./../../ecei_data.bp
+KSTARDATADIR=./../../large_ecei_data.bp
 FFTW3DIR=./fg_mininet/mininet_rel/host_rel/fftw3
 FONTDIR=//usr/share/fonts
 

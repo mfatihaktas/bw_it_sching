@@ -25,16 +25,8 @@ class SchingOptimizer:
     self.num_itr = self.k - self.num_link
     # func_compconstant_dict; key:function, val:comp_constant (2-8)
     self.func_compconstant_dict = {
-      'f0':0.5,
-      'f1':1,
-      'f2':2,
-      'f3':3,
-      'f4':4
-    }
-    self.s_pref_dict = {
-      0:{'p':1, 'u':1},
-      1:{'p':1, 'u':1},
-      2:{'p':1, 'u':1}
+      'fft': 5,
+      'upsampleplot': 75
     }
     #
     self.add_proccomp__update_parism_info()
@@ -50,33 +42,25 @@ class SchingOptimizer:
     self.tt = cp.Variable(1,self.N, name='tt')
     # SESSION ALLOC MATRIX
     '''
-    a[:,i]: [bw_i (Mbps); proc_i (Mflop/s); dur_i (ms); n_i]
+    a[:,i]: [bw_i (Mbps); proc_i (Mbps); dur_i (ms)]
     By assuming in-transit host NIC bws are ALWAYS higher than allocated bw:
     stor (Mb) = dur (ms)/1000 x bw (Mbps)
     '''
-    #self.a = cp.Variable(4,self.N, name='a')
-    self.a = expr((4,self.N))
+    self.a = expr((3,self.N))
     self.r_soft_grain = 100
     #RESOURCE ALLOC for each diff path of sessions; modeling parameter
     self.max_numspaths = self.get_max_numspaths()
     self.p_bw = cp.Variable(self.N,self.max_numspaths, name='p_bw')
-    self.s_n = cp.Variable(1,self.N, name='s_n')
-    #self.p_bw = [[None for col in range(self.max_numspaths)] for row in range(self.N)]
-    #self.p_proc = cp.Variable(self.N,self.max_numspaths, name='p_proc')
+    self.max_numitfuncs = 2
+    self.s_n = cp.Variable(self.N, self.max_numitfuncs, name='s_n')
     self.p_proc = expr((self.N, self.max_numspaths))
-    #self.p_dur = cp.Variable(self.N,self.max_numspaths, name='p_dur')
     self.p_dur = expr((self.N, self.max_numspaths))
-    #self.a__p_bwprocdur_map()
-    #print "a_1:\n", self.a
     #RESOURCE ALLOC for each session; modeling parameter
-    #self.r_bw = cp.Variable(self.N,self.num_link,name='r_bw')
     self.r_bw = expr((self.N, self.num_link))
     #
     self.r_bw__p_bw_map()
     
-    #self.r_proc2 = cp.Parameter(self.N,self.num_itr,name='r_proc2')
     self.r_proc2 = expr((self.N, self.num_itr))
-    #self.r_dur2 = cp.Parameter(self.N,self.num_itr,name='r_dur2')
     self.r_dur2 = expr((self.N, self.num_itr))
     '''
     Problem:
@@ -92,13 +76,11 @@ class SchingOptimizer:
     #
     self.p_procdur__r_procdur_map()
     self.r_proc2dur2__r_procdur_map()
-    self.a__p_bwprocdur__s_n_map()
+    self.a__p_bwprocdur_map()
     #to check min storage requirement for staging
-    #self.r_stor = cp.Variable(self.num_itr,1,name='r_stor')
     self.r_stor = expr((1, self.num_itr))
     self.r_stor__r_durXs_bw_map()
     #to find out actual stor used by <bw_vector, dur_vector>
-    #will be filled up in grab_sching
     self.r_stor_actual = [0]*self.num_itr #list index: res_id
     #
     self.sp_tx = expr((self.N,self.max_numspaths))
@@ -189,12 +171,11 @@ class SchingOptimizer:
         max_ = numspaths
     return max_
   
-  def a__p_bwprocdur__s_n_map(self):
+  def a__p_bwprocdur_map(self):
     for i in range(0,self.N):
       self.a.set_((0,i), self.sumlist(self.p_bw[i,:]) )
       self.a.set_((1,i), self.sumlist(self.p_proc.get_row(i)) )
       self.a.set_((2,i), self.sumlist(self.p_dur.get_row(i)) )
-      self.a.set_((3,i), self.s_n[0,i] )
     #
     self.logger.debug('a__p_bwprocdur_map:: a=\n%s', self.a)
   
@@ -332,10 +313,11 @@ class SchingOptimizer:
       for p_id in range(0,s_pl):
         num_itres = len(ps_info[p_id]['itres_list'])
         sp_ds = s_ds*s_par_share[p_id]
+        
         l_ = self.txprocdurtrans_time_model(s_id = s_id, p_id = p_id,
                                             datasize = sp_ds,
-                                            pcomp = s_req_dict['proc_comp'],
-                                            num_itres = num_itres)
+                                            comp_list = [self.func_compconstant_dict[ftag] for func in s_req_dict['func_list']],
+                                            num_itres = num_itres )
         self.sp_tx.set_((s_id,p_id), l_[0])
         self.sp_proc.set_((s_id,p_id), l_[1])
         self.sp_dur.set_((s_id,p_id), l_[2])
@@ -569,32 +551,21 @@ class SchingOptimizer:
     self.grab_sching_result()
   
   #modeling functions
-  def txprocdurtrans_time_model(self,s_id,p_id, datasize,pcomp,num_itres):
-    """
-    def sp_proc_model(s_id,p_id):
-      '''To get correct proc_time model not 1/(r1_proc + r2_proc + ...) but 1/r1_proc + 1/r2_proc + ... '''
-      p_itrid_list = self.sid_res_dict[s_id]['ps_info'][p_id]['p_itrid_list']
-      list_ = []
-      for itr_id in p_itrid_list:
-        itr_id_ = itr_id - self.ll_index - 1
-        s_id_ = s_id+p_id*self.N
-        #
-        list_.append(quad_over_lin(self.a[3,s_id], self.r_proc[s_id_,itr_id_]))
-      return sum(list_)
-    """
-    #datasize: MB
+  def txprocdurtrans_time_model(self,s_id,p_id, datasize,comp_list,num_itres):
+    #datasize: MB, bw: Mbps
     tx_t = 1000*(8*datasize)*cp.inv_pos(self.p_bw[s_id,p_id]) # (ms)
-    #Assumption: Relation between proc_time and n is quadratic.
-    pm = cp.quad_over_lin(self.a.get((3,s_id)), self.p_proc.get((s_id,p_id)) ) #sp_proc_model(s_id,p_id)
-    '''
-    - num_itres: the way totalwork(:total_proc_comp) is distributed over itres;
-      r_work = totalwork*r_proc/p_proc -> proc_time at every itres takes same amount of time
-      so that is where .*num_itres comes.
-    - datasize/64 - how many Mflop: datasize (MB), assuming f(o1,o2)=1flop where o1,o2:4B operands
-    '''
-    proc_t = num_itres* 1000*float(8*float(datasize)/64)*pcomp*pm # (ms)
+    
+    #proc: Mbps
+    numitfuncs = len(comp_list)
+    quadoverlin_vector = expr((1, numitfuncs))
+    for comp in comp_list:
+      quadoverlin = comp*cp.quad_over_lin(self.s_n[s_id, i], self.p_proc.get((s_id,p_id)) )
+      quadoverlin_vector.set_((0,i), quadoverlin)
     #
-    #stage_t = self.p_dur[s_id,p_id] #self.a[2,s_id] # (ms)
+    quadoverlin = (quadoverlin_vector.agg_to_column()).get((0,0))
+    
+    proc_t = num_itres* 1000*(8*datasize)*quadoverlin # (ms)
+    
     stage_t = self.p_dur.get((s_id,p_id))
     #
     trans_t = tx_t + proc_t + stage_t
@@ -633,20 +604,16 @@ class SchingOptimizer:
     Dataflow Coupling: p_s << u_s
   """
   def P(self, session_num, expr_):
-    #return self.s_pref_dict[session_num]['p']
     m_p = self.sessions_beingserved_dict[session_num]['app_pref_dict']['m_p']
     x_p = self.sessions_beingserved_dict[session_num]['app_pref_dict']['x_p']
     #return m_p*(expr_-x_p)
-    #return self.s_pref_dict[session_num]['p']*expr_
     return cp.max( *(m_p*(expr_-x_p),0) )
     
   def U(self, session_num, expr_):
-    #return self.s_pref_dict[session_num]['u']
     m_u = self.sessions_beingserved_dict[session_num]['app_pref_dict']['m_u']
     x_u = self.sessions_beingserved_dict[session_num]['app_pref_dict']['x_u']
     #return max( vstack(( m_u*(expr_-x_u),0 )) )
     #return min( vstack(( -1*m_u*(expr_-x_u),0 )) )
-    #return self.s_pref_dict[session_num]['u']*expr_
     return m_u*(expr_-x_u)
 
   # objective functions

@@ -71,20 +71,7 @@ class FilePipeServer(threading.Thread):
       self.logger.error('\ne.__doc__=%s\n e.message=%s', e.__doc__, e.message)
       return
     #
-    procfifoname = 'fifo/procfifo'
-    try:
-      os.mkfifo(procfifoname)
-    except OSError as e:
-      if not e.errno == 17: #File exists
-        self.logger.error('Unexpected oserror, errno=%s', e.errno)
-    #
-    self.sc_handler = SessionClientHandler((sclient_sock,sclient_addr),
-                                           itwork_dict = self.itwork_dict,
-                                           to_addr = self.to_addr,
-                                           stpdst = self.stpdst,
-                                           flagq = self.flagq_tosubthreads,
-                                           procfifoname = procfifoname )
-    self.sc_handler.start()
+    procq = Queue.Queue(0)
     
     self.itserv_handler = ItServHandler(itwork_dict = self.itwork_dict,
                                         stpdst = self.stpdst,
@@ -92,8 +79,16 @@ class FilePipeServer(threading.Thread):
                                         flagq = self.flagq_tosubthreads,
                                         stokenq = self.stokenq,
                                         intereq_time = self.intereq_time,
-                                        procfifoname = procfifoname )
+                                        procq = procq )
     self.itserv_handler.start()
+    
+    self.sc_handler = SessionClientHandler((sclient_sock,sclient_addr),
+                                           itwork_dict = self.itwork_dict,
+                                           to_addr = self.to_addr,
+                                           stpdst = self.stpdst,
+                                           flagq = self.flagq_tosubthreads,
+                                           procq = procq )
+    self.sc_handler.start()
     #
     self.logger.debug('run:: server_addr=%s started.', self.server_addr)
     #
@@ -118,7 +113,7 @@ class FilePipeServer(threading.Thread):
 
 class SessionClientHandler(threading.Thread):
   def __init__(self,(sclient_sock,sclient_addr), itwork_dict, to_addr, stpdst,
-               flagq, procfifoname ):
+               flagq, procq ):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
@@ -126,7 +121,7 @@ class SessionClientHandler(threading.Thread):
     self.sclient_addr = sclient_addr
     self.stpdst = stpdst
     self.flagq = flagq
-    self.procfifoname = procfifoname
+    self.procq = procq
     #
     self.logger = logging.getLogger('sessionclienthandler_%s' % stpdst)
     self.startedtorx_time = None
@@ -141,8 +136,7 @@ class SessionClientHandler(threading.Thread):
     #
     self.check_file = open('pipe/checkfile.dat', 'w')
     #
-    self.pushed_size_B = 0
-    self.overflow = ''
+    self.chunk = ''
     
   def run(self):
     self.startedtorx_time = time.time()
@@ -161,7 +155,7 @@ class SessionClientHandler(threading.Thread):
       self.logger.debug('run:: unexpected popped=%s', popped)
     #
     self.stoppedtorx_time = time.time()
-    self.logger.debug('run:: done. \n\tpushed_size_B=%s\n\tin dur=%ssecs, at t=%s;', self.pushed_size_B, self.stoppedtorx_time-self.startedtorx_time, self.stoppedtorx_time)
+    self.logger.debug('run:: done. \n\tin dur=%ssecs, at t=%s;', self.stoppedtorx_time-self.startedtorx_time, self.stoppedtorx_time)
   
   def init_rx(self):
     while 1:
@@ -186,7 +180,7 @@ class SessionClientHandler(threading.Thread):
         self.flagq.put('STOP')
         break
       elif return_ == 1: #success
-        pass
+        self.s_active_last_time = time.time()
         #self.check_file.write(data)
       #
     #
@@ -195,49 +189,37 @@ class SessionClientHandler(threading.Thread):
   
   def push_to_pipe(self, data):
     """ returns 1:successful, 0:failed, -1:EOF, -2:datasize=0 """
-    if self.pushed_size_B == 0:
-      self.procfifo = open(self.procfifoname, 'w')
+    self.chunk += data
+    chunksize = getsizeof(self.chunk)
     #
-    data += self.overflow
-    self.overflow = ''
-    datasize = getsizeof(data)
-    #
-    if datasize == 0:
+    if chunksize == 0:
       #this may happen in mininet and cause threads live forever
       return -2
-    elif datasize == 3:
-      self.logger.debug('push_to_pipe:: data=%s', data)
-      if data == 'EOF':
+    elif chunksize == 3:
+      if self.chunk == 'EOF':
+        self.procq.put('EOF')
         return -1
     #
-    overflow_size = datasize - CHUNKSIZE
-    self.logger.debug('push_to_pipe:: overflow_size=%s', overflow_size)
+    overflow_size = chunksize - CHUNKSIZE
     if overflow_size == 0:
-      self.procfifo.write(data)
-      self.procfifo.close()
-      self.logger.debug('push_to_pipe:: pushed; datasize=%s', datasize)
-      self.pushed_size_B = 0
+      self.procq.put(self.chunk)
+      self.logger.debug('push_to_pipe:: pushed; chunksize=%s', chunksize)
+      self.chunk = ''
       return 1
     elif overflow_size < 0:
-      try:
-        self.procfifo.write(data)
-        self.pushed_size_B += datasize
-      except Exception, e:
-        self.logger.error('push_to_pipe:: failed to write to procfifo')
-        self.logger.error('e.errno=%s, e.strerror=%s', e.errno, e.strerror)
-        return 0
+      return 1
     #
     else: #overflow
-      self.overflow = data[datasize-overflow_size:]
-      if overflow_size == 3 and self.overflow == 'EOF':
-        self.procfifo.write('EOF')
+      overflow = self.chunk[chunksize-overflow_size:]
+      if overflow_size == 3 and overflow == 'EOF':
+        self.procq.put('EOF')
         return -1
       #
-      data_to_push = data[:datasize-overflow_size]
-      self.procfifo.write(data_to_push)
-      self.procfifo.close()
-      self.logger.debug('push_to_pipe:: pushed; datasize=%s', datasize)
-      self.pushed_size_B = 0
+      chunksize_ = chunksize-overflow_size
+      chunk_to_push = self.chunk[:chunksize_]
+      self.procq.put(chunk_to_push)
+      self.logger.debug('push_to_pipe:: pushed; chunksize_=%s, overflow_size=%s', chunksize_, overflow_size)
+      self.chunk = overflow
       
       return 1
     #
@@ -255,7 +237,7 @@ class SessionClientHandler(threading.Thread):
 
 class ItServHandler(threading.Thread):
   def __init__(self, itwork_dict, stpdst, to_addr,
-               flagq, stokenq, intereq_time, procfifoname):
+               flagq, stokenq, intereq_time, procq):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
@@ -265,7 +247,7 @@ class ItServHandler(threading.Thread):
     self.flagq = flagq
     self.stokenq = stokenq
     self.intereq_time = intereq_time
-    self.procfifoname = procfifoname
+    self.procq = procq
     #
     self.logger = logging.getLogger('itservhandler_%s' % stpdst)
     #
@@ -273,28 +255,16 @@ class ItServHandler(threading.Thread):
     
     self.num_chunks_afile = NUMCHUNKS_AFILE
     #num_chunks_afile % serv_size = 0
-    self.serv_size = 1 #chunks
-    self.serv_size_B = self.serv_size*CHUNKSIZE
     #
     self.served_size_B = 0
-    self.served_size_B_ = 0
     self.served_size = 0 #chunks
-    self.served_size_ = 0 #chunks, keeps for current file
     #
-    self.cur_fileurl = None
-    self.pipe_file = None
-    self.pipe_mm = None
-    #
-    self.max_idle_time = 5 #_after_serv_started, secs
     self.active_last_time = None
     #
     self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self.forwarding_started = False
     #for test...
     self.test_file = open('pipe/testfile.dat', 'w')
-    self.test_file_size = 0 #serv_size
-    self.test_file_size_B = 0 #B
-    self.served_size_B = 0 #B
     #
     self.startedtohandle_time = None
     #
@@ -349,7 +319,7 @@ class ItServHandler(threading.Thread):
       stoken = self.stokenq.get(True, None)
       
       runround_dur = time.time()-startrunround_time
-      self.logger.warning('run:: runround_dur=%s', runround_dur)
+      self.logger.warning('run:: runround_dur=%s\n', runround_dur)
       totalrunround_dur += runround_dur
       startrunround_time = time.time()
       if stoken == CHUNKSIZE:
@@ -404,11 +374,10 @@ class ItServHandler(threading.Thread):
         #datasize = getsizeof(data)
         #self.forward_data(data, datasize)
         
-        self.served_size_ += self.serv_size
-        self.served_size_B_ += datasize_t
-        self.test_file.write(data)
+        self.served_size_B += datasize_t
+        #self.test_file.write(data)
         procdur = time.time() - procstart_time
-        self.logger.debug('run:: acted on procdur=%s, datasize=%sB, datasize_=%sB, self.served_size_B=%s, self.served_size_B_=%s', procdur, datasize_t, datasize_, self.served_size_B, self.served_size_B_)
+        self.logger.debug('run:: acted on procdur=%s, datasize=%sB, datasize_=%sB, self.served_size_B=%s', procdur, datasize_t, datasize_, self.served_size_B)
         if procdur > self.intereq_time:
           self.logger.warning('run:: !!! procdur > intereq_time !!!')
     #
@@ -450,15 +419,9 @@ class ItServHandler(threading.Thread):
     (None, -2): STOP
     (None, -3): fatal failure
     """
-    self.procfifo = open(self.procfifoname, 'r')
-    try:
-      chunk = self.procfifo.read(CHUNKSIZE)
-      chunksize = getsizeof(chunk)
-    except Exception, e:
-      self.logger.error('pop_from_pipe:: write to procfifo failed!')
-      self.logger.error('e.errno=%s, e.strerror=%s', e.errno, e.strerror)
-      return 0
-    #
+    chunk = self.procq.get(True, None)
+    chunksize = getsizeof(chunk)
+    
     if chunksize == 3:
       if chunk == 'EOF':
         return (None, -1)
@@ -478,7 +441,7 @@ class ItServHandler(threading.Thread):
       return ordered_list
     #
     itfunc_list = []
-    uptoserved_size_B = self.served_size_B + self.served_size_B_
+    uptoserved_size_B = self.served_size_B
     
     for ftag in self.jobtobedone_dict:
       if ftag in self.uptorecvsize_dict:
@@ -670,7 +633,7 @@ class Transit(object):
   def test(self):
     self.logger.debug('test')
     
-    nimg = 10000
+    nimg = 1000000
     imgsize = CHUNKSIZE/10
     datasize = float(imgsize*nimg)/(1024**2)
     #

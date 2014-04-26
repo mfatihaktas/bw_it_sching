@@ -167,7 +167,7 @@ class Sender(threading.Thread):
     logging.info('EOF is txed.')
     #
     tx_dur = time.time() - time_s
-    logging.info('file_over_%s:%s is sent; size=%sB, dur=%ssec', self.proto,self.dst_addr,len_,tx_dur)
+    logging.info('file_send:: completed sending; size=%sB, dur=%ssec',len_,tx_dur)
   
   def dummy_send(self, data, noftimes=1):
     time_s = time.time()

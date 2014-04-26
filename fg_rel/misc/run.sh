@@ -56,8 +56,8 @@ elif [ $1  = 'scprsa' ]; then
 #cmds for vm bundle
 elif [ $1  = 'bvms' ]; then
   for i in `seq 0 5`;
-  do
     echo "vm_id=$i::"
+  do
     echo "booting..."
     nova boot --flavor $FLV \
               --image ${VM_NAMES[$i]} \
