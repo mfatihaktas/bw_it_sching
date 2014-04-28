@@ -307,7 +307,7 @@ class ItServHandler(threading.Thread):
     #
   
   def run(self):
-    self.init_procsocks()
+    #self.init_procsocks()
     self.startedtohandle_time = time.time()
     
     startrunround_time = time.time()
@@ -362,7 +362,7 @@ class ItServHandler(threading.Thread):
         #print 'itwork_dict=%s' % pprint.pformat(self.itwork_dict)
         procstart_time = time.time()
         [datasize_, data_] = [0, None]
-        
+        '''
         for func in itfunc_list:
           [datasize_, data_] = self.proc(func = func,
                                          datasize = datasize,
@@ -373,7 +373,7 @@ class ItServHandler(threading.Thread):
         #
         #datasize = getsizeof(data)
         #self.forward_data(data, datasize)
-        
+        '''
         self.served_size_B += datasize_t
         #self.test_file.write(data)
         procdur = time.time() - procstart_time
@@ -489,14 +489,18 @@ func_comp_dict = {'f0':0.5,
                   'f2':2,
                   'f3':3,
                   'f4':4,
-                  'fft':6,
+                  'fft':5,
                   'upsample':8,
                   'plot':8,
-                  'upsampleplot':8 }
+                  'upsampleplot':75 }
 
-def proc_time_model(datasize, func_comp, proc_cap):
-  proc_t = float(func_comp)*float(8*float(datasize)/64)*float(1/float(proc_cap)) #secs
-  #self.logger.info('%s*(%s/64)*(1/%s)=%s', func_comp, datasize, proc_cap, proc_t)
+def proc_time_model(datasize, func_n_dict, proc_cap):
+  pm = 0
+  for func,n in func_n_dict.items():
+    pm += func_comp_dict[func]*float(n)
+  #
+  proc_t = float(8*float(datasize))*pm*float(1/float(proc_cap)) #secs
+  
   return proc_t
 
 class Transit(object):
@@ -555,24 +559,24 @@ class Transit(object):
     if stpdst in self.sinfo_dict:
       self.bye_s(stpdst)
     del data_['s_tp']
-    
+    #
     to_ip = data_['data_to_ip']
     del data_['data_to_ip']
     
     to_addr = (to_ip, stpdst) #goes into s_info_dict
     #
     uptojobdone = {}
-    for ftag,comp in data_['uptoitfunc_dict'].items():
-      uptojobdone[ftag] = data_['datasize']*comp/func_comp_dict[ftag]
+    for ftag,n in data_['uptoitfunc_dict'].items():
+      uptojobdone[ftag] = data_['datasize']*float(n)
     data_.update( {'uptojobdone': uptojobdone} )
     #
     jobtobedone = {}
-    for ftag,comp in data_['itfunc_dict'].items():
-      jobtobedone[ftag] = data_['datasize']*comp/func_comp_dict[ftag]
+    for ftag,n in data_['itfunc_dict'].items():
+      jobtobedone[ftag] = data_['datasize']*float(n)
     data_.update( {'jobtobedone': jobtobedone} )
     #
     modelproct = proc_time_model(datasize = float(data_['datasize']),
-                                 func_comp = float(data_['comp']),
+                                 func_n_dict = data_['itfunc_dict'],
                                  proc_cap = float(data_['proc']) )
     #
     proto = int(data_['proto']) #6:TCP, 17:UDP
@@ -585,7 +589,7 @@ class Transit(object):
     #
     nchunks = float(data_['datasize'])*(1024**2)/CHUNKSIZE
     intereq_time = 0 #(modelproct/nchunks)*0.95
-    self.logger.warning('welcome_s:: nchunks=%s, intereq_time=%s, nchunks*intereq_time=%s', nchunks, intereq_time, nchunks*intereq_time)
+    #self.logger.warning('welcome_s:: nchunks=%s, intereq_time=%s, nchunks*intereq_time=%s', nchunks, intereq_time, nchunks*intereq_time)
     threading.Thread(target = self.manage_stokenq,
                      kwargs = {'stpdst':stpdst,
                                'intereq_time':intereq_time } ).start()
@@ -637,21 +641,19 @@ class Transit(object):
     imgsize = CHUNKSIZE/10
     datasize = float(imgsize*nimg)/(1024**2)
     #
-    data = {'comp': 14.0,
-            'proto': 6,
+    data = {'proto': 6,
             'data_to_ip': u'10.0.0.1',
             'datasize': datasize,
-            'itfunc_dict': {'fft': 6.0},
+            'itfunc_dict': {'fft': 1.0},
             'uptoitfunc_dict': {},
             'proc': 1.0,
             's_tp': 6000 }
     self.welcome_s(data)
     
-    data = {'comp': 14.0,
-            'proto': 6,
+    data = {'proto': 6,
             'data_to_ip': u'10.0.0.1',
             'datasize': datasize,
-            'itfunc_dict': {'upsampleplot': 8},
+            'itfunc_dict': {'upsampleplot': 1.0},
             'uptoitfunc_dict': {},
             'proc': 1.0,
             's_tp': 6001 }

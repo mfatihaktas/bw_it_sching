@@ -14,9 +14,11 @@ def get_addr(lintf):
   intf_eth0_ip = commands.getoutput("ip address show dev " + intf_eth0).split()
   intf_eth0_ip = intf_eth0_ip[intf_eth0_ip.index('inet') + 1].split('/')[0]
   return intf_eth0_ip
-  
+
+IMGSIZE = 24*8*9
+
 class Producer(object):
-  def __init__(self, intf, pl_port, dtsl_ip, dtsl_port, cl_ip, proto,tx_type, file_url,
+  def __init__(self, intf, pl_port, dtsl_ip, dtsl_port, cl_ip, proto,tx_type, file_url, kstardata_url,
                req_dict,app_pref_dict, htbdir, logto):
     self.logto = logto
     self.intf = intf
@@ -28,6 +30,7 @@ class Producer(object):
     self.proto = proto
     self.tx_type = tx_type
     self.file_url = file_url
+    self.kstardata_url = kstardata_url
     self.req_dict = req_dict
     self.app_pref_dict = app_pref_dict
     self.htbdir = htbdir
@@ -203,7 +206,9 @@ class Producer(object):
                     datasize = datasize,
                     tx_type = self.tx_type,
                     file_url = self.file_url,
-                    logto = self.logto )
+                    logto = self.logto,
+                    kstardata_url = self.kstardata_url,
+                    numimg = int(float(float(datasize)*(1024**2))/IMGSIZE) )
     sender.start()
     self.sender_thread_list.append(sender)
   
@@ -269,12 +274,12 @@ class Producer(object):
     #self.state = 1
   
 def main(argv):
-  intf = pl_port = dtsl_ip = dtsl_port = cl_ip = proto = tx_type = file_url = logto = None
+  intf = pl_port = dtsl_ip = dtsl_port = cl_ip = proto = tx_type = file_url = kstardata_url = logto = None
   req_dict = app_pref_dict = htbdir = None
   try:
-    opts, args = getopt.getopt(argv,'',['intf=','dtst_port=','dtsl_ip=','dtsl_port=', 'cl_ip=','proto=','tx_type=','file_url=', 'logto=','req_dict=','app_pref_dict=', 'htbdir='])
+    opts, args = getopt.getopt(argv,'',['intf=','dtst_port=','dtsl_ip=','dtsl_port=', 'cl_ip=','proto=','tx_type=','file_url=', 'kstardata_url=', 'logto=','req_dict=','app_pref_dict=', 'htbdir='])
   except getopt.GetoptError:
-    print 'producer.py --intf=<> --dtst_port=<> --dtsl_ip=<> --dtsl_port=<> --cl_ip=<> --proto=tcp/udp --tx_type=file/dummy --file_url=<> --logto=<> --req_dict=<> --app_pref_dict=<> --htbdir=<>'
+    print 'producer.py --intf=<> --dtst_port=<> --dtsl_ip=<> --dtsl_port=<> --cl_ip=<> --proto=tcp/udp --tx_type=file/dummy --file_url=<> --kstardata_url=<> --logto=<> --req_dict=<> --app_pref_dict=<> --htbdir=<>'
     sys.exit(2)
   #Initializing global variables with comman line options
   for opt, arg in opts:
@@ -302,6 +307,8 @@ def main(argv):
         sys.exit(2)
     elif opt == '--file_url':
       file_url = arg
+    elif opt == '--kstardata_url':
+      kstardata_url = arg
     elif opt == '--logto':
       logto = arg
     elif opt == '--req_dict':
@@ -326,6 +333,7 @@ def main(argv):
                proto = proto,
                tx_type = tx_type,
                file_url = file_url,
+               kstardata_url = kstardata_url,
                req_dict = req_dict,
                app_pref_dict = app_pref_dict,
                htbdir = htbdir,

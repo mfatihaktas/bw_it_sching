@@ -366,12 +366,12 @@ class Scheduler(object):
                                          res_info_dict = self.alloc_dict['res-wise'])
     """
     #Convert sching decs to rules
-    for s_id in range(0,self.N):
+    for s_id in range(self.N):
       s_allocinfo_dict = self.alloc_dict['s-wise'][s_id]
       #
       itwalkinfo_dict = s_allocinfo_dict['itwalkinfo_dict']
       p_walk_dict = s_allocinfo_dict['pwalk_dict']
-      for p_id in range(0,s_allocinfo_dict['parism_level']):
+      for p_id in range(s_allocinfo_dict['parism_level']):
         p_walk = p_walk_dict[p_id]
         sp_walk__tprrule = None
         if self.data_over_tp == 'tcp':
@@ -685,9 +685,9 @@ class Scheduler(object):
     #
     num_session = 1
     #data_size (MB) slack_metric (ms)
-    req_dict_list = [ {'data_size':1, 'slack_metric':1000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':1, 'slack_metric':1000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':1, 'slack_metric':1000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+    req_dict_list = [ {'data_size':1, 'slack_metric':1200, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':1, 'slack_metric':1200, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':1, 'slack_metric':1200, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':1, 'slack_metric':1000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':1, 'slack_metric':1000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':1, 'slack_metric':1000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},

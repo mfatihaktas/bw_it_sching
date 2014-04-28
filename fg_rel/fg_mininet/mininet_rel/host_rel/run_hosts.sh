@@ -9,21 +9,20 @@ NIMG=1000000
 
 if [ $1  = 'p' ]; then
   python producer.py --intf=p-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.0.1 \
-                     --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console \
+                     --proto=tcp --tx_type=file --file_url=ltx.dat --kstardata_url=... --logto=console \
                      --req_dict='{"data_size":1,"slack_metric":1000,"func_list":["f1","f2","f3"],"parism_level":1,"par_share":[1]}' \
                      --app_pref_dict='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}' \
                      --htbdir='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
-                     #--req_dict='{"data_size":4,"slack_metric":24,"func_list":["f1","f2","f3"],"parism_level":1,"par_share":[1]}' \
 elif [ $1  = 'p1' ]; then
   python producer.py --intf=p1-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.1.0 \
-                     --proto=tcp --tx_type=file --file_url=ltx1.dat --logto=console \
-                     --req_dict='{"data_size":1,"slack_metric":1000,"func_list":["f1","f2","f3"],"parism_level":1,"par_share":[1]}' \
+                     --proto=tcp --tx_type=file --file_url=ltx1.dat --kstardata_url=/home/ubuntu/large_ecei_data.bp --logto=console \
+                     --req_dict='{"data_size":1,"slack_metric":1000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}' \
                      --app_pref_dict='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}' \
                      --htbdir='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
 elif [ $1  = 'p2' ]; then
   python producer.py --intf=p2-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.1.1 \
-                     --proto=tcp --tx_type=file --file_url=ltx2.dat --logto=console \
-                     --req_dict='{"data_size":1,"slack_metric":1000,"func_list":["f1","f2","f3"],"parism_level":1,"par_share":[1]}' \
+                     --proto=tcp --tx_type=file --file_url=ltx2.dat --kstardata_url=/home/ubuntu/large_ecei_data.bp --logto=console \
+                     --req_dict='{"data_size":1,"slack_metric":1000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}' \
                      --app_pref_dict='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}' \
                      --htbdir='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
 elif [ $1  = 'c' ]; then

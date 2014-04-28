@@ -5,7 +5,7 @@ try:
 except ImportError:
     import xml.etree.ElementTree as ET
 
-import pprint
+import pprint,json
 
 class RuleParser (object):
   def __init__ (self, walkrule_xmlfile_url, itjobrule_xmlfile_url):
@@ -62,20 +62,19 @@ class RuleParser (object):
         new_uptojobinfo = ET.SubElement(new_itjob, 'uptojobinfo')
         for itfunc,comp in itjobrule['completeduptohere_job'].items():
           new_itfunc = ET.SubElement(new_uptojobinfo, 'func')
-          new_itfunc.set('comp',str(comp))
+          new_itfunc.set('n',str(n))
           new_itfunc.set('tag',itfunc)
         #
         new_jobinfo = ET.SubElement(new_itjob, 'jobinfo')
         ji_dict = itjobrule['assigned_job']
         new_jobinfo.set('proc', str(ji_dict['proc']))
-        new_jobinfo.set('comp', str(ji_dict['comp']))
         new_jobinfo.set('data_to_ip', itjobrule['consumer_ip'])
         new_jobinfo.set('proto', str(itjobrule['proto']))
         new_jobinfo.set('s_tp', str(itjobrule['session_tp']))
         new_jobinfo.set('datasize', str(itjobrule['datasize']))
-        for itfunc,comp in ji_dict['itfunc_dict'].items():
+        for itfunc,n in ji_dict['itfunc_dict'].items():
           new_itfunc = ET.SubElement(new_jobinfo, 'func')
-          new_itfunc.set('comp',str(comp))
+          new_itfunc.set('n',str(n))
           new_itfunc.set('tag',itfunc)
         #
         new_walkinfo = ET.SubElement(new_itjob, 'walkinfo')
@@ -106,15 +105,14 @@ class RuleParser (object):
             uptojobinfo = itjob.find('uptojobinfo')
             uptoitfunc_dict = {}
             for func in uptojobinfo.iter('func'):
-              uptoitfunc_dict[func.get('tag')] = float(func.get('comp'))
+              uptoitfunc_dict[func.get('tag')] = float(func.get('n'))
             #
             jobinfo = itjob.find('jobinfo')
             itfunc_dict = {}
             for func in jobinfo.iter('func'):
-              itfunc_dict[func.get('tag')] = float(func.get('comp'))
+              itfunc_dict[func.get('tag')] = float(func.get('n'))
             #
-            itjob_dict['jobinfo'] = {'comp':float(jobinfo.get('comp')),
-                                     'proc':float(jobinfo.get('proc')),
+            itjob_dict['jobinfo'] = {'proc':float(jobinfo.get('proc')),
                                      'uptoitfunc_dict':uptoitfunc_dict,
                                      'itfunc_dict':itfunc_dict,
                                      'proto':int(jobinfo.get('proto')),

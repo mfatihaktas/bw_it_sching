@@ -141,14 +141,14 @@ class SchingOptimizer:
     '''
   
   def R_soft(self, s_id):
-    '''
     tempexpr = expr((1, self.max_numitfuncs))
     for i in range(self.max_numitfuncs):
       tempexpr.set_((0,i), self.s_n[s_id, i])
     #
     totaln = self.sumlist(tempexpr.get_row(0))
-    '''
-    return sum(self.s_n[s_id, :])*self.r_soft_grain
+    return totaln
+    #TODO: next line is causing s_n.value to be None after solution. Report as bug !
+    #return sum(self.s_n[s_id, :])*self.r_soft_grain
 
   # modeling penalty and utility functions
   """
@@ -429,7 +429,7 @@ class SchingOptimizer:
   def constraint0(self):
     s_n_consts = []
     for i in range(self.max_numitfuncs-1):
-      s_n_consts += [self.s_n[:,i] <= self.s_n[:,i+1]]
+      s_n_consts += [self.s_n[:,i] >= self.s_n[:,i+1]]
     #
     return [self.p_bw >= 0] + \
            [self.r_proc >= 0] + \
@@ -487,12 +487,14 @@ class SchingOptimizer:
       (bw, proc, dur) = (self.a.get((0,i)).value,
                          self.a.get((1,i)).value,
                          self.a.get((2,i)).value )
-      s_n_list = [n.value for n in self.s_n[i, :]]
+      
+      print 'pre_sn_list=%s' % [n.value for n in self.s_n[i, :]]
+      sn_list = [(float(n.value)**2) for n in self.s_n[i, :]]
+      #sn_list = [n.value**2 for n in self.s_n[i, :]]
       #
       trans_t = self.r_hard_vector.get((0,i)).value
       tt = self.get_var_val('tt',(0,i))
-      [s_itwalkinfo_dict, s_pwalk_dict] = self.get_session_itbundle_dict__walk(i)
-      #[None, None]
+      [s_itwalkinfo_dict, s_pwalk_dict] = self.get_session_itbundle_dict__walk(i) #[None, None]
       #ittime = self.it_time__basedon_itwalkinfo_dict(s_itwalkinfo_dict)
       #
       s_ps_info = self.sid_res_dict[0]['ps_info']
@@ -512,7 +514,7 @@ class SchingOptimizer:
       self.session_res_alloc_dict['s-wise'][i] = {
         'p_bw':p_bw, 'p_proc':p_proc, 'p_dur':p_dur,
         'bw':bw, 'proc':proc, 'dur':dur, 
-        'stor':0.001*(bw*dur),
+        'required_stor':0.001*(bw*dur),
         'tt': tt,
         'trans_time': trans_t,
         'r_soft_perf': self.r_soft_vector.get((0,i)).value,
@@ -520,8 +522,8 @@ class SchingOptimizer:
         'm_p': s_m_p,
         'x_u': s_x_u,
         'x_p': s_x_p,
-        's_n_list': s_n_list,
-        'hard_pi': abs(s_slack-tt),
+        'sn_list': sn_list,
+        'slack-tt': abs(s_slack-tt),
         'parism_level': s_parism_level,
         'itwalkinfo_dict': s_itwalkinfo_dict,
         'pwalk_dict': s_pwalk_dict,
@@ -532,13 +534,14 @@ class SchingOptimizer:
     ###RES-WISE
     r_bw_in_row = self.r_bw.agg_to_row()
     r_proc2_in_row = self.r_proc2.agg_to_row()
+    r_dur2_in_row = self.r_dur2.agg_to_row()
     #FOR network links
     for i in range(self.num_link):
       #link_cap total usage
       self.session_res_alloc_dict['res-wise'][i] = {'bw': r_bw_in_row.get((0,i)).value}
       #link_cap-session portion alloc
       self.session_res_alloc_dict['res-wise'][i].update(
-        {'bw_salloc_list': {s_id:e.value for s_id,e in enumerate(self.r_bw.get_column(i)) } } )
+        {'bw_salloc_dict': {s_id:e.value for s_id,e in enumerate(self.r_bw.get_column(i)) } } )
     #FOR it-resources
     for i in range(self.num_itr):
       #calculation of actual storage space
@@ -548,17 +551,18 @@ class SchingOptimizer:
       #res_cap total usage and res_cap-session portion alloc
       self.session_res_alloc_dict['res-wise'][i+self.num_link] = {
         'proc': r_proc2_in_row.get((0,i)).value,
+        'dur': r_dur2_in_row.get((0,i)).value,
         'stor_model': self.r_stor.get((0,i)).value,
         'stor_actual': float(self.r_stor_actual[i]),
-        'proc_salloc_list': [e.value for e in self.r_proc2.get_column(i)],
-        'dur_salloc_list': [e.value for e in self.r_dur2.get_column(i)]
+        'proc_salloc_dict': {s_id:e.value for s_id,e in enumerate(self.r_proc2.get_column(i))},
+        'dur_salloc_dict': {s_id:e.value for s_id,e in enumerate(self.r_dur2.get_column(i))}
       }
     #general info about sching_decision
     self.session_res_alloc_dict['general']['max_numspaths'] = self.max_numspaths
     self.session_res_alloc_dict['general']['ll_index'] = self.ll_index
   
   def get_session_itbundle_dict__walk(self, s_id):
-    def add_nlistallocforitrs(s_id, p_proc, n_list, itbundle_dict):
+    def add_nlisttoitrbundle(s_id, p_proc, n_list, itbundle_dict):
       for t_id,t_info in itbundle_dict.items():
         try:
           t_proc = t_info['proc']
@@ -566,7 +570,8 @@ class SchingOptimizer:
           continue
         #
         coeff = (t_proc/p_proc)
-        t_info['n_list'] = [coeff*n for n in n_list]
+        {func_list[i]:n for i,n in enumerate(n_list)}
+        t_info['itfunc_dict'] = {func_list[i]:coeff*n for i,n in enumerate(n_list)}
       #
     def itbundle_to_datawalk__ordereditbundle(netpath, itbundle):
       #construct data_walk
@@ -589,16 +594,17 @@ class SchingOptimizer:
       itbundle_ = [i_itr_dict[i] for i in i_list]
       #
       return [walk, itbundle_]
-    ############################################################################
+    ###
     req_dict = self.sessions_beingserved_dict[s_id]['req_dict']
-    ds = s_req_dict['data_size']
-    pl = s_req_dict['parism_level']
-    ps_list = s_req_dict['par_share']
+    ds = req_dict['data_size']
+    pl = req_dict['parism_level']
+    ps_list = req_dict['par_share']
     pc = req_dict['proc_comp']
+    func_list = req_dict['func_list']
     
     psinfo_dict = self.sid_res_dict[s_id]['ps_info']
     
-    n_list = [(n.value)**2 for n in self.s_n[i, :]]
+    n_list = [float(n.value)**2 for n in self.s_n[s_id, :]]
     
     pitwalk_dict, pwalk_dict = {}, {}
     #
@@ -634,198 +640,42 @@ class SchingOptimizer:
       #
       p_info_dict['p_proc'] = p_proc
       p_info_dict['p_dur'] = p_dur
-      p_info_dict['datasize'] = float(s_ds)*float(s_ps[p_id])
-      p_info_dict['n_list'] = n_list
+      p_info_dict['datasize'] = float(ds)*float(ps_list[p_id])
+      p_info_dict['itfunc_dict'] = {func_list[i]:n for i,n in enumerate(n_list)}
       #
-      add_nlistforitrs(s_id = s_id, p_proc = p_proc, 
-                       n_list = n_list,
-                       itbundle_dict = pitbundle_dict )
-      '''
-      print 'pitbundle_dict: '
-      pprint.pprint( pitbundle_dict )
-      print '[t for t in pitbundle_dict]: ', [t for t in pitbundle_dict]
-      '''
+      
+      add_nlisttoitrbundle(s_id = s_id, p_proc = p_proc,
+                           n_list = n_list,
+                           itbundle_dict = pitbundle_dict )
       [pwalk_dict[p_id], orded_itbundle] = itbundle_to_datawalk__ordereditbundle(netpath = pinfo_dict['path'], 
                                                                                  itbundle = [t for t in pitbundle_dict] )
       #
     #
     return [pitwalk_dict, pwalk_dict]
-    
-  def get_session_itwalkbundle_dict__walk(self, s_id):
-    s_req_dict = self.sessions_beingserved_dict[s_id]['req_dict']
-    n = self.a.get((3,s_id)).value**2
-    s_pc = s_req_dict['proc_comp']
-    tc = float(s_pc*n) #s_it_executable_totalcomp
-    #
-    def get_func_itexectablecomp_map(s_id):
-      """
-      Returns which function is executed over what percentage of 
-      data based on the allocated 'n**2'.
-      """
-      fl = s_req_dict['func_list']
-      dict_ = {}
-      m = tc
-      for func in fl:
-        f_c = self.func_compconstant_dict[func]
-        if m < 0:
-          dict_[func] = 0
-        elif m > f_c:
-          dict_[func] = f_c
-        else: #0 < . < f_c
-          dict_[func] = m
-        m -= f_c
-      return dict_
-    #
-    def add_itbundleres_itexeccomp(s_id, p_proc, itbundle_dict):
-      #updates itbundle to include comp portion the res is responsible
-      for t_id,t_info in itbundle_dict.items():
-        try:
-          t_proc = t_info['proc']
-        except KeyError: #res may only be there for dur
-          continue
-        t_info['comp'] = tc*(t_proc/p_proc)
-    #
-    def add_itbundleres_itfuncdataportion(s_id, f_itcomp_dict, itbundle_dict, orded_itwalkbundle):
-      cur_f_id, curf_tag, f_itcomp = -1, None, None
-      s_fl = s_req_dict['func_list']
-      for t_tag in orded_itwalkbundle:
-        itbundle_dict[t_tag]['itfunc_dict'] = {}
-        ttag_itfunc_dict = itbundle_dict[t_tag]['itfunc_dict']
-        t_comp = itbundle_dict[t_tag]['comp']
-        while t_comp > 0:
-          if f_itcomp == None:
-            cur_f_id += 1
-            #print 'cur_f_id: ', cur_f_id
-            try:
-              curf_tag = s_fl[cur_f_id]
-            except IndexError:
-              #to workaround more t_comp >= f_itcomp than supposed to because 
-              #of slight numerical difference
-              t_comp -= t_comp
-              continue
-            f_itcomp = f_itcomp_dict[curf_tag]
-          if t_comp <= 0:
-            continue
-          if t_comp >= f_itcomp:
-            ttag_itfunc_dict[curf_tag] = f_itcomp
-            t_comp -= f_itcomp
-            f_itcomp = None
-            #print '>= t_tag:%s, ttag_itfunc_dict:' % t_tag
-            #pprint.pprint(ttag_itfunc_dict)
-          elif t_comp < f_itcomp:
-            ttag_itfunc_dict[curf_tag] = t_comp
-            f_itcomp -= t_comp
-            t_comp -= t_comp
-            #print '< t_tag:%s, ttag_itfunc_dict:' % t_tag
-            #pprint.pprint(ttag_itfunc_dict)
-    #
-    def itwalkbundle_to_walk__ordereditwalkbundle(net_path, itwalkbundle):
-      #construct data_walk
-      walk = net_path
-      for itr in itwalkbundle:
-        itr_id = self.actual_res_dict['res_id_map'][itr]
-        conn_sw = self.actual_res_dict['id_info_map'][itr_id]['conn_sw']
-        #
-        lasti_conn_sw = len(walk) - walk[::-1].index(conn_sw) - 1
-        walk.insert(lasti_conn_sw+1, itr)
-        walk.insert(lasti_conn_sw+2, conn_sw)
-      #extract it_order info from data_walk
-      itwalkbundle_, i_list = [], []
-      i_itr_dict = {}
-      for itr in itwalkbundle:
-        itr_i = walk.index(itr)
-        i_list.append(itr_i)
-        i_itr_dict[itr_i] = itr
-      i_list.sort()
-      itwalkbundle_ = [i_itr_dict[i] for i in i_list]
-      #
-      return [walk, itwalkbundle_]
-    #      
-    '''
-    Walk_bundle of a session includes only assigned it_nodes NOT links because
-    they (links on given session_transfer_path) are already supposed to be in
-    the bundle.
-    Info_consisted: for every itres in the bundle proc_alloc, itfunc and the
-    corresponding data_perc
-    '''
-    dict_, p_walk = {}, {}
-    s_ps_info = self.sid_res_dict[s_id]['ps_info']
-    s_ds = s_req_dict['data_size']
-    s_ps = s_req_dict['par_share']
-    #print 's_ps:', s_ps
-    s_pl = s_req_dict['parism_level']
-    for p_id in range(0, s_pl):
-      p_info_dict = s_ps_info[p_id]
-      dict_[p_id] = {'itbundle':{}, 'p_info':{}}
-      p_itbundle_dict = dict_[p_id]['itbundle']
-      p_proc, p_dur = 0, 0
-      for t_id in range(0, self.num_itr):
-        s_id_ = s_id + p_id*self.N
-        it_proc = float(self.r_proc[s_id_,t_id].value)
-        it_dur = float(self.r_dur[s_id_,t_id].value)
-        if it_proc > 1: #For proc 1 Mflop/s is min_threshold
-          p_proc += it_proc
-          t_id_ = t_id + self.ll_index + 1
-          it_tag = self.actual_res_dict['id_info_map'][t_id_]['tag']
-          try:
-            p_itbundle_dict[it_tag].update({'proc': it_proc})
-          except KeyError:
-            p_itbundle_dict[it_tag] = {'proc': it_proc}
-        if it_dur > 1: #For dur 1ms is min_threshold
-          p_dur += it_dur
-          t_id_ = t_id + self.ll_index + 1
-          it_tag = self.actual_res_dict['id_info_map'][t_id_]['tag']
-          try:
-            p_itbundle_dict[it_tag].update({'dur': it_dur})
-          except KeyError:
-            p_itbundle_dict[it_tag] = {'dur': it_dur}
-      dict_[p_id]['p_info']['p_proc'] = p_proc
-      dict_[p_id]['p_info']['p_dur'] = p_dur
-      dict_[p_id]['p_info']['datasize'] = float(s_ds)*float(s_ps[p_id])
-      dict_[p_id]['p_info']['totalcomp'] = tc
-      add_itbundleres_itexeccomp(s_id, p_proc = p_proc,
-                                 itbundle_dict = p_itbundle_dict)
-      f_itcomp_dict = get_func_itexectablecomp_map(s_id)
-      #to ensure itfuncs are execed over ordered itreses on the path
-      '''
-      print 'p_itbundle_dict: '
-      pprint.pprint( p_itbundle_dict )
-      print '[t for t in p_itbundle_dict]: ', [t for t in p_itbundle_dict]
-      '''
-      itwalkbundle = [t for t in p_itbundle_dict]
-      [p_walk[p_id], orded_itwalkbundle] = \
-        itwalkbundle_to_walk__ordereditwalkbundle(p_info_dict['path'], 
-                                                  itwalkbundle = itwalkbundle)
-      #
-      add_itbundleres_itfuncdataportion(s_id, f_itcomp_dict,
-                                        itbundle_dict = p_itbundle_dict,
-                                        orded_itwalkbundle = orded_itwalkbundle)
-    #
-    return [dict_,p_walk]
   
   def it_time__basedon_itwalkinfo_dict(self, itwalkinfo_dict):
-  dict_ = {}
-  for p_id,pinfo_dict in itwalkinfo_dict.items():
-    p_ttime = 0
-    #
-    p_ds = pinfo_dict['p_info']['datasize']
-    itbundle_dict = pinfo_dict['itbundle']
-    for itres,job in itbundle_dict.items():
-      #staging time
-      try:
-        p_ttime += job['dur']
-      except KeyError:
-        pass
-      #procing time
-      try:
-        p_c = job['comp'] #pinfo_dict['p_info']['totalcomp']
-        p_proc = job['proc']
-        p_ttime += 1000*(p_ds/64)*p_c /p_proc #in (ms)
-      except KeyError:
-        pass
-    #
-    dict_[p_id] = p_ttime
-  return dict_
+    dict_ = {}
+    for p_id,pinfo_dict in itwalkinfo_dict.items():
+      p_ttime = 0
+      #
+      p_ds = pinfo_dict['p_info']['datasize']
+      itbundle_dict = pinfo_dict['itbundle']
+      for itres,job in itbundle_dict.items():
+        #staging time
+        try:
+          p_ttime += job['dur']
+        except KeyError:
+          pass
+        #procing time
+        try:
+          p_c = job['comp'] #pinfo_dict['p_info']['totalcomp']
+          p_proc = job['proc']
+          p_ttime += 1000*(p_ds/64)*p_c /p_proc #in (ms)
+        except KeyError:
+          pass
+      #
+      dict_[p_id] = p_ttime
+    return dict_
   
   # print info about optimization session
   def print_optimizer(self):

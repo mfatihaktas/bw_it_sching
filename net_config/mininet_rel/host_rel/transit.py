@@ -501,8 +501,7 @@ class Transit(object):
     #
     to_addr = (to_ip, stpdst) #goes into s_info_dict
     #
-    jobtobedone = {ftag:1024*data_['datasize']*comp/func_comp_dict[ftag] \
-                     for ftag,comp in data_['itfunc_dict'].items() }
+    jobtobedone = {ftag:1024*float(n)*data_['datasize'] for ftag,n in data_['itfunc_dict'].items() }
     data_.update( {'jobtobedone': jobtobedone} )
     #
     proto = int(data_['proto']) #6:TCP, 17:UDP - goes into s_info_dict
@@ -510,7 +509,7 @@ class Transit(object):
     #calc est_proct
     est_proct = proc_time_model(datasize = float(data_['datasize']),
                                 func_comp = float(data_['comp']),
-                                proc_cap = float(data_['proc']))
+                                proc_cap = float(data_['proc']) )
     #
     if self.trans_type == 'file':
       s_server_thread = FilePipeServer(server_addr = (self.tl_ip, stpdst),
