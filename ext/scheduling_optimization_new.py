@@ -99,6 +99,95 @@ class SchingOptimizer:
     #To keep SCHING DECISION in a dict
     self.session_res_alloc_dict = {'general':{},'s-wise': {}, 'res-wise': {}}
   ###
+  #modeling functions
+  def txprocdurtrans_time_model(self,s_id,p_id, datasize,comp_list,num_itres):
+    #datasize: MB, bw: Mbps
+    tx_t = 1000*(8*datasize)*cp.inv_pos(self.p_bw[s_id,p_id]) # (ms)
+    
+    #proc: Mbps
+    numitfuncs = len(comp_list)
+    quadoverlin_vector = expr((1, numitfuncs))
+    for i,comp in enumerate(comp_list):
+      quadoverlin = comp*cp.quad_over_lin(self.s_n[s_id, i], self.p_proc.get((s_id,p_id)) )
+      quadoverlin_vector.set_((0,i), quadoverlin)
+    #
+    quadoverlin = (quadoverlin_vector.agg_to_column()).get((0,0))
+    
+    proc_t = num_itres* 1000*(8*datasize)*(quadoverlin) # (ms)
+    
+    stage_t = self.p_dur.get((s_id,p_id))
+    #
+    trans_t = tx_t + proc_t + stage_t
+    return [tx_t, proc_t, stage_t, trans_t]
+  
+  def R_hard(self, s_id):
+    '''
+    total_trans_time = max{ trans_time over each par_walk}
+    '''
+    s_pl = self.sessions_beingserved_dict[s_id]['req_dict']['parism_level']
+    ptranst_list = []
+    for p_id in range(0,s_pl):
+      ptranst_list.append(self.sp_trans.get((s_id,p_id)) )
+    #
+    if s_pl == 1:
+      return ptranst_list[0]
+    else:
+      return cp.max(*ptranst_list)
+    '''
+    if s_pl == 1:
+      return self.sp_trans.get((s_id, 0))
+    else:
+      return cp.max(*self.sp_trans.get_row(s_id))
+    '''
+  
+  def R_soft(self, s_id):
+    '''
+    tempexpr = expr((1, self.max_numitfuncs))
+    for i in range(self.max_numitfuncs):
+      tempexpr.set_((0,i), self.s_n[s_id, i])
+    #
+    totaln = self.sumlist(tempexpr.get_row(0))
+    '''
+    return sum(self.s_n[s_id, :])*self.r_soft_grain
+
+  # modeling penalty and utility functions
+  """
+    Assumptions for simplicity of the initial modeling attempts;
+    * Penalty and utility functions are linear functions passing through
+    origin and can be defined by only its 'slope'
+    p_s: penalty func slope
+    u_s: utility func slope
+    --
+    App requirements will be reflected to the optimization problem by
+    auto-tune of penalty and utility functions (look at report for more)
+    In this case, three coupling types will tune 'function slopes' as;
+    Tight Coupling: p_s >> u_s
+    Loose Coupling: p_s ~ u_s
+    Dataflow Coupling: p_s << u_s
+  """
+  def P(self, s_id, expr_):
+    m_p = self.sessions_beingserved_dict[s_id]['app_pref_dict']['m_p']
+    x_p = self.sessions_beingserved_dict[s_id]['app_pref_dict']['x_p']
+    #return m_p*(expr_-x_p)
+    return cp.max( *(m_p*(expr_-x_p),0) )
+    
+  def U(self, s_id, expr_):
+    m_u = self.sessions_beingserved_dict[s_id]['app_pref_dict']['m_u']
+    x_u = self.sessions_beingserved_dict[s_id]['app_pref_dict']['x_u']
+    #return max( vstack(( m_u*(expr_-x_u),0 )) )
+    #return min( vstack(( -1*m_u*(expr_-x_u),0 )) )
+    return m_u*(expr_-x_u)
+
+  # objective functions
+  def F0(self):
+    return cp.max( *(self.s_pen_vector.get_row(0)) )
+
+  def F1(self):
+      return cp.min( *(self.s_util_vector.get_row(0)) )
+    
+  def F(self):
+    return self.F0() - self.scal_var*self.F1()
+  ###
   def sumlist(self, l):
     sum_ = None
     for i,e in enumerate(l):
@@ -107,7 +196,7 @@ class SchingOptimizer:
       else:
         sum_ += e
     return sum_
-  ################### For Enabling Speculation ###############################
+
   def r_stor__r_durXs_bw_map(self):
     def norm2_square(l):
       #l: python list
@@ -220,7 +309,7 @@ class SchingOptimizer:
     self.logger.debug('p_procdur__r_procdur_map::')
     self.logger.debug('self.p_proc=\n%s', self.p_proc)
     self.logger.debug('self.p_dur=\n%s', self.p_dur)
-   
+  
   def p_bwprocdur_sparsity_constraint(self):
     '''
     Not all the sessions have equal number of available transfer paths.
@@ -237,17 +326,6 @@ class SchingOptimizer:
     #print "s_sparsity_dict: ", s_sparsity_dict
     if total_sparsity == 0:
       return []
-      '''
-      elif total_sparsity == 1: #only one session has one sparsity in p_bw
-        for s_id in range(0,self.N):
-          num_sparsity = s_sparsity_dict[s_id]
-          if num_sparsity == 0:
-            continue
-          pi = self.max_numspaths-num_sparsity
-          l_ = [self.p_bw[s_id,pi], self.p_proc[s_id,pi], self.p_dur[s_id,pi]]
-          #
-          return [cp.vstack(*l_) == 0]
-      '''
     else:
       bw_sparsity_list = [0]*total_sparsity
       proc_sparsity_list = [0]*total_sparsity
@@ -302,7 +380,7 @@ class SchingOptimizer:
       #
       return  [cp.vstack(*proc_sparsity_list) == 0] + \
               [cp.vstack(*dur_sparsity_list) == 0]
-  ###################          OOO             ###############################
+
   def fill__sp_txprocdurtrans_matrices(self):
     for s_id in range(0, self.N):
       s_req_dict = self.sessions_beingserved_dict[s_id]['req_dict']
@@ -316,7 +394,7 @@ class SchingOptimizer:
         
         l_ = self.txprocdurtrans_time_model(s_id = s_id, p_id = p_id,
                                             datasize = sp_ds,
-                                            comp_list = [self.func_compconstant_dict[ftag] for func in s_req_dict['func_list']],
+                                            comp_list = [self.func_compconstant_dict[func] for func in s_req_dict['func_list']],
                                             num_itres = num_itres )
         self.sp_tx.set_((s_id,p_id), l_[0])
         self.sp_proc.set_((s_id,p_id), l_[1])
@@ -343,24 +421,23 @@ class SchingOptimizer:
     self.logger.debug('self.s_pen_vector=\n%s', self.s_pen_vector)
     self.logger.debug('self.s_util_vector=\n%s', self.s_util_vector)
   
-  # Constraint modeling functions
+  # Constraint functions
   def tt_epigraph_form_constraint(self):
     # trans_time_i <= tt_i ; i=0,1,2,3,...,N-1
     return [cp.vstack(*self.r_hard_vector.get_row(0)) <= self.tt.T]
   
   def constraint0(self):
-    #TODO: Experiment with bw & proc lower bound to see if dur will take action in sching.
-    #a[0,:] >= bw_lb + a[1,:] >= proc_lb + a[2:3,:] >= 0
-    #bw_lb = 0
-    #proc_lb = 0
+    s_n_consts = []
+    for i in range(self.max_numitfuncs-1):
+      s_n_consts += [self.s_n[:,i] <= self.s_n[:,i+1]]
     #
-    #a >= 0 + tt >= 0 + n_i <= length(func_list_i)
-    #r_bw >= 0 + r_proc >= 0 + r_stor >= 0
     return [self.p_bw >= 0] + \
            [self.r_proc >= 0] + \
            [self.r_dur >= 0] + \
-           [cp.vstack(*self.a.get_row(3) ) <= 1] + \
-           [self.tt >= 0]
+           [self.tt >= 0] + \
+           [self.s_n >= 0] + \
+           [self.s_n <= 1] + \
+           s_n_consts
   
   def res_cap_constraint(self):
     # resource capacity constraints
@@ -392,8 +469,7 @@ class SchingOptimizer:
       return eval('self.%s.value' % name)
     else:
       return eval('self.%s[%s,%s].value' % (name,i,j) )
-  ###to make itprocing 
-  ###
+
   def grab_sching_result(self):
     ###S-WISE
     for i in range(0, self.N):
@@ -408,14 +484,15 @@ class SchingOptimizer:
                                       s_app_pref_dict['m_p'],
                                       s_app_pref_dict['x_u'],
                                       s_app_pref_dict['x_p'])
-      (bw, proc, dur, n) = (self.a.get((0,i)).value,
-                            self.a.get((1,i)).value,
-                            self.a.get((2,i)).value,
-                            self.a.get((3,i)).value)
+      (bw, proc, dur) = (self.a.get((0,i)).value,
+                         self.a.get((1,i)).value,
+                         self.a.get((2,i)).value )
+      s_n_list = [n.value for n in self.s_n[i, :]]
       #
       trans_t = self.r_hard_vector.get((0,i)).value
       tt = self.get_var_val('tt',(0,i))
-      [s_itwalkinfo_dict, s_pwalk_dict] = self.get_session_itwalkbundle_dict__walk(i)
+      [s_itwalkinfo_dict, s_pwalk_dict] = self.get_session_itbundle_dict__walk(i)
+      #[None, None]
       #ittime = self.it_time__basedon_itwalkinfo_dict(s_itwalkinfo_dict)
       #
       s_ps_info = self.sid_res_dict[0]['ps_info']
@@ -423,11 +500,10 @@ class SchingOptimizer:
       p_bw,p_proc,p_dur = [],[],[]
       sp_txt,sp_proct,sp_durt,sp_transt = [],[],[],[]
       for k in range(0,num_ps):
-        #Adding p_bwprocdur info
         p_bw.append(self.get_var_val('p_bw',(i,k)))
         p_proc.append(self.p_proc.get((i,k)).value)
         p_dur.append(self.p_dur.get((i,k)).value)
-        #Adding sp_txprocdurtrans info
+        
         sp_txt.append(self.sp_tx.get((i,k)).value)
         sp_proct.append(self.sp_proc.get((i,k)).value)
         sp_durt.append(self.sp_dur.get((i,k)).value)
@@ -435,264 +511,146 @@ class SchingOptimizer:
       #
       self.session_res_alloc_dict['s-wise'][i] = {
         'p_bw':p_bw, 'p_proc':p_proc, 'p_dur':p_dur,
-        'bw':bw, 'proc':proc,
-        'dur':dur, 'n':n,'n**2':n**2,
+        'bw':bw, 'proc':proc, 'dur':dur, 
         'stor':0.001*(bw*dur),
         'tt': tt,
-        'trans_time': trans_t, #r_hard_perf
+        'trans_time': trans_t,
         'r_soft_perf': self.r_soft_vector.get((0,i)).value,
         'm_u': s_m_u,
         'm_p': s_m_p,
         'x_u': s_x_u,
         'x_p': s_x_p,
+        's_n_list': s_n_list,
         'hard_pi': abs(s_slack-tt),
         'parism_level': s_parism_level,
         'itwalkinfo_dict': s_itwalkinfo_dict,
         'pwalk_dict': s_pwalk_dict,
-        'soft_pi': n, #(n/s_n_max)*100
         'sp_txt':sp_txt,
         'sp_proct':sp_proct,
         'sp_durt':sp_durt,
         'sp_transt':sp_transt }
-        #'f_itcp_map': f_itcp_map,
     ###RES-WISE
     r_bw_in_row = self.r_bw.agg_to_row()
     r_proc2_in_row = self.r_proc2.agg_to_row()
     #FOR network links
-    for i in range(0, self.num_link):
+    for i in range(self.num_link):
       #link_cap total usage
-      self.session_res_alloc_dict['res-wise'][i] = {'bw': r_bw_in_row.get((i,0)).value}
+      self.session_res_alloc_dict['res-wise'][i] = {'bw': r_bw_in_row.get((0,i)).value}
       #link_cap-session portion alloc
       self.session_res_alloc_dict['res-wise'][i].update(
-        {'bw_palloc_list': [e.value for e in self.r_bw.get_column(i)] } )
+        {'bw_salloc_list': {s_id:e.value for s_id,e in enumerate(self.r_bw.get_column(i)) } } )
     #FOR it-resources
-    for i in range(0, self.num_itr):
+    for i in range(self.num_itr):
       #calculation of actual storage space
-      dur_vector = [e.value for e in self.r_dur2.get_column(i)] #1xN
-      bw_vector = [e.value for e in self.a.get_row(0)] #1xN
+      dur_vector = [e.value for e in self.r_dur2.get_column(i)]
+      bw_vector = [e.value for e in self.a.get_row(0)]
       self.r_stor_actual[i] = np.dot(dur_vector, bw_vector)*0.001
       #res_cap total usage and res_cap-session portion alloc
       self.session_res_alloc_dict['res-wise'][i+self.num_link] = {
         'proc': r_proc2_in_row.get((0,i)).value,
         'stor_model': self.r_stor.get((0,i)).value,
         'stor_actual': float(self.r_stor_actual[i]),
-        'proc_palloc_list': [e.value for e in self.r_proc2.get_column(i)],
-        'dur_palloc_list': [e.value for e in self.r_dur2.get_column(i)]
+        'proc_salloc_list': [e.value for e in self.r_proc2.get_column(i)],
+        'dur_salloc_list': [e.value for e in self.r_dur2.get_column(i)]
       }
     #general info about sching_decision
     self.session_res_alloc_dict['general']['max_numspaths'] = self.max_numspaths
     self.session_res_alloc_dict['general']['ll_index'] = self.ll_index
   
-  def solve(self):
-    (self.scal_var).value = 1
-    #
-    self.logger.debug('------------------------------')
-    self.logger.debug('F0()=%s', self.F0())
-    self.logger.debug('F0().is_convex()=%s', self.F0().is_convex())
-    self.logger.debug('F1()=%s', self.F1())
-    self.logger.debug('F1().is_concave()=%s', self.F1().is_concave())
-    self.logger.debug('F()=%s', self.F())
-    self.logger.debug('F().is_convex()=%s', self.F().is_convex())
-    self.logger.debug('------------------------------')
-    
-    self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-    self.logger.debug('constraint0=\n%s', self.constraint0())
-    self.logger.debug('self.tt_epigraph_form_constraint()=\n%s', self.tt_epigraph_form_constraint())
-    self.logger.debug('res_cap_constraint=\n%s', self.res_cap_constraint())
-    self.logger.debug('p_bwprocdur_sparsity_constraint=\n%s', self.p_bwprocdur_sparsity_constraint())
-    self.logger.debug('r_bwprocdur_sparsity_constraint=\n%s', self.r_bwprocdur_sparsity_constraint())
-    self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-    
-    p = cp.Problem(cp.Minimize(self.F()),
-                   self.constraint0() + \
-                   self.tt_epigraph_form_constraint() + \
-                   self.res_cap_constraint() + \
-                   self.r_bwprocdur_sparsity_constraint()  + \
-                   self.p_bwprocdur_sparsity_constraint()
-                  )
-    #print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
-    #p.show()
-    #print 'p.variables:\n', p.variables
-    #print 'p.parameters:\n', p.parameters
-    #print 'p.constraints:\n', p.constraints
-    #print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
-    #
-    #print '(p.objective).is_convex(): ', (p.objective).is_convex()
-    #print '(p.constraints).is_dcp(): ', (p.constraints).is_dcp()
-    #p.options['abstol'] = 1e-4
-    #p.options['realtol'] = 1e-4
-    '''
-    p.options['maxiters'] = 200
-    p.options['use_correction'] = False
-    p.options['maxiters'] = 500
-    p.options['feastol'] = 1e-4
-    '''
-    t_s = time.time()
-    print 'solving...' 
-    p.solve()
-    print 'solved.took %s secs' % (time.time()-t_s)
-    '''
-    self.logger.debug('||||||||||||||||||||||||||||||||||||')
-    self.logger.debug('a=\n%s', self.a.value)
-    self.logger.debug('p_bw=\n%s', self.p_bw.value)
-    self.logger.debug('p_proc=\n%s', self.p_proc.value)
-    self.logger.debug('p_dur=\n%s', self.p_dur.value)
-    self.logger.debug('r_bw=\n%s', self.r_bw.value)
-    self.logger.debug('r_proc=\n%s', self.r_proc.value)
-    self.logger.debug('r_dur=\n%s', self.r_dur.value)
-    self.logger.debug('r_proc2=\n%s', self.r_proc2.value)
-    self.logger.debug('r_dur2=\n%s', self.r_dur2.value)
-    
-    self.logger.debug('F0().value=%s', self.F0().value)
-    self.logger.debug('F1().value=%s', self.F1().value)
-    self.logger.debug('F().value=%s', self.F().value)
-    self.logger.debug('||||||||||||||||||||||||||||||||||||')
-    '''
-    self.grab_sching_result()
-  
-  #modeling functions
-  def txprocdurtrans_time_model(self,s_id,p_id, datasize,comp_list,num_itres):
-    #datasize: MB, bw: Mbps
-    tx_t = 1000*(8*datasize)*cp.inv_pos(self.p_bw[s_id,p_id]) # (ms)
-    
-    #proc: Mbps
-    numitfuncs = len(comp_list)
-    quadoverlin_vector = expr((1, numitfuncs))
-    for comp in comp_list:
-      quadoverlin = comp*cp.quad_over_lin(self.s_n[s_id, i], self.p_proc.get((s_id,p_id)) )
-      quadoverlin_vector.set_((0,i), quadoverlin)
-    #
-    quadoverlin = (quadoverlin_vector.agg_to_column()).get((0,0))
-    
-    proc_t = num_itres* 1000*(8*datasize)*quadoverlin # (ms)
-    
-    stage_t = self.p_dur.get((s_id,p_id))
-    #
-    trans_t = tx_t + proc_t + stage_t
-    return [tx_t, proc_t, stage_t, trans_t]
-  
-  def R_hard(self, s_id):
-    '''
-    total_trans_time = max{ trans_time over each par_walk}
-    '''
-    s_pl = self.sessions_beingserved_dict[s_id]['req_dict']['parism_level']
-    p_transt_list = []
-    for p_id in range(0,s_pl):
-      p_transt_list.append(self.sp_trans.get((s_id,p_id)) )
-      #p_transt_vector[p_id,0] = self.sp_trans[s_id,p_id]  #+ path_latency
-    #
-    return cp.max(*p_transt_list) #s_transt
-  
-  def R_soft(self, s_id):
-    #quad_over_lin(self.a[3,s_id], 1) #square(self.a[3,s_id])
-    n = self.a.get((3,s_id))
-    return n*self.r_soft_grain
-
-  # modeling penalty and utility functions
-  """
-    Assumptions for simplicity of the initial modeling attempts;
-    * Penalty and utility functions are linear functions passing through
-    origin and can be defined by only its 'slope'
-    p_s: penalty func slope
-    u_s: utility func slope
-    --
-    App requirements will be reflected to the optimization problem by
-    auto-tune of penalty and utility functions (look at report for more)
-    In this case, three coupling types will tune 'function slopes' as;
-    Tight Coupling: p_s >> u_s
-    Loose Coupling: p_s ~ u_s
-    Dataflow Coupling: p_s << u_s
-  """
-  def P(self, session_num, expr_):
-    m_p = self.sessions_beingserved_dict[session_num]['app_pref_dict']['m_p']
-    x_p = self.sessions_beingserved_dict[session_num]['app_pref_dict']['x_p']
-    #return m_p*(expr_-x_p)
-    return cp.max( *(m_p*(expr_-x_p),0) )
-    
-  def U(self, session_num, expr_):
-    m_u = self.sessions_beingserved_dict[session_num]['app_pref_dict']['m_u']
-    x_u = self.sessions_beingserved_dict[session_num]['app_pref_dict']['x_u']
-    #return max( vstack(( m_u*(expr_-x_u),0 )) )
-    #return min( vstack(( -1*m_u*(expr_-x_u),0 )) )
-    return m_u*(expr_-x_u)
-
-  # objective functions
-  def F0(self):
-    return cp.max( *(self.s_pen_vector.get_row(0)) )
-
-  def F1(self):
-      return cp.min( *(self.s_util_vector.get_row(0)) )
-    
-  def F(self):
-    return self.F0() - self.scal_var*self.F1()
-  
-  # print info about optimization session
-  def print_optimizer(self):
-    self.logger.info('Optimizer is created with the follows;')
-    self.logger.info('sessions_beingserved_dict=\n%s', pprint.pformat(self.sessions_beingserved_dict))
-    self.logger.info('actual_res_dict=\n%s', pprint.pformat(self.actual_res_dict))
-    self.logger.info('sid_res_dict=\n%s', pprint.pformat(self.sid_res_dict))
-  
-  def give_scal_var_range_dict(var_vector):
-    dict_ = {}
-    for var in var_vector:
-      (self.scal_var).value = var
-      p.solve(quiet=True) # Solve element of family
-      dict_[var] = {"a": self.a.value,
-                    "F0": self.F0(self.a).value,
-                    "F1": self.F1(self.a).value
-                   }
-    return dict_
-    #scal_var_vector = numpy.linspace(1e0,1e1,num=5) #1e-8
-    #scal_var_range_dict = give_scal_var_range_dict(scal_var_vector)
-    #print 'scal_var_range_dict: '
-    #pprint.pprint(scal_var_range_dict)
-    """
-    # for Pareto optimal curve plotting
-    def f(func):
-      def g(var):
-        (self.scal_var).value = var
-        p.solve(quiet=True) # Solve element of family
-        return func.value
-      return g
-    scal_var_vals = numpy.linspace(1e-8,1e2,num=50) # scal_var values to be used
-    #(self.scal_var).value = 2
-    #p.solve(quiet=True)
-    #print 'self.F0(self.a).value: ', self.F0(self.a).value
-    # Compute and plot Pareto optimal curve
-    pylab.plot(map(f(self.F0(self.a)),scal_var_vals),
-               map(f(self.F1(self.a)),scal_var_vals) )
-    pylab.title("Pareto Optimal Curve")
-    pylab.xlabel("F0")
-    pylab.ylabel("F1")
-    pylab.grid()
-    pylab.show()
-    """
-  
-  def it_time__basedon_itwalkinfo_dict(self, itwalkinfo_dict):
-    dict_ = {}
-    for p_id,pinfo_dict in itwalkinfo_dict.items():
-      p_ttime = 0
-      #
-      p_ds = pinfo_dict['p_info']['datasize']
-      itbundle_dict = pinfo_dict['itbundle']
-      for itres,job in itbundle_dict.items():
-        #staging time
+  def get_session_itbundle_dict__walk(self, s_id):
+    def add_nlistallocforitrs(s_id, p_proc, n_list, itbundle_dict):
+      for t_id,t_info in itbundle_dict.items():
         try:
-          p_ttime += job['dur']
-        except KeyError:
-          pass
-        #procing time
-        try:
-          p_c = job['comp'] #pinfo_dict['p_info']['totalcomp']
-          p_proc = job['proc']
-          p_ttime += 1000*(p_ds/64)*p_c /p_proc #in (ms)
-        except KeyError:
-          pass
+          t_proc = t_info['proc']
+        except KeyError: #res may only be there for dur
+          continue
+        #
+        coeff = (t_proc/p_proc)
+        t_info['n_list'] = [coeff*n for n in n_list]
       #
-      dict_[p_id] = p_ttime
-    return dict_
-  
+    def itbundle_to_datawalk__ordereditbundle(netpath, itbundle):
+      #construct data_walk
+      walk = netpath
+      for itr in itbundle:
+        itr_id = self.actual_res_dict['res_id_map'][itr]
+        conn_sw = self.actual_res_dict['id_info_map'][itr_id]['conn_sw']
+        #
+        lasti_conn_sw = len(walk) - walk[::-1].index(conn_sw) - 1
+        walk.insert(lasti_conn_sw+1, itr)
+        walk.insert(lasti_conn_sw+2, conn_sw)
+      #extract it_order info from walk
+      itbundle_, i_list = [], []
+      i_itr_dict = {}
+      for itr in itbundle:
+        itr_i = walk.index(itr)
+        i_list.append(itr_i)
+        i_itr_dict[itr_i] = itr
+      i_list.sort()
+      itbundle_ = [i_itr_dict[i] for i in i_list]
+      #
+      return [walk, itbundle_]
+    ############################################################################
+    req_dict = self.sessions_beingserved_dict[s_id]['req_dict']
+    ds = s_req_dict['data_size']
+    pl = s_req_dict['parism_level']
+    ps_list = s_req_dict['par_share']
+    pc = req_dict['proc_comp']
+    
+    psinfo_dict = self.sid_res_dict[s_id]['ps_info']
+    
+    n_list = [(n.value)**2 for n in self.s_n[i, :]]
+    
+    pitwalk_dict, pwalk_dict = {}, {}
+    #
+    for p_id in range(pl):
+      pinfo_dict = psinfo_dict[p_id]
+      pitwalk_dict[p_id] = {'itbundle':{}, 'p_info':{}}
+      pitbundle_dict = pitwalk_dict[p_id]['itbundle']
+      p_info_dict = pitwalk_dict[p_id]['p_info']
+      #
+      p_proc, p_dur = 0, 0
+      for t_id in range(0, self.num_itr):
+        s_id_ = s_id + p_id*self.N
+        it_proc = float(self.r_proc[s_id_,t_id].value)
+        it_dur = float(self.r_dur[s_id_,t_id].value)
+        if it_proc > 1:
+          p_proc += it_proc
+          t_id_ = t_id + self.ll_index + 1
+          it_tag = self.actual_res_dict['id_info_map'][t_id_]['tag']
+          try:
+            pitbundle_dict[it_tag].update({'proc': it_proc})
+          except KeyError:
+            pitbundle_dict[it_tag] = {'proc': it_proc}
+        #
+        if it_dur > 1:
+          p_dur += it_dur
+          t_id_ = t_id + self.ll_index + 1
+          it_tag = self.actual_res_dict['id_info_map'][t_id_]['tag']
+          try:
+            pitbundle_dict[it_tag].update({'dur': it_dur})
+          except KeyError:
+            pitbundle_dict[it_tag] = {'dur': it_dur}
+        #
+      #
+      p_info_dict['p_proc'] = p_proc
+      p_info_dict['p_dur'] = p_dur
+      p_info_dict['datasize'] = float(s_ds)*float(s_ps[p_id])
+      p_info_dict['n_list'] = n_list
+      #
+      add_nlistforitrs(s_id = s_id, p_proc = p_proc, 
+                       n_list = n_list,
+                       itbundle_dict = pitbundle_dict )
+      '''
+      print 'pitbundle_dict: '
+      pprint.pprint( pitbundle_dict )
+      print '[t for t in pitbundle_dict]: ', [t for t in pitbundle_dict]
+      '''
+      [pwalk_dict[p_id], orded_itbundle] = itbundle_to_datawalk__ordereditbundle(netpath = pinfo_dict['path'], 
+                                                                                 itbundle = [t for t in pitbundle_dict] )
+      #
+    #
+    return [pitwalk_dict, pwalk_dict]
+    
   def get_session_itwalkbundle_dict__walk(self, s_id):
     s_req_dict = self.sessions_beingserved_dict[s_id]['req_dict']
     n = self.a.get((3,s_id)).value**2
@@ -845,14 +803,45 @@ class SchingOptimizer:
     #
     return [dict_,p_walk]
   
+  def it_time__basedon_itwalkinfo_dict(self, itwalkinfo_dict):
+  dict_ = {}
+  for p_id,pinfo_dict in itwalkinfo_dict.items():
+    p_ttime = 0
+    #
+    p_ds = pinfo_dict['p_info']['datasize']
+    itbundle_dict = pinfo_dict['itbundle']
+    for itres,job in itbundle_dict.items():
+      #staging time
+      try:
+        p_ttime += job['dur']
+      except KeyError:
+        pass
+      #procing time
+      try:
+        p_c = job['comp'] #pinfo_dict['p_info']['totalcomp']
+        p_proc = job['proc']
+        p_ttime += 1000*(p_ds/64)*p_c /p_proc #in (ms)
+      except KeyError:
+        pass
+    #
+    dict_[p_id] = p_ttime
+  return dict_
+  
+  # print info about optimization session
+  def print_optimizer(self):
+    self.logger.info('Optimizer is created with the follows;')
+    self.logger.info('sessions_beingserved_dict=\n%s', pprint.pformat(self.sessions_beingserved_dict))
+    self.logger.info('actual_res_dict=\n%s', pprint.pformat(self.actual_res_dict))
+    self.logger.info('sid_res_dict=\n%s', pprint.pformat(self.sid_res_dict))
+  
   def feasibilize_schinginfo(self):
     def trans_time_calc(s_pl,s_ds,s_pc,s_st,p_bw,ps_list):
-      p_transt_list = [0]*s_pl
+      ptranst_list = [0]*s_pl
       for pl_id in range(0,s_pl):
         p_ds = 8*s_ds*ps_list[pl_id] #s_ds: in MB
         tx_t = p_ds*1000*1/p_bw[pl_id] # in (ms)
-        p_transt_list.append(tx_t) #+ path_latency
-      return __builtin__.max(p_transt_list) #s_transt
+        ptranst_list.append(tx_t) #+ path_latency
+      return __builtin__.max(ptranst_list) #s_transt
     
     self.add_path_sharing_info()
     #
@@ -979,4 +968,69 @@ class SchingOptimizer:
         s_fair_bw += p_fair_bw
       
       self.sid_res_dict[s_id]['s_info'].update({'fair_bw':s_fair_bw})
-
+  def solve(self):
+    (self.scal_var).value = 1
+    #
+    self.logger.debug('------------------------------')
+    self.logger.debug('F0()=%s', self.F0())
+    self.logger.debug('F0().is_convex()=%s', self.F0().is_convex())
+    self.logger.debug('F1()=%s', self.F1())
+    self.logger.debug('F1().is_concave()=%s', self.F1().is_concave())
+    self.logger.debug('F()=%s', self.F())
+    self.logger.debug('F().is_convex()=%s', self.F().is_convex())
+    self.logger.debug('------------------------------')
+    
+    self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+    self.logger.debug('constraint0=\n%s', self.constraint0())
+    self.logger.debug('self.tt_epigraph_form_constraint()=\n%s', self.tt_epigraph_form_constraint())
+    self.logger.debug('res_cap_constraint=\n%s', self.res_cap_constraint())
+    self.logger.debug('p_bwprocdur_sparsity_constraint=\n%s', self.p_bwprocdur_sparsity_constraint())
+    self.logger.debug('r_bwprocdur_sparsity_constraint=\n%s', self.r_bwprocdur_sparsity_constraint())
+    self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+    
+    p = cp.Problem(cp.Minimize(self.F()),
+                   self.constraint0() + \
+                   self.tt_epigraph_form_constraint() + \
+                   self.res_cap_constraint() + \
+                   self.r_bwprocdur_sparsity_constraint()  + \
+                   self.p_bwprocdur_sparsity_constraint()
+                  )
+    #print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
+    #p.show()
+    #print 'p.variables:\n', p.variables
+    #print 'p.parameters:\n', p.parameters
+    #print 'p.constraints:\n', p.constraints
+    #print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
+    #
+    #print '(p.objective).is_convex(): ', (p.objective).is_convex()
+    #print '(p.constraints).is_dcp(): ', (p.constraints).is_dcp()
+    #p.options['abstol'] = 1e-4
+    #p.options['realtol'] = 1e-4
+    '''
+    p.options['maxiters'] = 200
+    p.options['use_correction'] = False
+    p.options['maxiters'] = 500
+    p.options['feastol'] = 1e-4
+    '''
+    t_s = time.time()
+    print 'solving...' 
+    p.solve()
+    print 'solved.took %s secs' % (time.time()-t_s)
+    '''
+    self.logger.debug('||||||||||||||||||||||||||||||||||||')
+    self.logger.debug('a=\n%s', self.a.value)
+    self.logger.debug('p_bw=\n%s', self.p_bw.value)
+    self.logger.debug('p_proc=\n%s', self.p_proc.value)
+    self.logger.debug('p_dur=\n%s', self.p_dur.value)
+    self.logger.debug('r_bw=\n%s', self.r_bw.value)
+    self.logger.debug('r_proc=\n%s', self.r_proc.value)
+    self.logger.debug('r_dur=\n%s', self.r_dur.value)
+    self.logger.debug('r_proc2=\n%s', self.r_proc2.value)
+    self.logger.debug('r_dur2=\n%s', self.r_dur2.value)
+    
+    self.logger.debug('F0().value=%s', self.F0().value)
+    self.logger.debug('F1().value=%s', self.F1().value)
+    self.logger.debug('F().value=%s', self.F().value)
+    self.logger.debug('||||||||||||||||||||||||||||||||||||')
+    '''
+    self.grab_sching_result()
