@@ -66,7 +66,7 @@ class PipeServer(threading.Thread):
         flag_out = 'N'
       #
       self.sflagq_out.put(flag_out)
-      self.logger.debug('pushed flag_out=%s', flag_out)
+      #self.logger.debug('pushed flag_out=%s', flag_out)
     else:
       self.logger.error('Unexpected flag=%s', flag)
     #
@@ -501,9 +501,6 @@ class ItServHandler(threading.Thread):
     #
 
 #############################  Class Transit  ##################################
-TOTALPROCCAP = 100 #Mflop/s
-TOTALPROCCAP_B = TOTALPROCCAP*64*1024/8
-NCHUNKS_PERSEC = TOTALPROCCAP_B/CHUNKSIZE
 func_comp_dict = {'f0':0.5,
                   'f1':1,
                   'f2':2,
@@ -548,14 +545,46 @@ class Transit(object):
     signal.signal(signal.SIGINT, self.signal_handler)
     #for proc_power slicing
     self.stopflag = False
-    self.sflagq_topipeserver_dict = {}
-    self.sflagq_frompipeserver_dict = {}
+    self.sflagq_topipes_dict = {}
+    self.sflagq_frompipes_dict = {}
     self.stokenq_dict = {}
-    #
-    #threading.Thread(target = self.manage_stokenqs).start()
     #
     self.logger.info('%s is ready...', self.nodename)
 
+  ###  handle dts_comm  ###
+  def _handle_recvfromdts(self, msg):
+    [type_, data_] = msg
+    if type_ == 'itjob_rule':
+      self.welcome_s(data_)
+    elif type_ == 'reitjob_rule':
+      self.rewelcome_s(data_)
+    #
+  ###
+  
+  def ping_pipes(self, stpdst, flag_topipes):
+    sflagq_topipes = self.sflagq_topipes_dict[stpdst]
+    sflagq_frompipes = self.sflagq_frompipes_dict[stpdst]
+    
+    self.sflagq_topipes_dict[stpdst].put(flag_topipes)
+    flag_frompipes = self.sflagq_frompipes_dict[stpdst].get(True, None)
+    
+    return flag_frompipes
+  
+  def rewelcome_s(self, data_):
+    stpdst = int(data_['s_tp'])
+    if not stpdst in self.sinfo_dict:
+      self.logger.error('Recved reitjob_rule msg for a nonreged stpdst=%s', stpdst)
+      return
+    #
+    flag_frompipes = self.ping_pipes(stpdst = stpdst,
+                                     flag_topipes = 'SSTARTED?')
+    if flag_frompipes == 'Y':
+      self.logger.error('Session is already started! cannot reitjob; stpdst=%s', stpdst)
+    elif flag_frompipes == 'N':
+      self.logger.debug('Session is not started yet, can reitjob; stpdst=%s', stpdst)
+      self.welcome_s(data_)
+    #
+    
   def manage_stokenq(self, stpdst, intereq_time):
     stokenq = self.stokenq_dict[stpdst]
     while not self.stopflag:
@@ -568,21 +597,13 @@ class Transit(object):
     #
     self.logger.debug('manage_stokenq_%s:: stoppped by STOP flag!', stpdst)
   
-  ###  handle dts_comm  ###
-  def _handle_recvfromdts(self, msg):
-    [type_, data_] = msg
-    if type_ == 'itjob_rule':
-      self.welcome_s(data_)
-    elif type_ == 'reitjob_rule':
-      pass
-  
   def welcome_s(self, data_):
     #If new_s with same tpdst arrives, old_s is overwritten by new_s
     stpdst = int(data_['s_tp'])
     if stpdst in self.sinfo_dict:
       self.bye_s(stpdst)
     del data_['s_tp']
-    #
+    
     to_ip = data_['data_to_ip']
     del data_['data_to_ip']
     
@@ -605,11 +626,11 @@ class Transit(object):
     proto = int(data_['proto']) #6:TCP, 17:UDP
     del data_['proto']
     #
-    sflagq_topipeserver = Queue.Queue(0)
-    sflagq_frompipeserver = Queue.Queue(0)
+    sflagq_topipes = Queue.Queue(0)
+    sflagq_frompipes = Queue.Queue(0)
     stokenq = Queue.Queue(1)
-    self.sflagq_topipeserver_dict[stpdst] = sflagq_topipeserver
-    self.sflagq_frompipeserver_dict[stpdst] = sflagq_frompipeserver
+    self.sflagq_topipes_dict[stpdst] = sflagq_topipes
+    self.sflagq_frompipes_dict[stpdst] = sflagq_frompipes
     self.stokenq_dict[stpdst] = stokenq
     #
     nchunks = float(data_['datasize'])*(1024**2)/CHUNKSIZE
@@ -623,8 +644,8 @@ class Transit(object):
       s_server_thread = PipeServer(server_addr = (self.tl_ip, stpdst),
                                    itwork_dict = data_,
                                    to_addr = to_addr,
-                                   sflagq_in = sflagq_topipeserver,
-                                   sflagq_out = sflagq_frompipeserver,
+                                   sflagq_in = sflagq_topipes,
+                                   sflagq_out = sflagq_frompipes,
                                    stokenq = stokenq,
                                    intereq_time = intereq_time )
       self.sinfo_dict[stpdst] = {'itjobrule':data_,
@@ -641,7 +662,7 @@ class Transit(object):
     self.logger.info('welcome_s:: welcome stpdst=%s, s_info=\n%s', stpdst, pprint.pformat(self.sinfo_dict[stpdst]) )
   
   def bye_s(self, stpdst):
-    self.sflagq_topipeserver_dict[stpdst].put('STOP')
+    self.sflagq_topipes_dict[stpdst].put('STOP')
     self.N -= 1
     del self.sinfo_dict[stpdst]
     self.logger.info('bye s; tpdst=%s', stpdst)
@@ -653,7 +674,7 @@ class Transit(object):
   def shutdown(self):
     self.stopflag = True
     #
-    for stpdst,sflagq in self.sflagq_topipeserver_dict.items():
+    for stpdst,sflagq in self.sflagq_topipes_dict.items():
       sflagq.put('STOP')
     #
     self.itrdts_intf.close()
@@ -663,7 +684,7 @@ class Transit(object):
   def test(self):
     self.logger.debug('test')
     
-    nimg = 1000000
+    nimg = 1000
     imgsize = CHUNKSIZE/10
     datasize = float(imgsize*nimg)/(1024**2)
     #
@@ -674,8 +695,10 @@ class Transit(object):
             'uptoitfunc_dict': {},
             'proc': 1.0,
             's_tp': 6000 }
-    self.welcome_s(data)
-    
+    self.welcome_s(data.copy())
+    #time.sleep(5)
+    self.rewelcome_s(data.copy())
+    '''
     data = {'proto': 6,
             'data_to_ip': u'10.0.0.1',
             'datasize': datasize,
@@ -684,7 +707,7 @@ class Transit(object):
             'proc': 1.0,
             's_tp': 6001 }
     self.welcome_s(data)
-    
+    '''
 
 def main(argv):
   nodename = intf = dtsl_ip = dtsl_port= dtst_port = logto = trans_type = None

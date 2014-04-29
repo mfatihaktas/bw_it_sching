@@ -5,7 +5,7 @@
 # TCPServer running at scheduler   -> port: 9998
 echo $1
 
-NIMG=1000000
+NIMG=100000
 
 if [ $1  = 'p' ]; then
   python producer.py --intf=p-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.0.1 \
