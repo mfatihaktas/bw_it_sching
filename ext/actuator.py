@@ -73,7 +73,7 @@ class Actuator (object):
   def _handle_recvfromscher(self, msg):
     #msg = [type_, data_]
     [type_, data_] = msg
-    if type_ == 'sp_sching_req':
+    if type_ == 'sp_sching_req' or type_ == 'resp_sching_req':
       s_id, p_id = int(data_['s_id']), int(data_['p_id'])
       walk_rule = data_['walk_rule']
       itjob_rule = data_['itjob_rule']
@@ -89,16 +89,31 @@ class Actuator (object):
       ruleparser.modify_schedwalkxmlfile_by_walkrule(str(s_id),str(p_id),walk_rule)
       ruleparser.modify_scheditjobxmlfile_by_itjobrule(str(s_id),str(p_id),itjob_rule)
       if _install_schrules_proactively:
-        self.install_proactive_schedwalk(s_id, p_id)
-        self.install_proactive_scheditjob(s_id, p_id)
+        if type_ == 'sp_sching_req':
+          self.install_proactive_schedwalk(s_id, p_id)
+          self.install_proactive_scheditjob(type_toitr = 'itjob_rule',
+                                            s_id = s_id,
+                                            p_id = p_id )
+        elif type_ == 'resp_sching_req':
+          self.install_proactive_scheditjob(type_toitr = 'reitjob_rule',
+                                            s_id = s_id,
+                                            p_id = p_id )
+        #
+      #
       # Send "I am done with the job(sch realization)"
       print 'sending sching_realization_done to scher...'
-      msg = json.dumps({'type':'sp_sching_reply',
+      type_toscher = None
+      if type_ == 'sp_sching_req':
+        type_toscher = 'sp_sching_reply'
+      elif type_ == 'resp_sching_req':
+        type_toscher = 'resp_sching_reply'
+      #
+      msg = json.dumps({'type':type_toscher,
                         'data':{'s_id':s_id,
                                 'p_id':p_id,
                                 'reply':'done'} })
       self.cci.send_to_client('acter-scher', msg)
-    
+    #
   #Since the SW rules are set proactively, only acks are expected
   def _handle_PacketIn (self, event):
     eth_packet = event.parsed
@@ -149,7 +164,7 @@ class Actuator (object):
     #[type_, data_] = msg
     pass
   #########################  install_*** methods  #######################
-  def install_proactive_scheditjob(self, s_id, p_id):
+  def install_proactive_scheditjob(self, type_toitr, s_id, p_id):
     dict_ = ruleparser.get_itjobruledict_forsp(str(s_id), str(p_id))
     print 'itjobdict:'
     pprint.pprint(dict_)
@@ -167,7 +182,7 @@ class Actuator (object):
                                  _recv_callback = self._handle_recvfromitr,
                                  _send_callback = self._handle_sendtoitr )
         self.dtsitr_intf.relsend_to_itr(itr_ip = itr_ip,
-                                        msg = {'type':'itjob_rule',
+                                        msg = {'type':type_toitr,
                                                'data': jobinfo} )
         '''
         t = threading.Thread(name = 'relsend_to_itr;itr_ip='+itr_ip,

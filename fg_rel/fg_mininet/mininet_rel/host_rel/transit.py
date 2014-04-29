@@ -27,8 +27,8 @@ def getsizeof(data):
 CHUNKSIZE = 24*8*9*10 #B
 NUMCHUNKS_AFILE = 1000
 
-class FilePipeServer(threading.Thread):
-  def __init__(self, server_addr, itwork_dict, to_addr, sflagq, stokenq, intereq_time):
+class PipeServer(threading.Thread):
+  def __init__(self, server_addr, itwork_dict, to_addr, sflagq_in, sflagq_out, stokenq, intereq_time):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
@@ -36,7 +36,8 @@ class FilePipeServer(threading.Thread):
     self.stpdst = int(self.server_addr[1])
     self.itwork_dict = itwork_dict
     self.to_addr = to_addr
-    self.sflagq = sflagq
+    self.sflagq_in = sflagq_in
+    self.sflagq_out = sflagq_out
     self.stokenq = stokenq
     self.intereq_time = intereq_time
     #
@@ -48,6 +49,27 @@ class FilePipeServer(threading.Thread):
     self.sc_handler = None
     self.server_sock = None
     self.itserv_handler = None
+    #
+    self.sstarted = False
+  
+  def listen_transit(self):
+    self.logger.debug('listening transit...')
+    flag_in = self.sflagq_in.get(True, None)
+    self.logger.debug('popped flag_in=%s', flag_in)
+    if flag_in == 'STOP':
+      self.shutdown()
+    elif flag_in == 'SSTARTED?':
+      flag_out = None
+      if self.sstarted:
+        flag_out = 'Y'
+      else:
+        flag_out = 'N'
+      #
+      self.sflagq_out.put(flag_out)
+      self.logger.debug('pushed flag_out=%s', flag_out)
+    else:
+      self.logger.error('Unexpected flag=%s', flag)
+    #
   
   def open_socket(self):
     try:
@@ -62,10 +84,14 @@ class FilePipeServer(threading.Thread):
       sys.exit(2)
   
   def run(self):
+    t = threading.Thread(target = self.listen_transit)
+    t.start()
+    #
     self.open_socket()
     self.logger.debug('run:: serversock_stpdst=%s is opened; waiting for client.', self.stpdst)
     try:
       (sclient_sock,sclient_addr) = self.server_sock.accept()
+      self.sstarted = True
     except Exception, e:
       self.logger.error('Most likely transit.py is terminated with ctrl-c')
       self.logger.error('\ne.__doc__=%s\n e.message=%s', e.__doc__, e.message)
@@ -91,14 +117,7 @@ class FilePipeServer(threading.Thread):
     self.sc_handler.start()
     #
     self.logger.debug('run:: server_addr=%s started.', self.server_addr)
-    #
-    flag = self.sflagq.get(True, None)
-    if flag == 'STOP':
-      self.shutdown()
-    else:
-      self.logger('Unexpected flag=%s', flag)
-    #
-    self.logger.debug('run:: done.')
+    #self.logger.debug('run:: done.')
   
   def shutdown(self):
     #
@@ -529,7 +548,8 @@ class Transit(object):
     signal.signal(signal.SIGINT, self.signal_handler)
     #for proc_power slicing
     self.stopflag = False
-    self.sflagq_dict = {}
+    self.sflagq_topipeserver_dict = {}
+    self.sflagq_frompipeserver_dict = {}
     self.stokenq_dict = {}
     #
     #threading.Thread(target = self.manage_stokenqs).start()
@@ -553,6 +573,8 @@ class Transit(object):
     [type_, data_] = msg
     if type_ == 'itjob_rule':
       self.welcome_s(data_)
+    elif type_ == 'reitjob_rule':
+      pass
   
   def welcome_s(self, data_):
     #If new_s with same tpdst arrives, old_s is overwritten by new_s
@@ -583,9 +605,11 @@ class Transit(object):
     proto = int(data_['proto']) #6:TCP, 17:UDP
     del data_['proto']
     #
-    sflagq = Queue.Queue(0)
+    sflagq_topipeserver = Queue.Queue(0)
+    sflagq_frompipeserver = Queue.Queue(0)
     stokenq = Queue.Queue(1)
-    self.sflagq_dict[stpdst] = sflagq
+    self.sflagq_topipeserver_dict[stpdst] = sflagq_topipeserver
+    self.sflagq_frompipeserver_dict[stpdst] = sflagq_frompipeserver
     self.stokenq_dict[stpdst] = stokenq
     #
     nchunks = float(data_['datasize'])*(1024**2)/CHUNKSIZE
@@ -596,12 +620,13 @@ class Transit(object):
                                'intereq_time':intereq_time } ).start()
     #
     if self.trans_type == 'file':
-      s_server_thread = FilePipeServer(server_addr = (self.tl_ip, stpdst),
-                                       itwork_dict = data_,
-                                       to_addr = to_addr,
-                                       sflagq = sflagq,
-                                       stokenq = stokenq,
-                                       intereq_time = intereq_time )
+      s_server_thread = PipeServer(server_addr = (self.tl_ip, stpdst),
+                                   itwork_dict = data_,
+                                   to_addr = to_addr,
+                                   sflagq_in = sflagq_topipeserver,
+                                   sflagq_out = sflagq_frompipeserver,
+                                   stokenq = stokenq,
+                                   intereq_time = intereq_time )
       self.sinfo_dict[stpdst] = {'itjobrule':data_,
                                  'to_addr': to_addr,
                                  's_server_thread': s_server_thread,
@@ -616,7 +641,7 @@ class Transit(object):
     self.logger.info('welcome_s:: welcome stpdst=%s, s_info=\n%s', stpdst, pprint.pformat(self.sinfo_dict[stpdst]) )
   
   def bye_s(self, stpdst):
-    self.sflagq_dict[stpdst].put('STOP')
+    self.sflagq_topipeserver_dict[stpdst].put('STOP')
     self.N -= 1
     del self.sinfo_dict[stpdst]
     self.logger.info('bye s; tpdst=%s', stpdst)
@@ -628,7 +653,7 @@ class Transit(object):
   def shutdown(self):
     self.stopflag = True
     #
-    for stpdst,sflagq in self.sflagq_dict.items():
+    for stpdst,sflagq in self.sflagq_topipeserver_dict.items():
       sflagq.put('STOP')
     #
     self.itrdts_intf.close()

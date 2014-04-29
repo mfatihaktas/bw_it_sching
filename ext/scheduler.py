@@ -128,7 +128,7 @@ class Scheduler(object):
   def _handle_recvfromacter(self, msg):
     #msg = [type_, data_]l
     [type_, data_] = msg
-    if type_ == 'sp_sching_reply':
+    if type_ == 'sp_sching_reply' or type_ == 'resp_sching_reply':
       reply = data_['reply']
       #
       s_id, p_id = int(data_['s_id']), int(data_['p_id'])
@@ -141,15 +141,16 @@ class Scheduler(object):
                        'gw_dpid': user_info['gw_dpid'],
                        'gw_conn_port': user_info['gw_conn_port'] }
       if reply == 'done':
-        type_touser = None;
-        if s_info['sching_job_done'][p_id] == False:
-          self.sessions_beingserved_dict[sch_req_id]['sching_job_done'][p_id] = True
-          type_touser = 'sching_reply'
-        else:
-          type_touser = 'resching_reply'
+        self.sessions_beingserved_dict[sch_req_id]['sching_job_done'][p_id] = True
         #get s_alloc_info
         s_alloc_info = self.alloc_dict['s-wise'][s_id]
         s_pl = s_alloc_info['parism_level']
+        #
+        type_touser = None
+        if type_ == 'sp_sching_reply':
+          type_touser = 'sching_reply'
+        elif type_ == 'resp_sching_reply':
+          type_touser = 'resching_reply'
         #
         msg = {'type':type_touser,
                'data':{'sch_req_id': sch_req_id,
@@ -163,7 +164,9 @@ class Scheduler(object):
         self.dtsuser_intf.send_to_user(user_ip = p_ip,
                                        msg = {'type':'join_reply',
                                               'data':'sorry' } )
-  
+      #
+    #
+
   def _handle_sendtouser(self, userinfo_dict, msg_str):
     Scheduler.event_chief.raise_event('send_msg_to_user',msg_str,userinfo_dict)
     
@@ -385,7 +388,6 @@ class Scheduler(object):
                                                  p_walk = p_walk,
                                                  pitwalkbundle_dict = itwalkinfo_dict[p_id])
         #
-        #logging.info('sp_walk__tprrule=\n%s', pprint.pformat(sp_walk__tprrule))
         logging.info('for s_id=%s, p_id=%s;', s_id, p_id)
         #print 'walkrule:'
         #pprint.pprint(sp_walk__tprrule['walk_rule'])
@@ -393,11 +395,20 @@ class Scheduler(object):
         #pprint.pprint(sp_walk__tprrule['itjob_rule'])
         #
         #Dispatching rule to actuator_actuator
-        msg = json.dumps({'type':'sp_sching_req',
+        sch_req_id = self.sid_schregid_dict[s_id]
+        s_info = self.sessions_beingserved_dict[sch_req_id]
+        if s_info['sching_job_done'][p_id] == False:
+          type_toacter = 'sp_sching_req'
+        else:
+          type_toacter = 'resp_sching_req'
+        #
+        msg = json.dumps({'type':type_toacter,
                           'data':{'s_id':s_id, 'p_id':p_id,
                                   'walk_rule':sp_walk__tprrule['walk_rule'],
                                   'itjob_rule':sp_walk__tprrule['itjob_rule']} })
         self.cci.send_to_client('scher-acter', msg)
+      #
+    #  
     logging.info('do_sching:: sching_id=%s done.', sching_id)
   
   def get_overtcp_spwalkrule__sptprrule(self,s_id,p_id,p_walk,pitwalkbundle_dict):
@@ -496,7 +507,7 @@ class Scheduler(object):
                                'typ':'forward',
                                'wc':[tail_ip,head_ip,6,int(s_tp_dst),-1],
                                'rule':[backward_edge['post_dev'], duration] })
-      #extract modify_forward route to tail, and fill up it_job_rule
+      #extract modify_forward route to tail, and fill up itjob_rule
       tailsw_str = pwalk_chop[tail_i-1]
       tailsw = self.gm.get_node(tailsw_str)
       totail_swportname = None

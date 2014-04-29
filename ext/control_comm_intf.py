@@ -63,10 +63,10 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
     self.request.sendall(response)
     logging.info('cur_thread=%s; response=%s is sent back to client.', cur_thread.name, response)
 ################################################################################
-sctag_msgtypes_dict = {'scher-acter':{'send_type':['sp_sching_req', 'user_dts_tcpchannel_req'],
-                                      'recv_type':['sp_sching_reply', 'user_dts_tcpchannel_reply'] },
-                       'acter-scher':{'send_type':['sp_sching_reply'],
-                                      'recv_type':['sp_sching_req'] }
+sctag_msgtypes_dict = {'scher-acter':{'send_type':['sp_sching_req', 'resp_sching_req', 'user_dts_tcpchannel_req'],
+                                      'recv_type':['sp_sching_reply', 'resp_sching_reply', 'user_dts_tcpchannel_reply'] },
+                       'acter-scher':{'send_type':['sp_sching_reply', 'resp_sching_reply'],
+                                      'recv_type':['sp_sching_req', 'resp_sching_req'] }
                       }
   
 def check_msg(acttype, sctag, msg):
