@@ -134,7 +134,7 @@ class Scheduler(object):
       s_id, p_id = int(data_['s_id']), int(data_['p_id'])
       sch_req_id = self.sid_schregid_dict[s_id]
       s_info = self.sessions_beingserved_dict[sch_req_id]
-      p_ip = s_info['p_c_ip_list'][0]
+      [p_ip, c_ip] = s_info['p_c_ip_list']
       user_info = self.users_beingserved_dict[p_ip]
       userinfo_dict = {'ip': p_ip,
                        'mac': user_info['mac'],
@@ -685,8 +685,8 @@ class Scheduler(object):
     #
     num_session = 1
     #data_size (MB) slack_metric (ms)
-    req_dict_list = [ {'data_size':1, 'slack_metric':1200, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':1, 'slack_metric':1200, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+    req_dict_list = [ {'data_size':1, 'slack_metric':3000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':1, 'slack_metric':3000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':1, 'slack_metric':1200, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':1, 'slack_metric':1000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':1, 'slack_metric':1000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},

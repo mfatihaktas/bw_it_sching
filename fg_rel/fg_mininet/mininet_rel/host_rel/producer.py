@@ -300,7 +300,7 @@ def main(argv):
         print 'unknown proto=%s' % arg
         sys.exit(2)
     elif opt == '--tx_type':
-      if arg == 'file' or arg == 'dummy':
+      if arg == 'file' or arg == 'dummy' or arg == 'kstardata':
         tx_type = arg
       else:
         print 'unknown rx_type=%s' % arg

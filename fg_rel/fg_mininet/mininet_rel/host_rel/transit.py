@@ -211,14 +211,15 @@ class SessionClientHandler(threading.Thread):
     #
     else: #overflow
       overflow = self.chunk[chunksize-overflow_size:]
-      if overflow_size == 3 and overflow == 'EOF':
-        self.procq.put('EOF')
-        return -1
-      #
       chunksize_ = chunksize-overflow_size
       chunk_to_push = self.chunk[:chunksize_]
       self.procq.put(chunk_to_push)
       self.logger.debug('push_to_pipe:: pushed; chunksize_=%s, overflow_size=%s', chunksize_, overflow_size)
+      #
+      if overflow_size == 3 and overflow == 'EOF':
+        self.procq.put('EOF')
+        return -1
+      #
       self.chunk = overflow
       
       return 1

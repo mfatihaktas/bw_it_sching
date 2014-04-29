@@ -183,7 +183,7 @@ class SchingOptimizer:
     return cp.max( *(self.s_pen_vector.get_row(0)) )
 
   def F1(self):
-      return cp.min( *(self.s_util_vector.get_row(0)) )
+    return cp.min( *(self.s_util_vector.get_row(0)) )
     
   def F(self):
     return self.F0() - self.scal_var*self.F1()
@@ -436,8 +436,8 @@ class SchingOptimizer:
            [self.r_dur >= 0] + \
            [self.tt >= 0] + \
            [self.s_n >= 0] + \
-           [self.s_n <= 1] + \
-           s_n_consts
+           [self.s_n <= 1] #+ \
+           #s_n_consts
   
   def res_cap_constraint(self):
     # resource capacity constraints
@@ -457,9 +457,9 @@ class SchingOptimizer:
       r_proc_cap_list[i] = float(res_id_info_map[i_corr]['proc_cap'])
       r_stor_cap_list[i] = float(res_id_info_map[i_corr]['stor_cap'])
     
-    self.logger.debug('res_cap_constraint:: r_bw_agged_row=%s', r_bw_agged_row)
-    self.logger.debug('res_cap_constraint:: r_bw_agged_row.get_row(0)=%s', r_bw_agged_row.get_row(0))
-    
+    #self.logger.debug('res_cap_constraint:: r_bw_agged_row=%s', r_bw_agged_row)
+    #self.logger.debug('res_cap_constraint:: r_bw_agged_row.get_row(0)=%s', r_bw_agged_row.get_row(0))
+
     return  [cp.vstack(*r_bw_agged_row.get_row(0)) <= cp.vstack(*r_bw_cap_list) ] + \
             [cp.vstack(*r_proc_agged_row.get_row(0)) <= cp.vstack(*r_proc_cap_list) ] + \
             [cp.vstack(*self.r_stor.get_row(0)) <= cp.vstack(*r_stor_cap_list) ]
@@ -472,7 +472,7 @@ class SchingOptimizer:
 
   def grab_sching_result(self):
     ###S-WISE
-    for i in range(0, self.N):
+    for i in range(self.N):
       s_req_dict = self.sessions_beingserved_dict[i]['req_dict']
       (s_data_size, s_proc_comp, s_slack, s_parism_level) = (
         s_req_dict['data_size'],
@@ -487,8 +487,15 @@ class SchingOptimizer:
       (bw, proc, dur) = (self.a.get((0,i)).value,
                          self.a.get((1,i)).value,
                          self.a.get((2,i)).value )
-      
-      print 'pre_sn_list=%s' % [n.value for n in self.s_n[i, :]]
+      print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+      print 'sn_list=%s' % [n.value for n in self.s_n[i, :]]
+      print 'bw=%s, proc=%s, dur=%s' % (bw, proc, dur)
+      print 'trans_t=%s' % self.r_hard_vector.get((0,i)).value
+      print 'tt=%s' % self.get_var_val('tt',(0,i))
+      print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+      if bw == None: #for N=1, weird None solution
+        return False
+      #
       sn_list = [(float(n.value)**2) for n in self.s_n[i, :]]
       #sn_list = [n.value**2 for n in self.s_n[i, :]]
       #
@@ -560,6 +567,8 @@ class SchingOptimizer:
     #general info about sching_decision
     self.session_res_alloc_dict['general']['max_numspaths'] = self.max_numspaths
     self.session_res_alloc_dict['general']['ll_index'] = self.ll_index
+    #
+    return True
   
   def get_session_itbundle_dict__walk(self, s_id):
     def add_nlisttoitrbundle(s_id, p_proc, n_list, itbundle_dict):
@@ -819,68 +828,71 @@ class SchingOptimizer:
       
       self.sid_res_dict[s_id]['s_info'].update({'fair_bw':s_fair_bw})
   def solve(self):
-    (self.scal_var).value = 1
+    while(1):
+      (self.scal_var).value = 1
+      #
+      self.logger.debug('------------------------------')
+      self.logger.debug('F0()=%s', self.F0())
+      self.logger.debug('F0().is_convex()=%s', self.F0().is_convex())
+      self.logger.debug('F1()=%s', self.F1())
+      self.logger.debug('F1().is_concave()=%s', self.F1().is_concave())
+      self.logger.debug('F()=%s', self.F())
+      self.logger.debug('F().is_convex()=%s', self.F().is_convex())
+      self.logger.debug('------------------------------')
+      
+      self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+      self.logger.debug('constraint0=\n%s', self.constraint0())
+      self.logger.debug('self.tt_epigraph_form_constraint()=\n%s', self.tt_epigraph_form_constraint())
+      self.logger.debug('res_cap_constraint=\n%s', self.res_cap_constraint())
+      self.logger.debug('p_bwprocdur_sparsity_constraint=\n%s', self.p_bwprocdur_sparsity_constraint())
+      self.logger.debug('r_bwprocdur_sparsity_constraint=\n%s', self.r_bwprocdur_sparsity_constraint())
+      self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+      
+      p = cp.Problem(cp.Minimize(self.F()),
+                     self.constraint0() + \
+                     self.tt_epigraph_form_constraint() + \
+                     self.res_cap_constraint() + \
+                     self.r_bwprocdur_sparsity_constraint()  + \
+                     self.p_bwprocdur_sparsity_constraint()
+                    )
+      #print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
+      #p.show()
+      #print 'p.variables:\n', p.variables
+      #print 'p.parameters:\n', p.parameters
+      #print 'p.constraints:\n', p.constraints
+      #print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
+      #
+      #print '(p.objective).is_convex(): ', (p.objective).is_convex()
+      #print '(p.constraints).is_dcp(): ', (p.constraints).is_dcp()
+      #p.options['abstol'] = 1e-4
+      #p.options['realtol'] = 1e-4
+      '''
+      p.options['maxiters'] = 200
+      p.options['use_correction'] = False
+      p.options['maxiters'] = 500
+      p.options['feastol'] = 1e-4
+      '''
+      t_s = time.time()
+      print 'solving...' 
+      p.solve()
+      print 'solved.took %s secs' % (time.time()-t_s)
+      '''
+      self.logger.debug('||||||||||||||||||||||||||||||||||||')
+      self.logger.debug('a=\n%s', self.a.value)
+      self.logger.debug('p_bw=\n%s', self.p_bw.value)
+      self.logger.debug('p_proc=\n%s', self.p_proc.value)
+      self.logger.debug('p_dur=\n%s', self.p_dur.value)
+      self.logger.debug('r_bw=\n%s', self.r_bw.value)
+      self.logger.debug('r_proc=\n%s', self.r_proc.value)
+      self.logger.debug('r_dur=\n%s', self.r_dur.value)
+      self.logger.debug('r_proc2=\n%s', self.r_proc2.value)
+      self.logger.debug('r_dur2=\n%s', self.r_dur2.value)
+      
+      self.logger.debug('F0().value=%s', self.F0().value)
+      self.logger.debug('F1().value=%s', self.F1().value)
+      self.logger.debug('F().value=%s', self.F().value)
+      self.logger.debug('||||||||||||||||||||||||||||||||||||')
+      '''
+      if self.grab_sching_result():
+        break
     #
-    self.logger.debug('------------------------------')
-    self.logger.debug('F0()=%s', self.F0())
-    self.logger.debug('F0().is_convex()=%s', self.F0().is_convex())
-    self.logger.debug('F1()=%s', self.F1())
-    self.logger.debug('F1().is_concave()=%s', self.F1().is_concave())
-    self.logger.debug('F()=%s', self.F())
-    self.logger.debug('F().is_convex()=%s', self.F().is_convex())
-    self.logger.debug('------------------------------')
-    
-    self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-    self.logger.debug('constraint0=\n%s', self.constraint0())
-    self.logger.debug('self.tt_epigraph_form_constraint()=\n%s', self.tt_epigraph_form_constraint())
-    self.logger.debug('res_cap_constraint=\n%s', self.res_cap_constraint())
-    self.logger.debug('p_bwprocdur_sparsity_constraint=\n%s', self.p_bwprocdur_sparsity_constraint())
-    self.logger.debug('r_bwprocdur_sparsity_constraint=\n%s', self.r_bwprocdur_sparsity_constraint())
-    self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-    
-    p = cp.Problem(cp.Minimize(self.F()),
-                   self.constraint0() + \
-                   self.tt_epigraph_form_constraint() + \
-                   self.res_cap_constraint() + \
-                   self.r_bwprocdur_sparsity_constraint()  + \
-                   self.p_bwprocdur_sparsity_constraint()
-                  )
-    #print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
-    #p.show()
-    #print 'p.variables:\n', p.variables
-    #print 'p.parameters:\n', p.parameters
-    #print 'p.constraints:\n', p.constraints
-    #print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
-    #
-    #print '(p.objective).is_convex(): ', (p.objective).is_convex()
-    #print '(p.constraints).is_dcp(): ', (p.constraints).is_dcp()
-    #p.options['abstol'] = 1e-4
-    #p.options['realtol'] = 1e-4
-    '''
-    p.options['maxiters'] = 200
-    p.options['use_correction'] = False
-    p.options['maxiters'] = 500
-    p.options['feastol'] = 1e-4
-    '''
-    t_s = time.time()
-    print 'solving...' 
-    p.solve()
-    print 'solved.took %s secs' % (time.time()-t_s)
-    '''
-    self.logger.debug('||||||||||||||||||||||||||||||||||||')
-    self.logger.debug('a=\n%s', self.a.value)
-    self.logger.debug('p_bw=\n%s', self.p_bw.value)
-    self.logger.debug('p_proc=\n%s', self.p_proc.value)
-    self.logger.debug('p_dur=\n%s', self.p_dur.value)
-    self.logger.debug('r_bw=\n%s', self.r_bw.value)
-    self.logger.debug('r_proc=\n%s', self.r_proc.value)
-    self.logger.debug('r_dur=\n%s', self.r_dur.value)
-    self.logger.debug('r_proc2=\n%s', self.r_proc2.value)
-    self.logger.debug('r_dur2=\n%s', self.r_dur2.value)
-    
-    self.logger.debug('F0().value=%s', self.F0().value)
-    self.logger.debug('F1().value=%s', self.F1().value)
-    self.logger.debug('F().value=%s', self.F().value)
-    self.logger.debug('||||||||||||||||||||||||||||||||||||')
-    '''
-    self.grab_sching_result()
