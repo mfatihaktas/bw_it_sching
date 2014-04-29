@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys,getopt,commands,pprint,mmap,logging,os,Queue,errno,signal,copy
+import sys,getopt,commands,pprint,mmap,logging,os,Queue,errno,signal,copy,json
 import SocketServer,threading,time,socket,thread
 from errors import CommandLineOptionError,NoItruleMatchError
 from userdts_comm_intf import UserDTSCommIntf
@@ -24,6 +24,7 @@ else:
 def getsizeof(data):
   return sys.getsizeof(data) - PYTHON_STR_HEADER_LEN
 
+CHUNKHSIZE = 50 #B
 CHUNKSIZE = 24*8*9*10 #B
 NUMCHUNKS_AFILE = 1000
 
@@ -44,7 +45,8 @@ class PipeServer(threading.Thread):
     self.logger = logging.getLogger('filepipeserver')
     #
     self.pipefileurl_q = Queue.Queue(0)
-    self.flagq_tosubthreads = Queue.Queue(1) #to be able to close SessionClientHandler thread
+    self.flagq_toitservhandler = Queue.Queue(1)
+    self.flagq_tosessionhandler = Queue.Queue(1)
     #
     self.sc_handler = None
     self.server_sock = None
@@ -53,22 +55,21 @@ class PipeServer(threading.Thread):
     self.sstarted = False
   
   def listen_transit(self):
-    self.logger.debug('listening transit...')
-    flag_in = self.sflagq_in.get(True, None)
-    self.logger.debug('popped flag_in=%s', flag_in)
-    if flag_in == 'STOP':
-      self.shutdown()
-    elif flag_in == 'SSTARTED?':
-      flag_out = None
-      if self.sstarted:
-        flag_out = 'Y'
-      else:
-        flag_out = 'N'
+    self.logger.debug('listen_transit:: listening transit...')
+    while 1:
+      flag_in = self.sflagq_in.get(True, None)
+      self.logger.debug('listen_transit:: Popped flag_in=%s', flag_in)
+      
+      if flag_in == 'STOP':
+        self.shutdown()
+        break
+      else: #reitjob_rule
+        self.itwork_dict = flag_in
+        if self.sstarted: #need to inform itserv_handler thread
+          self.flagq_toitservhandler.put(self.itwork_dict)
+        #
+        self.logger.debug('listen_transit:: NEW itwork_dict=%s', self.itwork_dict)
       #
-      self.sflagq_out.put(flag_out)
-      #self.logger.debug('pushed flag_out=%s', flag_out)
-    else:
-      self.logger.error('Unexpected flag=%s', flag)
     #
   
   def open_socket(self):
@@ -102,7 +103,7 @@ class PipeServer(threading.Thread):
     self.itserv_handler = ItServHandler(itwork_dict = self.itwork_dict,
                                         stpdst = self.stpdst,
                                         to_addr = self.to_addr,
-                                        flagq = self.flagq_tosubthreads,
+                                        flagq = self.flagq_toitservhandler,
                                         stokenq = self.stokenq,
                                         intereq_time = self.intereq_time,
                                         procq = procq )
@@ -112,7 +113,7 @@ class PipeServer(threading.Thread):
                                            itwork_dict = self.itwork_dict,
                                            to_addr = self.to_addr,
                                            stpdst = self.stpdst,
-                                           flagq = self.flagq_tosubthreads,
+                                           flagq = self.flagq_tosessionhandler,
                                            procq = procq )
     self.sc_handler.start()
     #
@@ -124,7 +125,7 @@ class PipeServer(threading.Thread):
     self.server_sock.shutdown(socket.SHUT_RDWR)
     self.server_sock.close()
     #close sc_handler
-    self.flagq_tosubthreads.put('STOP')
+    self.flagq_tosessionhandler.put('STOP')
     #close itserv_handler
     self.pipefileurl_q.put('EOF')
     #
@@ -271,63 +272,102 @@ class ItServHandler(threading.Thread):
     #
     self.logger = logging.getLogger('itservhandler_%s' % stpdst)
     #
-    self.stopflag = False
-    
-    self.num_chunks_afile = NUMCHUNKS_AFILE
-    #num_chunks_afile % serv_size = 0
-    #
+    self.startedtohandle_time = None
     self.served_size_B = 0
-    self.served_size = 0 #chunks
-    #
     self.active_last_time = None
-    #
+    
     self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self.forwarding_started = False
-    #for test...
+    self.stopflag = False
     self.test_file = open('pipe/testfile.dat', 'w')
-    #
-    self.startedtohandle_time = None
-    #
     #to integrate ecei_proc
-    self.ftag_servsize_dict = {'fft':1, 'upsample':1, 'plot':64, 'upsampleplot':1} #chunks
-    
+    self.idealfunc_order = ['fft', 'upsampleplot']
     self.procsock_dict = {'fft': None, 'upsampleplot': None}
     self.procsockpath_dict = {'fft': 'fft',
-                              'upsample': 'upsample',
-                              'plot': 'plot',
                               'upsampleplot': 'upsampleplot' }
     self.procwrsize_dict = {'fft': {'wsize': CHUNKSIZE,
                                     'rsize': CHUNKSIZE },
-                            'upsample': {'wsize': CHUNKSIZE,
-                                         'rsize': 64*CHUNKSIZE },
-                            'plot': {'wsize': 64*CHUNKSIZE,
-                                     'rsize': CHUNKSIZE },
                             'upsampleplot': {'wsize': CHUNKSIZE,
                                              'rsize': CHUNKSIZE }
-                            }
-    
-    
-    self.uptojobdone = self.itwork_dict['uptojobdone']
-    self.uptorecvsize_dict = {}
-    for ftag,datasize in self.uptojobdone.items():
-      self.uptorecvsize_dict[ftag] = datasize*(1024**2) #B
-    
-    self.jobtobedone_dict = self.itwork_dict['jobtobedone']
-    self.jobremaining = {}
-    for ftag,datasize in self.jobtobedone_dict.items():
-      self.jobremaining[ftag] = datasize*(1024**2)*self.ftag_servsize_dict[ftag] #B
+                           }
     #
-    self.logger.debug('itservhandler:: jobremaining=\n%s', pprint.pformat(self.jobremaining))
+    self.jobtobedone_dict = None
+    self.uptorecvsize_dict = {}
+    self.jobremaining = {}
+    
+    self.init_itjobdicts()
+    
   
+  def init_itjobdicts(self):
+    self.jobtobedone_dict = self.itwork_dict['jobtobedone']
+    for ftag,datasize in self.jobtobedone_dict.items():
+        self.jobremaining[ftag] = datasize*(1024**2) #B
+    #
+    self.logger.debug('init_itjobdicts:: jobremaining=\n%s', pprint.pformat(self.jobremaining))
+  
+  def reinit_itjobdicts(self):
+    pre_jobtobedone_dict = self.jobtobedone_dict
+    self.jobtobedone_dict = self.itwork_dict['jobtobedone']
+    for ftag,datasize in self.jobtobedone_dict.items():
+      if ftag in self.jobremaining:
+        jobdonesize =  pre_jobtobedone_dict[ftag]*(1024**2) - self.jobremaining[ftag]
+        self.jobremaining[ftag] = datasize*(1024**2) - jobdonesize #B
+      else:
+        self.jobremaining[ftag] = datasize*(1024**2) #B
+      #
+    #
+    self.logger.debug('reinit_itjobdicts:: jobremaining=\n%s', pprint.pformat(self.jobremaining))
+    
   def init_procsocks(self):
     for func in self.procsock_dict:
       sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
       sock.connect(self.procsockpath_dict[func])
       self.procsock_dict[func] = sock
     #
+    self.logger.debug('init_procsocks:: done')
   
+  def listen_pipeserver(self):
+    while 1:
+      flag = self.flagq.get(True, None)
+      self.logger.debug('listen_pipeserver:: popped flag=%s', flag)
+      #flag can only be new itwork_dict
+      self.itwork_dict = flag
+      self.reinit_itjobdicts()
+      self.logger.debug('listen_pipeserver:: NEW itwork_dict=%s\n', pprint.pformat(self.itwork_dict))
+  
+  def get_itfunclist_overnextchunk(self):
+    def reorder(itfunc_list):
+      ordered_list = []
+      for func in self.idealfunc_order:
+        if func in itfunc_list:
+          ordered_list.append(func)
+      #
+      return ordered_list
+    #
+    itfunc_list = []
+    uptoserved_size_B = self.served_size_B
+    
+    for ftag in self.jobtobedone_dict:
+      if self.jobremaining[ftag] > 0:
+        itfunc_list.append(ftag)
+    #
+    return reorder(itfunc_list)
+  
+  def canfunc_berun(self, func, uptofunc_list):
+    try:
+      if self.idealfunc_order.index(func) <= self.idealfunc_order.index(uptofunc_list[-1]):
+        return False
+    except ValueError:
+      self.logger.error('A func which is not in idealfunc_order is found !.')
+      return False
+    #
+    return True
+      
   def run(self):
-    #self.init_procsocks()
+    t = threading.Thread(target=self.listen_pipeserver)
+    t.start()
+    #
+    self.init_procsocks()
     self.startedtohandle_time = time.time()
     
     startrunround_time = time.time()
@@ -354,12 +394,9 @@ class ItServHandler(threading.Thread):
       #
       itfunc_list = self.get_itfunclist_overnextchunk()
       print 'itfunc_list=%s' % pprint.pformat(itfunc_list)
-      try:
-        firstitfunc = itfunc_list[0]
-      except IndexError as e:
-        firstitfunc = None
       #
-      (data, datasize) = self.pop_from_pipe(firstitfunc)
+      (data, datasize, uptofunc_list) = self.pop_from_pipe()
+      print 'uptofunc_list=%s' % uptofunc_list
       datasize_t = copy.copy(datasize)
       if data == None:
         if datasize == 0: #failed
@@ -382,18 +419,19 @@ class ItServHandler(threading.Thread):
         #print 'itwork_dict=%s' % pprint.pformat(self.itwork_dict)
         procstart_time = time.time()
         [datasize_, data_] = [0, None]
-        '''
+        
         for func in itfunc_list:
-          [datasize_, data_] = self.proc(func = func,
-                                         datasize = datasize,
-                                         data = data )
-          self.jobremaining[func] -= datasize
-          datasize = datasize_
-          data = data_
+          if self.canfunc_berun(func, uptofunc_list):
+            [datasize_, data_] = self.proc(func = func,
+                                           datasize = datasize,
+                                           data = data )
+            self.jobremaining[func] -= datasize
+            datasize = datasize_
+            data = data_
         #
         #datasize = getsizeof(data)
         #self.forward_data(data, datasize)
-        '''
+        
         self.served_size_B += datasize_t
         #self.test_file.write(data)
         procdur = time.time() - procstart_time
@@ -431,7 +469,7 @@ class ItServHandler(threading.Thread):
     #
     return [datasize_, data_]
   
-  def pop_from_pipe(self, itfunc):
+  def pop_from_pipe(self):
     """ returns:
     (data, datasize): success
     (None, 0): failed
@@ -444,34 +482,18 @@ class ItServHandler(threading.Thread):
     
     if chunksize == 3:
       if chunk == 'EOF':
-        return (None, -1)
+        return (None, -1, None)
     elif chunksize == 0:
-      return (None, -2)
-    
-    return (chunk, chunksize)
-  
-  def get_itfunclist_overnextchunk(self):
-    def reorder(itfunc_list):
-      ordered_list = []
-      idealfunc_order = ['fft', 'upsample', 'plot', 'upsampleplot']
-      for func in idealfunc_order:
-        if func in itfunc_list:
-          ordered_list.append(func)
-      #
-      return ordered_list
+      return (None, -2, None)
     #
-    itfunc_list = []
-    uptoserved_size_B = self.served_size_B
-    
-    for ftag in self.jobtobedone_dict:
-      if ftag in self.uptorecvsize_dict:
-        if uptoserved_size_B >= self.uptorecvsize_dict[ftag]:
-          itfunc_list.append(ftag)
-      else:
-        if self.jobremaining[ftag] > 0:
-          itfunc_list.append(ftag)
+    uptofunc_list = None
+    header = chunk[:CHUNKHSIZE]
+    try:
+      uptofunc_list = json.loads(header)
+    except ValueError:
+      pass
     #
-    return reorder(itfunc_list)
+    return (chunk, chunksize, uptofunc_list)
   
   def forward_data(self, data, datasize):
     """ TODO: returns:
@@ -561,29 +583,29 @@ class Transit(object):
     #
   ###
   
-  def ping_pipes(self, stpdst, flag_topipes):
-    sflagq_topipes = self.sflagq_topipes_dict[stpdst]
-    sflagq_frompipes = self.sflagq_frompipes_dict[stpdst]
-    
-    self.sflagq_topipes_dict[stpdst].put(flag_topipes)
-    flag_frompipes = self.sflagq_frompipes_dict[stpdst].get(True, None)
-    
-    return flag_frompipes
-  
   def rewelcome_s(self, data_):
     stpdst = int(data_['s_tp'])
+    del data_['s_tp']
     if not stpdst in self.sinfo_dict:
       self.logger.error('Recved reitjob_rule msg for a nonreged stpdst=%s', stpdst)
       return
     #
-    flag_frompipes = self.ping_pipes(stpdst = stpdst,
-                                     flag_topipes = 'SSTARTED?')
-    if flag_frompipes == 'Y':
-      self.logger.error('Session is already started! cannot reitjob; stpdst=%s', stpdst)
-    elif flag_frompipes == 'N':
-      self.logger.debug('Session is not started yet, can reitjob; stpdst=%s', stpdst)
-      self.welcome_s(data_)
+    del data_['data_to_ip']
+    del data_['proto']
+    del data_['proc']
+    
+    uptojobdone = {}
+    for ftag,n in data_['uptoitfunc_dict'].items():
+      uptojobdone[ftag] = data_['datasize']*float(n)
+    data_.update( {'uptojobdone': uptojobdone} )
+    
+    jobtobedone = {}
+    for ftag,n in data_['itfunc_dict'].items():
+      jobtobedone[ftag] = data_['datasize']*float(n)
+    data_.update( {'jobtobedone': jobtobedone} )
     #
+    self.sflagq_topipes_dict[stpdst].put(data_)
+    self.logger.debug('rewelcome_s:: done for stpdst=%s', stpdst)
     
   def manage_stokenq(self, stpdst, intereq_time):
     stokenq = self.stokenq_dict[stpdst]
@@ -603,25 +625,23 @@ class Transit(object):
     if stpdst in self.sinfo_dict:
       self.bye_s(stpdst)
     del data_['s_tp']
-    
+    #
     to_ip = data_['data_to_ip']
     del data_['data_to_ip']
     
     to_addr = (to_ip, stpdst) #goes into s_info_dict
-    #
-    uptojobdone = {}
-    for ftag,n in data_['uptoitfunc_dict'].items():
-      uptojobdone[ftag] = data_['datasize']*float(n)
-    data_.update( {'uptojobdone': uptojobdone} )
+    datasize = float(data_['datasize'])
     #
     jobtobedone = {}
     for ftag,n in data_['itfunc_dict'].items():
-      jobtobedone[ftag] = data_['datasize']*float(n)
+      jobtobedone[ftag] = datasize*float(n)
     data_.update( {'jobtobedone': jobtobedone} )
     #
-    modelproct = proc_time_model(datasize = float(data_['datasize']),
+    proc_cap = float(data_['proc'])
+    del data_['proc']
+    modelproct = proc_time_model(datasize = datasize,
                                  func_n_dict = data_['itfunc_dict'],
-                                 proc_cap = float(data_['proc']) )
+                                 proc_cap = proc_cap )
     #
     proto = int(data_['proto']) #6:TCP, 17:UDP
     del data_['proto']
@@ -633,7 +653,7 @@ class Transit(object):
     self.sflagq_frompipes_dict[stpdst] = sflagq_frompipes
     self.stokenq_dict[stpdst] = stokenq
     #
-    nchunks = float(data_['datasize'])*(1024**2)/CHUNKSIZE
+    nchunks = datasize*(1024**2)/CHUNKSIZE
     intereq_time = 0 #(modelproct/nchunks)*0.95
     #self.logger.warning('welcome_s:: nchunks=%s, intereq_time=%s, nchunks*intereq_time=%s', nchunks, intereq_time, nchunks*intereq_time)
     threading.Thread(target = self.manage_stokenq,
@@ -652,7 +672,7 @@ class Transit(object):
                                  'to_addr': to_addr,
                                  's_server_thread': s_server_thread,
                                  'modelproct': modelproct,
-                                 'proc': float(data_['proc']),
+                                 'proc': proc_cap,
                                  'intereq_time': intereq_time }
       s_server_thread.start()
       self.N += 1
@@ -684,7 +704,7 @@ class Transit(object):
   def test(self):
     self.logger.debug('test')
     
-    nimg = 1000
+    nimg = 100000
     imgsize = CHUNKSIZE/10
     datasize = float(imgsize*nimg)/(1024**2)
     #
@@ -696,8 +716,17 @@ class Transit(object):
             'proc': 1.0,
             's_tp': 6000 }
     self.welcome_s(data.copy())
-    #time.sleep(5)
-    self.rewelcome_s(data.copy())
+    '''
+    data_ = {'proto': 6,
+            'data_to_ip': u'10.0.0.1',
+            'datasize': datasize,
+            'itfunc_dict': {'fft': 1.0, 'upsampleplot':0.1},
+            'uptoitfunc_dict': {},
+            'proc': 1.0,
+            's_tp': 6000 }
+    time.sleep(10)
+    self.rewelcome_s(data_.copy())
+    '''
     '''
     data = {'proto': 6,
             'data_to_ip': u'10.0.0.1',
