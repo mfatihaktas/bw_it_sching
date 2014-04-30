@@ -112,6 +112,12 @@ class Scheduler(object):
                         user_mac = userinfo['user_mac'],
                         gw_dpid = userinfo['gw_dpid'],
                         gw_conn_port = userinfo['gw_conn_port'] )
+      
+      
+      self.dtsuser_intf.reg_user(user_ip = userinfo['user_ip'],
+                                 userinfo_dict = userinfo,
+                                 _recv_callback = self._handle_recvfromuser,
+                                 _send_callback = self._handle_sendtouser )
     print '***'
     
   def recv_from_user(self, userinfo_dict, msg):
@@ -189,12 +195,12 @@ class Scheduler(object):
                            gw_dpid = userinfo_dict['gw_dpid'],
                            gw_conn_port = userinfo_dict['gw_conn_port'] ):
         self.dtsuser_intf.send_to_user(user_ip = user_ip,
-                                       msg = {'type':'join_reply',
-                                              'data':'welcome' } )
+                                          msg = {'type':'join_reply',
+                                                 'data':'welcome' } )
       else:
         self.dtsuser_intf.send_to_user(user_ip = user_ip,
-                                       msg = {'type':'join_reply',
-                                              'data':'sorry' } )
+                                          msg = {'type':'join_reply',
+                                                 'data':'sorry' } )
     elif type_ == 'sching_req':
       sch_req_id = self.welcome_session(p_c_ip_list = [user_ip, data_['c_ip']],
                                         req_dict = data_['req_dict'],
@@ -204,8 +210,8 @@ class Scheduler(object):
         self.do_sching()
       else:
         self.dtsuser_intf.send_to_user(user_ip = user_ip,
-                                       msg = {'type':'sching_reply',
-                                              'data':'sorry' } )
+                                          msg = {'type':'sching_reply',
+                                                 'data':'sorry' } )
     elif type_ == 'session_done':
       self.bye_session(sch_req_id = int(data_['sch_req_id']) )
   ####################  scher_state_management  methods  #######################

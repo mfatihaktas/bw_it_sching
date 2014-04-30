@@ -109,12 +109,13 @@ class Consumer(object):
   def test(self):
     #self.send_join_req()
     #self.start_recvers()
-    
+    '''
     data_ = {'sch_req_id': 0,
              'parism_level': 1,
              'p_tp_dst': [6000] }
     self.welcome_s(data_)
-  
+    '''
+    
 def main(argv):
   intf = cl_port_list_ = dtst_port = dtsl_ip = dtsl_port = proto = rx_type = logto = None
   cl_port_list = []
@@ -126,7 +127,7 @@ def main(argv):
           '--dtsl_port=<> --dtsl_ip=<> --proto=<> --rx_type=<> --logto=<>'
     sys.exit(2)
 
-  #Initializing global variables with comman line options
+  #Initializing global variables with command line options
   for opt, arg in opts:
     if opt == '--intf':
       intf = arg

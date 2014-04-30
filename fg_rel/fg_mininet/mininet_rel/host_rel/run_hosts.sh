@@ -31,13 +31,11 @@ elif [ $1  = 'c' ]; then
   #python consumer.py --intf=c-eth0 --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
   #                   --proto=tcp --rx_type=dummy --logto=console
 elif [ $1  = 'c1' ]; then
-  #python receiver.py --lintf=c1-eth0 --lport=6000 --proto=tcp --rx_type=file --file_url=c1_rx.dat --logto=console
   python consumer.py --intf=c1-eth0 --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
-                     --proto=tcp --rx_type=file --logto=console
+                     --proto=tcp --rx_type=kstardata --logto=console
 elif [ $1  = 'c2' ]; then
-  #python receiver.py --lintf=c2-eth0 --lport=6000 --proto=tcp --rx_type=file --file_url=c1_rx.dat --logto=console
   python consumer.py --intf=c2-eth0 --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
-                     --proto=tcp --rx_type=file --logto=console
+                     --proto=tcp --rx_type=kstardata --logto=console
 elif [ $1  = 't' ]; then
   python transit.py --nodename=mfa --intf=lo --dtsl_ip=127.0.0.1 --dtsl_port=7002 --dtst_port=7001 --logto=file --trans_type=file
 elif [ $1  = 't11' ]; then

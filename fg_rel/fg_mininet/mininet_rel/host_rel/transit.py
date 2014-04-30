@@ -435,12 +435,11 @@ class ItServHandler(threading.Thread):
             data = data_
             uptofunc_list.append(func)
         #
-        '''
         datasize = getsizeof(data)
         self.forward_data(data = data,
                           uptofunc_list = uptofunc_list,
                           datasize = datasize )
-        '''
+        
         self.served_size_B += datasize_t
         #self.test_file.write(data)
         procdur = time.time() - procstart_time
