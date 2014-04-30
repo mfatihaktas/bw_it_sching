@@ -36,6 +36,8 @@ class Consumer(object):
                                         dts_addr = (self.dtsl_ip,self.dtsl_port),
                                         _recv_callback = self._handle_recvfromdts )
     #
+    self.sinfo_dict = {}
+    #
     self.recver_thread_list = []
     self.queue_torecvers = Queue.Queue(0)
   
@@ -51,10 +53,30 @@ class Consumer(object):
         self.state = 1
         logging.info('_handle_recvfromdts:: joined to dts :)')
         #immediately start s_recving_servers
-        self.start_recvers()
+        #self.start_recvers()
       elif data_ == 'sorry':
         logging.info('_handle_recvfromdts:: couldnot join to dts :(')
-  
+    elif type_ == 'sching_reply':
+      
+    
+  def welcome_s(self, data_):
+    stpdst = int(data['s_tp'])
+    laddr = (self.cl_ip, stpdst)
+    qtorecver = Queue.Queue(0)
+    
+    recver = Receiver(in_queue = qtorecver,
+                      laddr = laddr,
+                      proto = self.proto,
+                      rx_type = 'kstardata',
+                      file_url = 'kstardata_%s.dat' % stpdst,
+                      logto = self.logto )
+    recver.start()
+    
+    self.sinfo_dict[stpdst] = {'laddr': laddr,
+                               'datasize': int(data_['datasize']),
+                               'qtorecver': qtorecver }
+    
+    
   def start_recvers(self):
     if self.state != 1:
       logging.error('start_recvers:: unexpected cur_state=%s', self.state)

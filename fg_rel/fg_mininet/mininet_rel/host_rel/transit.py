@@ -229,8 +229,8 @@ class SessionClientHandler(threading.Thread):
       return 1
     #
     else: #overflow
-      overflow = self.chunk[chunksize-overflow_size:]
       chunksize_ = chunksize-overflow_size
+      overflow = self.chunk[chunksize_:]
       chunk_to_push = self.chunk[:chunksize_]
       self.procq.put(chunk_to_push)
       self.logger.debug('push_to_pipe:: pushed; chunksize_=%s, overflow_size=%s', chunksize_, overflow_size)
@@ -433,10 +433,14 @@ class ItServHandler(threading.Thread):
             self.jobremaining[func] -= datasize
             datasize = datasize_
             data = data_
+            uptofunc_list.append(func)
         #
-        #datasize = getsizeof(data)
-        #self.forward_data(data, datasize)
-        
+        '''
+        datasize = getsizeof(data)
+        self.forward_data(data = data,
+                          uptofunc_list = uptofunc_list,
+                          datasize = datasize )
+        '''
         self.served_size_B += datasize_t
         #self.test_file.write(data)
         procdur = time.time() - procstart_time
@@ -502,20 +506,21 @@ class ItServHandler(threading.Thread):
     
     return (chunk, chunksize-CHUNKHSIZE, uptofunc_list)
   
-  def forward_data(self, data, datasize):
-    """ TODO: returns:
-    1: success
-    0: failed
-    """
+  def forward_data(self, data, uptofunc_list, datasize):
     try:
       if not self.forwarding_started:
         self.logger.info('forward_data:: itserv_sock is trying to connect to addr=%s', self.to_addr)
         self.sock.connect(self.to_addr)
         self.logger.info('forward_data:: itserv_sock is connected to addr=%s', self.to_addr)
         self.forwarding_started = True
+      #add uptofunc_list as header
+      header = json.dumps(uptofunc_list)
+      padding_length = CHUNKHSIZE - len(header)
+      header += ' '*padding_length
+      data = header+data
       #
       self.sock.sendall(data)
-      self.logger.info('forward_data:: datasize=%s forwarded to_addr=%s', datasize, self.to_addr)
+      self.logger.info('forward_data:: datasize=%s forwarded to_addr=%s', datasize+CHUNKHSIZE, self.to_addr)
     except socket.error, e:
       if isinstance(e.args, tuple):
         self.logger.error('errno is %d', e[0])
@@ -718,22 +723,22 @@ class Transit(object):
     data = {'proto': 6,
             'data_to_ip': u'10.0.0.1',
             'datasize': datasize,
-            'itfunc_dict': {'fft': 1.0},
+            'itfunc_dict': {'fft': 1.0, 'upsampleplot':0.1},
             'uptoitfunc_dict': {},
             'proc': 1.0,
             's_tp': 6000 }
     self.welcome_s(data.copy())
-    '''
+    
     data_ = {'proto': 6,
             'data_to_ip': u'10.0.0.1',
             'datasize': datasize,
-            'itfunc_dict': {'fft': 1.0, 'upsampleplot':0.1},
+            'itfunc_dict': {'fft': 0.5, 'upsampleplot':0.05},
             'uptoitfunc_dict': {},
             'proc': 1.0,
             's_tp': 6000 }
     time.sleep(10)
     self.rewelcome_s(data_.copy())
-    '''
+    
     '''
     data = {'proto': 6,
             'data_to_ip': u'10.0.0.1',

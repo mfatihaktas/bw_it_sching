@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys,socket,SocketServer,getopt,threading,commands,time,sys,logging
+import sys,socket,SocketServer,getopt,threading,commands,time,sys,logging,json
 #import pprint,json
 
 if sys.version_info[1] < 7:
@@ -10,6 +10,11 @@ else:
 #
 def getsizeof(data):
   return sys.getsizeof(data) - PYTHON_STR_HEADER_LEN
+
+
+KSTAR_CHUNKHSIZE = 50 #B
+KSTAR_CHUNKSIZE = 24*8*9*10 #B
+KSTAR_CHUNKSTRSIZE = KSTAR_CHUNKSIZE+KSTAR_CHUNKHSIZE
 
 RXCHUNK_SIZE = 1024 #4096
 
@@ -85,10 +90,10 @@ class Receiver(threading.Thread):
     #
     self.laddr = laddr
     self.file_url = file_url
-    #
     self.rx_type = rx_type
     #
-    self.stoprequest = threading.Event()
+    self.startedtorx_time = None
+    self.chunkstr = ''
   
   def run(self):
     if self.rx_type == 'file':
@@ -105,21 +110,109 @@ class Receiver(threading.Thread):
       server_thread.daemon = True
       server_thread.start()
       logging.info('dummyrx_threaded%sserver started on laddr=%s', self.proto, self.laddr)
+    elif self.rx_type == 'kstardata':
+      t = threading.Thread(target=self.rx_kstardata)
+      t.start()
     #
     popped= self.in_queue.get(True, None)
     if popped == 'stop':
       self.shutdown()
     else:
       logging.error('run:: unexpected is popped from in_queue; popped=%s', popped)
-      
-  def shutdown(self):
-    if self.rx_type == 'dummy':
-      self.server.shutdown()
-    elif self.rx_type == 'file':
-      self.rx_sock.close()
     #
-    logging.debug('shutdown:: %srecver_%s with laddr=%s closed.', self.rx_type, self.proto, self.laddr)
   
+  #######################################
+  def rx_kstardata(self):
+    if not self.proto == 'tcp':
+      logging.error('rx_kstardata:: Unexpected proto=%s. Aborting...', self.proto)
+      return
+    #
+    self.f_obj = open(self.file_url, 'w')
+    
+    self.rx_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self.rx_sock.bind(self.laddr)
+    self.rx_sock.listen(1)
+    logging.info('rx_kstardata:: listening on laddr=%s', self.laddr)
+    sc, addr = self.rx_sock.accept()
+    logging.info('rx_kstardata:: got conn from addr=%s', addr[0])
+    #
+    while 1:
+      data = sc.recv(KSTAR_CHUNKSTRSIZE)
+      datasize = len(data)
+      logging.info('init_rx:: lport=%s; rxed datasize=%sB', self.laddr[1], datasize)
+      #
+      if self.startedtorx_time == None:
+        self.startedtorx_time = time.time()
+      #
+      return_ = self.push_to_kstarfile(data)
+      if return_ == 0: #failed
+        logging.error('rx_kstardata:: push_to_kstarfile for datasize=%s failed. Aborting...', datasize)
+        sys.exit(0)
+      elif return_ == -1: #EOF
+        logging.info('rx_kstardata:: EOF is rxed...')
+        break
+      elif return_ == -2: #datasize=0
+        logging.info('rx_kstardata:: datasize=0 is rxed...')
+        break
+      elif return_ == 1: #success
+        pass
+      #
+    #
+    sc.close()
+    self.f_obj.close()
+    logging.info('rx_kstardata:: finished rxing; dur=%s', time.time()-self.startedtorx_time)
+    
+  def push_to_kstarfile(self, data):
+    """ returns 1:successful, 0:failed, -1:EOF, -2:datasize=0 """
+    self.chunkstr += data
+    chunksize = len(self.chunkstr)
+    #
+    if chunksize == 0:
+      #this may happen in mininet and cause threads live forever
+      return -2
+    elif chunksize == 3:
+      if self.chunkstr == 'EOF':
+        return -1
+    #
+    overflow_size = chunksize - KSTAR_CHUNKSTRSIZE
+    if overflow_size == 0:
+      (uptofunc_list, chunk) = self.get_uptofunc_list__chunk(self.chunkstr)
+      self.f_obj.write(chunk)
+      logging.debug('push_to_kstarfile:: pushed; chunksize=%s, uptofunc_list=%s', chunksize, uptofunc_list)
+      self.chunk = ''
+      return 1
+    elif overflow_size < 0:
+      return 1
+    #
+    else: #overflow
+      chunksize_ = chunksize-overflow_size
+      overflow = self.chunkstr[chunksize_:]
+      chunkstr_to_push = self.chunkstr[:chunksize_]
+      
+      (uptofunc_list, chunk) = self.get_uptofunc_list__chunk(chunkstr_to_push)
+      self.f_obj.write(chunk)
+      logging.debug('push_to_kstarfile:: pushed; chunksize_=%s, overflow_size=%s, uptofunc_list=%s', chunksize_, overflow_size, uptofunc_list)
+      #
+      if overflow_size == 3 and overflow == 'EOF':
+        return -1
+      #
+      self.chunkstr = overflow
+      return 1
+    #
+    
+  def get_uptofunc_list__chunk(self, chunkstr):
+    uptofunc_list = None
+    header = chunkstr[:KSTAR_CHUNKHSIZE]
+    try:
+      uptofunc_list = json.loads(header)
+    except ValueError:
+      pass
+    #
+    chunk = chunkstr[KSTAR_CHUNKHSIZE:]
+    
+    return (uptofunc_list, chunk)
+  
+  #######################################
   def rx_file(self):
     self.f_obj = open(self.file_url, 'w')
     logging.info('filerx_%s_sock is listening on laddr=%s', self.proto, self.laddr)
@@ -129,24 +222,6 @@ class Receiver(threading.Thread):
       self.rx_sock.listen(1)
       sc, addr = self.rx_sock.accept()
       logging.info('%s_file_recver gets conn from addr=%s', self.proto, addr[0])
-      #
-      '''
-      rxed_tlen = 0
-      while True:
-        l = sc.recv(RXCHUNK_SIZE)
-        len_l = len(l)
-        l_ub = len_l
-        if len_l == 3 and l == 'EOF':
-          logging.info('tcp_EOF is rxed.')
-          break
-        elif len_l == 0: #conn is closed by sender
-          logging.info('datasize=0 is rxed.')
-          l_ub -= 3
-          break
-        rxed_tlen += len_l
-        logging.info('rxed size=%sB, rxed_tlen=%sB', len(l), rxed_tlen)
-        self.f_obj.write(l[:])
-      '''
       #
       rx_ended = False
       l = sc.recv(RXCHUNK_SIZE)
@@ -190,6 +265,14 @@ class Receiver(threading.Thread):
     self.rx_sock.close()
     logging.info('rx_file is complete...')
   
+  def shutdown(self):
+    if self.rx_type == 'dummy':
+      self.server.shutdown()
+    elif self.rx_type == 'file' or self.rx_type == 'kstardata':
+      self.rx_sock.close()
+    #
+    logging.debug('shutdown:: %srecver_%s with laddr=%s closed.', self.rx_type, self.proto, self.laddr)
+  
 def get_laddr(lintf):
   # search and bind to eth0 ip address
   intf_list = commands.getoutput("ifconfig -a | sed 's/[ \t].*//;/^$/d'").split('\n')
@@ -222,7 +305,7 @@ def main(argv):
         print 'unknown proto=%s' % arg
         sys.exit(2)
     elif opt == '--rx_type':
-      if arg == 'file' or arg == 'dummy':
+      if arg == 'file' or arg == 'dummy' or arg == 'kstardata':
         rx_type = arg
       else:
         print 'unknown rx_type=%s' % arg
@@ -243,7 +326,7 @@ def main(argv):
                 logto = logto )
   dr.start()
   #
-  raw_input('Enter')
+  raw_input('Enter\n')
   queue_torecver.put('stop')
   
 if __name__ == "__main__":

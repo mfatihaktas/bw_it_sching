@@ -55,34 +55,11 @@ elif [ $1  = 's6000' ]; then
   python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=0 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=$NIMG --kstardata_url=/home/ubuntu/large_ecei_data.bp
 elif [ $1  = 's6001' ]; then
   python sender.py --dst_ip=127.0.0.1 --dst_lport=6001 --datasize=0 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=$NIMG --kstardata_url=/home/ubuntu/large_ecei_data.bp
-elif [ $1  = 's1' ]; then
-  python sender.py --dst_ip=127.0.0.1 --dst_lport=6001 --datasize=20 --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console
 elif [ $1  = 'r' ]; then
   #python receiver.py --lintf=lo --lport=6000 --proto=tcp --rx_type=dummy --file_url=rx.dat --logto=console
-  python receiver.py --lintf=lo --lport=6000 --proto=tcp --rx_type=file --file_url=rx.dat --logto=console
-elif [ $1  = 'sp' ]; then
-  python sender.py --dst_ip=10.0.0.111 --dst_lport=6000 --datasize=100 --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console
-elif [ $1  = 'ds' ]; then
-  python sender.py --dst_ip=10.0.0.1 --dst_lport=7001 --datasize=0 --proto=udp --tx_type=file --file_url=ltx.dat --logto=console
-elif [ $1  = 'rd' ]; then
-  #python receiver.py --lintf=d-eth0 --lport=6000 --proto=tcp --rx_type=dummy --file_url=rx.dat --logto=console
-  python receiver.py --lintf=d-eth0 --lport=6000 --proto=tcp --rx_type=file --file_url=rx.dat --logto=console
-elif [ $1  = 'rc' ]; then
-  python receiver.py --lintf=c-eth0 --lport=6000 --proto=tcp --rx_type=file --file_url=rx.dat --logto=console
+  python receiver.py --lintf=lo --lport=6000 --proto=tcp --rx_type=kstardata --file_url=rx.dat --logto=console
 elif [ $1  = 'glf' ]; then
 	dd if=/dev/urandom of=ltx.dat bs=1728 count=10000 #outputs bs x count Bs 
-elif [ $1  = 'iperf-ts1' ]; then
-  iperf -s -p 6000
-elif [ $1  = 'iperf-tc1' ]; then
-  iperf -c 10.0.0.111 -p 6000 -t 10
-elif [ $1  = 'iperf-ts2' ]; then
-  iperf -s -p 6001
-elif [ $1  = 'iperf-tc2' ]; then
-  iperf -c 10.0.0.111 -p 6001 -t 10
-elif [ $1  = 'iperf-us' ]; then
-  iperf -u -s -B 10.0.0.111 -p 6000
-elif [ $1  = 'iperf-uc' ]; then
-  iperf -u -c 10.0.0.111 -p 6000 -n 100000
 elif [ $1  = 'pexp' ]; then
   #python producer.py --intf=p-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.0.1 \
   #                   --proto=tcp --tx_type=dummy --file_url=ltx.dat --logto=file \
