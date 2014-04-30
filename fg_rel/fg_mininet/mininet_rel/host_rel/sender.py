@@ -2,6 +2,7 @@
 import sys,socket,json,getopt,struct,time,errno,logging,threading
 #import numpy as np
 
+CHUNKHSIZE = 50
 TXCHUNK_SIZE = 24*8*9*10 #1024 #4096
 IMGSIZE = 24*8*9
 
@@ -98,6 +99,13 @@ class Sender(threading.Thread):
     while (l and len_ < ds_tobesent_B):
       c_len_ = len(l)
       len_ += c_len_
+      #add uptofunc_list padding
+      uptofunc_list = []
+      header = json.dumps(uptofunc_list)
+      padding_length = CHUNKHSIZE - len(header)
+      header += ' '*padding_length
+      l = header+l
+      #
       try:
         self.sock.sendall(l)
       except socket.error, e:

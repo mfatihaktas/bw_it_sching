@@ -26,7 +26,7 @@ def getsizeof(data):
 
 CHUNKHSIZE = 50 #B
 CHUNKSIZE = 24*8*9*10 #B
-NUMCHUNKS_AFILE = 1000
+CHUNKSTRSIZE = CHUNKSIZE+CHUNKHSIZE
 
 class PipeServer(threading.Thread):
   def __init__(self, server_addr, itwork_dict, to_addr, sflagq_in, sflagq_out, stokenq, intereq_time):
@@ -179,13 +179,12 @@ class SessionClientHandler(threading.Thread):
   
   def init_rx(self):
     while 1:
-      data = self.sclient_sock.recv(CHUNKSIZE)
+      data = self.sclient_sock.recv(CHUNKSTRSIZE)
       datasize = getsizeof(data)
+      self.logger.info('init_rx:: stpdst=%s; rxed datasize=%sB', self.stpdst, datasize)
       #
       if self.startedtorx_time == None:
         self.startedtorx_time = time.time()
-      #
-      self.logger.info('init_rx:: stpdst=%s; rxed datasize=%sB', self.stpdst, datasize)
       #
       return_ = self.push_to_pipe(data)
       if return_ == 0: #failed
@@ -220,7 +219,7 @@ class SessionClientHandler(threading.Thread):
         self.procq.put('EOF')
         return -1
     #
-    overflow_size = chunksize - CHUNKSIZE
+    overflow_size = chunksize - CHUNKSTRSIZE
     if overflow_size == 0:
       self.procq.put(self.chunk)
       self.logger.debug('push_to_pipe:: pushed; chunksize=%s', chunksize)
@@ -354,6 +353,12 @@ class ItServHandler(threading.Thread):
     return reorder(itfunc_list)
   
   def canfunc_berun(self, func, uptofunc_list):
+    if len(uptofunc_list) == 0:
+      if self.idealfunc_order.index(func) == 0:
+        return True
+      else:
+        return False
+      #
     try:
       if self.idealfunc_order.index(func) <= self.idealfunc_order.index(uptofunc_list[-1]):
         return False
@@ -493,7 +498,9 @@ class ItServHandler(threading.Thread):
     except ValueError:
       pass
     #
-    return (chunk, chunksize, uptofunc_list)
+    chunk = chunk[CHUNKHSIZE:]
+    
+    return (chunk, chunksize-CHUNKHSIZE, uptofunc_list)
   
   def forward_data(self, data, datasize):
     """ TODO: returns:
@@ -653,7 +660,7 @@ class Transit(object):
     self.sflagq_frompipes_dict[stpdst] = sflagq_frompipes
     self.stokenq_dict[stpdst] = stokenq
     #
-    nchunks = datasize*(1024**2)/CHUNKSIZE
+    nchunks = datasize*(1024**2)/CHUNKSTRSIZE
     intereq_time = 0 #(modelproct/nchunks)*0.95
     #self.logger.warning('welcome_s:: nchunks=%s, intereq_time=%s, nchunks*intereq_time=%s', nchunks, intereq_time, nchunks*intereq_time)
     threading.Thread(target = self.manage_stokenq,
