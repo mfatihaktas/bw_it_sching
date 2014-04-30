@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys,json,logging,getopt,commands,Queue
+import sys,json,logging,getopt,commands,Queue,pprint
 from errors import CommandLineOptionError
 from userdts_comm_intf import UserDTSCommIntf
 from receiver import Receiver
@@ -28,9 +28,6 @@ class Consumer(object):
     self.rx_type = rx_type
     self.logto = logto
     #for control state
-    '''0:start, 1:joined to dts, 2:ready to recv s_data'''
-    self.state = 0
-    #
     self.userdts_intf = UserDTSCommIntf(sctag = 'c-dts',
                                         user_addr = (self.cl_ip,self.dtst_port),
                                         dts_addr = (self.dtsl_ip,self.dtsl_port),
@@ -45,43 +42,58 @@ class Consumer(object):
     #msg = [type_, data_]
     [type_, data_] = msg
     if type_ == 'join_reply':
-      if self.state != 0:
-        logging.error('_handle_recvfromdts:: join_reply rxed but unexpected cur_state=%s', self.state)
-        return
-      #
       if data_ == 'welcome':
-        self.state = 1
         logging.info('_handle_recvfromdts:: joined to dts :)')
         #immediately start s_recving_servers
         #self.start_recvers()
       elif data_ == 'sorry':
         logging.info('_handle_recvfromdts:: couldnot join to dts :(')
     elif type_ == 'sching_reply':
+      self.welcome_s(data_)
       
     
   def welcome_s(self, data_):
-    stpdst = int(data['s_tp'])
-    laddr = (self.cl_ip, stpdst)
-    qtorecver = Queue.Queue(0)
-    
-    recver = Receiver(in_queue = qtorecver,
-                      laddr = laddr,
-                      proto = self.proto,
-                      rx_type = 'kstardata',
-                      file_url = 'kstardata_%s.dat' % stpdst,
-                      logto = self.logto )
-    recver.start()
-    
-    self.sinfo_dict[stpdst] = {'laddr': laddr,
-                               'datasize': int(data_['datasize']),
-                               'qtorecver': qtorecver }
-    
-    
-  def start_recvers(self):
-    if self.state != 1:
-      logging.error('start_recvers:: unexpected cur_state=%s', self.state)
-      return
+    sch_req_id = data_['sch_req_id']
+    pl = int(data_['parism_level'])
+    p_tp_dst = data_['p_tp_dst']
+    qtorecver_list = [Queue.Queue(0) for i in range(pl)]
+    for i,stpdst in enumerate(p_tp_dst):
+      laddr = (self.cl_ip, int(stpdst))
+      recver = Receiver(in_queue = qtorecver_list[i],
+                        laddr = laddr,
+                        proto = self.proto,
+                        rx_type = 'kstardata',
+                        file_url = 'kstardata_%s.dat' % stpdst,
+                        logto = self.logto )
+      recver.start()
     #
+    self.sinfo_dict[sch_req_id] = {'parism_level': pl,
+                                   'p_tp_dst': p_tp_dst,
+                                   'qtorecver_list': qtorecver_list }
+    logging.info('welcome_s:: welcome sinfo=\n%s', pprint.pformat(self.sinfo_dict[sch_req_id]))
+    
+  def send_join_req(self):
+    msg = json.dumps({'type':'join_req',
+                      'data':''})
+    self.userdts_intf.send_to_client('c-dts',msg)
+  
+  def close(self):
+    self.userdts_intf.close()
+    #
+    for sch_req_id in self.sinfo_dict:
+      for qtorecver in self.sinfo_dict[sch_req_id]['qtorecver_list']:
+        qtorecver.put('STOP')
+    #
+    logging.info('close:: all session recver threads joined.')
+    
+    for i in range(len(self.recver_thread_list)):
+      self.queue_torecvers.put('STOP')
+    #
+    logging.info('close:: all dummy recver threads joined.')
+    
+    logging.info('consumer:: closed.')
+  
+  def start_recvers(self):
     for port in self.cl_port_list:
       addr = (self.cl_ip, port)
       recver = Receiver(in_queue = self.queue_torecvers,
@@ -93,31 +105,15 @@ class Consumer(object):
       recver.start()
       self.recver_thread_list.append(recver)
     #
-    self.state = 2
-  
-  def send_join_req(self):
-    if self.state != 0:
-      logging.error('send_join_req:: unexpected cur_state=%s', self.state)
-      return
-    #
-    msg = json.dumps({'type':'join_req',
-                      'data':''})
-    self.userdts_intf.send_to_client('c-dts',msg)
-  
-  def close(self):
-    self.userdts_intf.close()
-    #
-    for i in range(len(self.recver_thread_list)):
-      self.queue_torecvers.put('stop')
-    #
-    logging.info('close:: all recver threads joined.')
-    logging.info('consumer:: closed.')
   
   def test(self):
     #self.send_join_req()
-    self.state = 1
-    self.start_recvers()
+    #self.start_recvers()
     
+    data_ = {'sch_req_id': 0,
+             'parism_level': 1,
+             'p_tp_dst': [6000] }
+    self.welcome_s(data_)
   
 def main(argv):
   intf = cl_port_list_ = dtst_port = dtsl_ip = dtsl_port = proto = rx_type = logto = None
@@ -149,7 +145,7 @@ def main(argv):
         print 'unknown proto=%s' % arg
         sys.exit(2)
     elif opt == '--rx_type':
-      if arg == 'file' or arg == 'dummy':
+      if arg == 'file' or arg == 'dummy' or arg == 'kstardata':
         rx_type = arg
       else:
         print 'unknown rx_type=%s' % arg

@@ -94,6 +94,9 @@ class Receiver(threading.Thread):
     #
     self.startedtorx_time = None
     self.chunkstr = ''
+    self.rxeddatasize = 0
+    
+    self.rxedsizewithfunc_dict = {}
   
   def run(self):
     if self.rx_type == 'file':
@@ -115,7 +118,7 @@ class Receiver(threading.Thread):
       t.start()
     #
     popped= self.in_queue.get(True, None)
-    if popped == 'stop':
+    if popped == 'STOP':
       self.shutdown()
     else:
       logging.error('run:: unexpected is popped from in_queue; popped=%s', popped)
@@ -130,6 +133,7 @@ class Receiver(threading.Thread):
     self.f_obj = open(self.file_url, 'w')
     
     self.rx_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self.rx_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     self.rx_sock.bind(self.laddr)
     self.rx_sock.listen(1)
     logging.info('rx_kstardata:: listening on laddr=%s', self.laddr)
@@ -139,7 +143,7 @@ class Receiver(threading.Thread):
     while 1:
       data = sc.recv(KSTAR_CHUNKSTRSIZE)
       datasize = len(data)
-      logging.info('init_rx:: lport=%s; rxed datasize=%sB', self.laddr[1], datasize)
+      #logging.info('init_rx:: lport=%s; rxed datasize=%sB', self.laddr[1], datasize)
       #
       if self.startedtorx_time == None:
         self.startedtorx_time = time.time()
@@ -160,38 +164,47 @@ class Receiver(threading.Thread):
     #
     sc.close()
     self.f_obj.close()
-    logging.info('rx_kstardata:: finished rxing; dur=%s', time.time()-self.startedtorx_time)
+    logging.info('rx_kstardata:: finished rxing; rxeddatasize=%s, dur=%s', self.rxeddatasize, time.time()-self.startedtorx_time)
+    logging.info('rx_kstardata:: rxedsizewithfunc_dict=%s', self.rxedsizewithfunc_dict)
     
   def push_to_kstarfile(self, data):
     """ returns 1:successful, 0:failed, -1:EOF, -2:datasize=0 """
     self.chunkstr += data
-    chunksize = len(self.chunkstr)
+    chunkstrsize = len(self.chunkstr)
     #
-    if chunksize == 0:
+    if chunkstrsize == 0:
       #this may happen in mininet and cause threads live forever
       return -2
-    elif chunksize == 3:
+    elif chunkstrsize == 3:
       if self.chunkstr == 'EOF':
         return -1
     #
-    overflow_size = chunksize - KSTAR_CHUNKSTRSIZE
+    overflow_size = chunkstrsize - KSTAR_CHUNKSTRSIZE
     if overflow_size == 0:
-      (uptofunc_list, chunk) = self.get_uptofunc_list__chunk(self.chunkstr)
+      (uptofunc_list, chunk, chunksize) = self.get_uptofunc_list__chunk(self.chunkstr)
+      self.update_rxedsizewithfunc_dict(uptofunc_list = uptofunc_list,
+                                        chunksize = chunksize )
       self.f_obj.write(chunk)
-      logging.debug('push_to_kstarfile:: pushed; chunksize=%s, uptofunc_list=%s', chunksize, uptofunc_list)
-      self.chunk = ''
+      self.rxeddatasize += chunksize
+      
+      #logging.debug('push_to_kstarfile:: pushed; chunksize=%s, uptofunc_list=%s', chunksize, uptofunc_list)
+      self.chunkstr = ''
       return 1
     elif overflow_size < 0:
       return 1
     #
     else: #overflow
-      chunksize_ = chunksize-overflow_size
-      overflow = self.chunkstr[chunksize_:]
-      chunkstr_to_push = self.chunkstr[:chunksize_]
+      chunkstrsize_ = chunkstrsize-overflow_size
+      overflow = self.chunkstr[chunkstrsize_:]
+      chunkstr_to_push = self.chunkstr[:chunkstrsize_]
       
-      (uptofunc_list, chunk) = self.get_uptofunc_list__chunk(chunkstr_to_push)
+      (uptofunc_list, chunk, chunksize) = self.get_uptofunc_list__chunk(chunkstr_to_push)
+      self.update_rxedsizewithfunc_dict(uptofunc_list = uptofunc_list,
+                                        chunksize = chunksize )
       self.f_obj.write(chunk)
-      logging.debug('push_to_kstarfile:: pushed; chunksize_=%s, overflow_size=%s, uptofunc_list=%s', chunksize_, overflow_size, uptofunc_list)
+      self.rxeddatasize += chunksize
+      
+      #logging.debug('push_to_kstarfile:: pushed; chunksize=%s, overflow_size=%s, uptofunc_list=%s', chunksize, overflow_size, uptofunc_list)
       #
       if overflow_size == 3 and overflow == 'EOF':
         return -1
@@ -209,8 +222,18 @@ class Receiver(threading.Thread):
       pass
     #
     chunk = chunkstr[KSTAR_CHUNKHSIZE:]
+    chunksize = len(chunk)
     
-    return (uptofunc_list, chunk)
+    return (uptofunc_list, chunk, chunksize)
+  
+  def update_rxedsizewithfunc_dict(self, uptofunc_list, chunksize):
+    for func in uptofunc_list:
+      if func in self.rxedsizewithfunc_dict:
+        self.rxedsizewithfunc_dict[func] += chunksize
+      else:
+        self.rxedsizewithfunc_dict[func] = chunksize
+      #
+    #
   
   #######################################
   def rx_file(self):
@@ -327,7 +350,7 @@ def main(argv):
   dr.start()
   #
   raw_input('Enter\n')
-  queue_torecver.put('stop')
+  queue_torecver.put('STOP')
   
 if __name__ == "__main__":
   main(sys.argv[1:])

@@ -26,10 +26,10 @@ elif [ $1  = 'p2' ]; then
                      --app_pref_dict='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}' \
                      --htbdir='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
 elif [ $1  = 'c' ]; then
-  #python consumer.py --intf=lo --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
-  #                   --proto=udp --rx_type=dummy --logto=console
-  python consumer.py --intf=c-eth0 --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
-                     --proto=tcp --rx_type=dummy --logto=console
+  python consumer.py --intf=lo --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
+                     --proto=tcp --rx_type=kstardata --logto=console
+  #python consumer.py --intf=c-eth0 --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
+  #                   --proto=tcp --rx_type=dummy --logto=console
 elif [ $1  = 'c1' ]; then
   #python receiver.py --lintf=c1-eth0 --lport=6000 --proto=tcp --rx_type=file --file_url=c1_rx.dat --logto=console
   python consumer.py --intf=c1-eth0 --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
@@ -57,7 +57,7 @@ elif [ $1  = 's6001' ]; then
   python sender.py --dst_ip=127.0.0.1 --dst_lport=6001 --datasize=0 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=$NIMG --kstardata_url=/home/ubuntu/large_ecei_data.bp
 elif [ $1  = 'r' ]; then
   #python receiver.py --lintf=lo --lport=6000 --proto=tcp --rx_type=dummy --file_url=rx.dat --logto=console
-  python receiver.py --lintf=lo --lport=6000 --proto=tcp --rx_type=kstardata --file_url=rx.dat --logto=console
+  python receiver.py --lintf=lo --lport=6000 --proto=tcp --rx_type=kstardata --file_url=/home/mehmet/Desktop/rx.dat --logto=console
 elif [ $1  = 'glf' ]; then
 	dd if=/dev/urandom of=ltx.dat bs=1728 count=10000 #outputs bs x count Bs 
 elif [ $1  = 'pexp' ]; then

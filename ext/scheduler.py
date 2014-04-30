@@ -151,7 +151,7 @@ class Scheduler(object):
           type_touser = 'sching_reply'
         elif type_ == 'resp_sching_reply':
           type_touser = 'resching_reply'
-        #
+        #to producer
         msg = {'type':type_touser,
                'data':{'sch_req_id': sch_req_id,
                        'parism_level':s_pl,
@@ -159,10 +159,18 @@ class Scheduler(object):
                        'p_tp_dst':s_info['tp_dst_list'][0:s_pl] } }
         self.dtsuser_intf.send_to_user(user_ip = p_ip,
                                        msg = msg )
+        #to consumer
+        if type_ == 'sp_sching_reply': #no need to resend for resching
+          msg = {'type':type_touser,
+                 'data':{'sch_req_id': sch_req_id,
+                         'parism_level':s_pl,
+                         'p_tp_dst':s_info['tp_dst_list'][0:s_pl] } }
+          self.dtsuser_intf.send_to_user(user_ip = c_ip,
+                                         msg = msg )
       else:
         logging.error('_handle_recvfromacter:: Unexpected reply=%s', reply)
         self.dtsuser_intf.send_to_user(user_ip = p_ip,
-                                       msg = {'type':'join_reply',
+                                       msg = {'type':'sching_reply',
                                               'data':'sorry' } )
       #
     #
