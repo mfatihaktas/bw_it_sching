@@ -42,6 +42,8 @@ class Sender(threading.Thread):
     self.numimg = numimg
     self.kstardata_url = kstardata_url
     #
+    self.sendstart_time = 0
+    self.send_dur = 0
   
   def run(self):
     if is_sender_run:
@@ -52,7 +54,7 @@ class Sender(threading.Thread):
       t.start()
     #
     popped= self.in_queue.get(True, None)
-    if popped == 'stop':
+    if popped == 'STOP':
       self.shutdown()
     else:
       logging.error('run:: unexpected is popped from in_queue; popped=%s', popped)
@@ -62,6 +64,7 @@ class Sender(threading.Thread):
       self.sock.close()
     #
     logging.debug('shutdown:: %ssender_%s to dst_addr=%s closed.', self.tx_type, self.proto, self.dst_addr)
+  
   
   def init_send(self):
     if self.tx_type == 'dummy':
@@ -78,7 +81,9 @@ class Sender(threading.Thread):
       self.kstardata_send()
     #
     if self.out_queue != None:
-      self.out_queue.put('done')
+      sendinfo_dict = {'sendstart_time': self.sendstart_time,
+                       'send_dur': self.send_dur }
+      self.out_queue.put(sendinfo_dict)
   
   def kstardata_send(self):
     if self.proto != 'tcp':
@@ -88,8 +93,8 @@ class Sender(threading.Thread):
     self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self.sock.connect(self.dst_addr)
     #
-    time_s = time.time()
-    logging.info('kstardata_send:: started at time=%s', time_s )
+    self.sendstart_time = time.time()
+    logging.info('kstardata_send:: started at time=%s', self.sendstart_time )
     f=open(self.kstardata_url, "r")
     
     ds_tobesent_B = self.numimg*IMGSIZE
@@ -123,8 +128,8 @@ class Sender(threading.Thread):
     self.sock.sendall('EOF')
     logging.info('kstardata_send:: EOF is txed.')
     #
-    tx_dur = time.time() - time_s
-    logging.info('kstardata_send:: sent to %s; size=%sB, dur=%ssec', self.dst_addr,len_,tx_dur)
+    self.send_dur = time.time() - self.sendstart_time
+    logging.info('kstardata_send:: sent to %s; size=%sB, dur=%ssec', self.dst_addr,len_,self.send_dur)
   
   def file_send(self):
     #TODO (??? ):This method needs to be rewritten according to threaded TCPServer approach
@@ -132,7 +137,7 @@ class Sender(threading.Thread):
     self.sock.connect(self.dst_addr)
     #
     logging.info('file_send:: started at time=%s', time.time() )
-    time_s = time.time()
+    self.sendstart_time = time.time()
     f=open(self.file_url, "r")
     #
     len_ = 0
@@ -174,11 +179,11 @@ class Sender(threading.Thread):
       self.sock.sendto('EOF', self.dst_addr)
     logging.info('EOF is txed.')
     #
-    tx_dur = time.time() - time_s
-    logging.info('file_send:: completed sending; size=%sB, dur=%ssec',len_,tx_dur)
+    self.send_dur = time.time() - self.sendstart_time
+    logging.info('file_send:: completed sending; size=%sB, dur=%ssec',len_,self.send_dur)
   
   def dummy_send(self, data, noftimes=1):
-    time_s = time.time()
+    self.sendstart_time = time.time()
     nofBs_sent = 0
     logging.info('dummy_send started at time=%s', time.time() )
     logging.info('noftimes=%s', noftimes)
@@ -207,9 +212,9 @@ class Sender(threading.Thread):
         nofBs_sent += datasize
         logging.info('udp_sent datasize=%sB', sys.getsizeof(data))
     #
-    tx_dur = time.time() - time_s
+    self.send_dur = time.time() - self.sendstart_time
     logging.info('dummy_over_%s is sent, to addr=%s', self.proto, self.dst_addr)
-    logging.info('nofBs_sent=%sB, dur=%ssec', nofBs_sent, tx_dur)
+    logging.info('nofBs_sent=%sB, dur=%ssec', nofBs_sent, self.send_dur)
     logging.info('time=%s', time.time())
   
   def numpy_random(self, n):
@@ -304,7 +309,7 @@ def main(argv):
   ds.start()
   #
   raw_input('Enter\n')
-  queue_tosender.put('stop')
+  queue_tosender.put('STOP')
   
 if __name__ == "__main__":
   main(sys.argv[1:])

@@ -97,7 +97,7 @@ class Scheduler(object):
     self.dtsuser_intf = DTSUserCommIntf()
     #
     #self.exp()
-    self.couplingdone_dict = {}
+    self.couplinginfo_dict = {}
   
   def recv_from_user(self, userinfo_dict, msg):
     user_ip = userinfo_dict['user_ip']
@@ -110,7 +110,7 @@ class Scheduler(object):
                                   msg =  msg )
   
   def get_couplingdoneinfo(self):
-    return self.couplingdone_dict
+    return self.couplinginfo_dict
   
   #########################  _handle_*** methods  #######################
   def _handle_recvfromacter(self, msg):
@@ -195,11 +195,17 @@ class Scheduler(object):
                                           msg = {'type':'sching_reply',
                                                  'data':'sorry' } )
     elif type_ == 'session_done':
-      self.bye_session(sch_req_id = int(data_['sch_req_id']) )
+      sch_req_id = int(data_['sch_req_id'])
+      del data_['sch_req_id']
+      
+      self.couplinginfo_dict[sch_req_id] = {}
+      self.couplinginfo_dict[sch_req_id]['session_done'] = data_
+      self.bye_session(sch_req_id = sch_req_id )
     elif type_ == 'coupling_done':
       sch_req_id = int(data_['sch_req_id'])
       del data_['sch_req_id']
-      self.couplingdone_dict[sch_req_id] = data_
+      
+      self.couplinginfo_dict[sch_req_id]['coupling_done'] = data_
     
   ####################  scher_state_management  methods  #######################
   def print_scher_state(self):

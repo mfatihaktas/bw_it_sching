@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys,json,logging,getopt,commands,Queue,pprint
+import sys,json,logging,getopt,commands,Queue,pprint,threading
 from errors import CommandLineOptionError
 from userdts_comm_intf import UserDTSCommIntf
 from receiver import Receiver
@@ -82,13 +82,15 @@ class Consumer(object):
                          'rxedsize': 0,
                          'coupling_endtime': 0,
                          'rxedsizewithfunc_dict': {} }
+    
+    qfromrecver_list = self.sinfo_dict[sch_req_id]['qfromrecver_list']
     for qfromrecver in qfromrecver_list:
       info_dict = qfromrecver.get(True, None)
       couplinginfo_dict['rxedsize'] += info_dict['rxedsize']
       couplinginfo_dict['coupling_endtime'] = max(couplinginfo_dict['coupling_endtime'], info_dict['stoppedtorx_time'])
       
       rxedsizewithfunc_dict = couplinginfo_dict['rxedsizewithfunc_dict']
-      for func,rxedsize in info_dict['rxedsizewithfunc_dict']:
+      for func,rxedsize in info_dict['rxedsizewithfunc_dict'].items():
         if func in rxedsizewithfunc_dict:
           rxedsizewithfunc_dict[func] += rxedsize
         else:

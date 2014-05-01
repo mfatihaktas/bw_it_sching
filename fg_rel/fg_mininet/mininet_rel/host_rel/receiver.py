@@ -171,7 +171,7 @@ class Receiver(threading.Thread):
     logging.info('rx_kstardata:: rxedsizewithfunc_dict=%s', self.rxedsizewithfunc_dict)
     #let consumer know...
     self.out_queue.put({'stoppedtorx_time': stoppedtorx_time,
-                        'rxedsize': rxeddatasize,
+                        'rxedsize': self.rxeddatasize,
                         'rxedsizewithfunc_dict': self.rxedsizewithfunc_dict })
     
   def push_to_kstarfile(self, data):

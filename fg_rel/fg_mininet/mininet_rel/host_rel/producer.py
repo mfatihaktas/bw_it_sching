@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys,json,logging,subprocess,getopt,commands,pprint,os,Queue
+import sys,json,logging,subprocess,getopt,commands,pprint,os,Queue,threading
 from errors import CommandLineOptionError
 from userdts_comm_intf import UserDTSCommIntf
 from sender import Sender
@@ -45,11 +45,68 @@ class Producer(object):
     self.ktif = 230 #kernel timer interrupt frequency (Hz)
     self.init_htbdir()
     #
+    self.sinfo_dict = {}
     self.sender_thread_list = []
-    self.queue_tosender = Queue.Queue(0)
-    self.queue_fromsender = Queue.Queue(0)
+    self.qtosender_list = None
+    self.qfromsender_list = None
     
   ########################  _handle_***  ########################
+  def welcome_s(self, sch_req_id, data_):
+    if self.state != 2:
+      logging.error('welcome_s: unexpected cur_state=%s', self.state)
+      return
+    #
+    datasize = float(self.req_dict['data_size'])
+    pl = int(data_['parism_level'])
+    ps_list = self.req_dict['par_share']
+    p_bw = data_['p_bw']
+    p_tp_dst = data_['p_tp_dst']
+    #
+    self.init_htbconf(pl, p_bw, p_tp_dst)
+    
+    self.qtosender_list = [Queue.Queue(0) for i in range(pl)]
+    self.qfromsender_list = [Queue.Queue(0) for i in range(pl)]
+    for i in range(pl):
+      ds = datasize*float(ps_list[i])
+      to_addr = (self.cl_ip, p_tp_dst[i])
+      
+      sender = Sender(in_queue = self.qtosender_list[i],
+                      out_queue = self.qfromsender_list[i],
+                      dst_addr = to_addr,
+                      proto = self.proto,
+                      datasize = ds,
+                      tx_type = self.tx_type,
+                      file_url = self.file_url,
+                      logto = self.logto,
+                      kstardata_url = self.kstardata_url,
+                      numimg = int(float(float(ds)*(1024**2))/IMGSIZE) )
+      sender.start()
+      self.sender_thread_list.append(sender)
+    #
+    self.sinfo_dict[sch_req_id] = {'qfromsender_list': self.qfromsender_list,
+                                   'qtosender_list': self.qtosender_list,
+                                   'pl': pl }
+  
+  def waitfor_sessiontoend(self, sch_req_id):
+    sinfo_dict = {'sch_req_id': sch_req_id,
+                  'sendstart_time': float('Inf'),
+                  'send_dur': 0 }
+    
+    sinfo = self.sinfo_dict[sch_req_id]
+    pl = sinfo['pl']
+    qfromsender_list = sinfo['qfromsender_list']
+    for i in range(pl):
+      popped = qfromsender_list[i].get(True, None)
+      sinfo_dict['sendstart_time'] = min(sinfo_dict['sendstart_time'], popped['sendstart_time'])
+      sinfo_dict['send_dur'] = max(sinfo_dict['send_dur'], popped['send_dur'])
+    #
+    msg = {'type':'session_done',
+           'data':sinfo_dict }
+    self.userdts_intf.relsend_to_dts(msg)
+    #
+    self.clear_htbconf()
+    self.init_htbdir()
+  
   def _handle_recvfromdts(self, msg):
     [type_, data_] = msg
     if type_ == 'sching_reply':
@@ -60,25 +117,14 @@ class Producer(object):
       if data_ != 'sorry':
         self.state = 2
         logging.info('successful sch_req :) data_=\n%s', pprint.pformat(data_))
-        #immediately start streaming session data
-        pl = int(data_['parism_level'])
-        p_bw = data_['p_bw']
-        p_tp_dst = data_['p_tp_dst']
-        #
-        self.init_htbconf(pl, p_bw, p_tp_dst)
-        datasize = float(self.req_dict['data_size'])
-        for i in range(pl):
-          self.stream_sdata(datasize = datasize*float(self.req_dict['par_share'][i]),
-                            cl_port = p_tp_dst[i] )
-        #
-        for i in range(pl):
-          popped = self.queue_fromsender.get(True, None)
-          if popped != 'done':
-            logging.error('_handle_recvfromdts:: unexpected popped=%s', popped)
-        #
-        self.send_session_done(sch_req_id = data_['sch_req_id'])
-        self.clear_htbconf()
-        self.init_htbdir()
+        
+        sch_req_id = int(data_['sch_req_id'])
+        del data_['sch_req_id']
+        
+        self.welcome_s(sch_req_id, data_)
+        
+        threading.Thread(target = self.waitfor_sessiontoend,
+                         kwargs = {'sch_req_id': sch_req_id} ).start()
       else:
         logging.info('unsuccessful sch_req :( data_=%s', data_)
         return
@@ -193,37 +239,6 @@ class Producer(object):
     #logging.info('\n----------------------------------------------------------')
     #logging.info('%s_output:\n%s',command,cli_o)
   #############################  data trans rel  ###############################
-  def stream_sdata(self, datasize, cl_port):
-    if self.state != 2:
-      logging.error('stream_sdata: unexpected cur_state=%s', self.state)
-      return
-    #
-    to_addr = (self.cl_ip, cl_port)
-    sender = Sender(in_queue = self.queue_tosender,
-                    out_queue = self.queue_fromsender,
-                    dst_addr = to_addr,
-                    proto = self.proto,
-                    datasize = datasize,
-                    tx_type = self.tx_type,
-                    file_url = self.file_url,
-                    logto = self.logto,
-                    kstardata_url = self.kstardata_url,
-                    numimg = int(float(float(datasize)*(1024**2))/IMGSIZE) )
-    sender.start()
-    self.sender_thread_list.append(sender)
-  
-  def send_session_done(self, sch_req_id):
-    if self.state != 2:
-      logging.error('send_session_done:: unexpected cur_state=%s', self.state)
-      return
-    #
-    msg = {'type':'session_done',
-           'data':{'sch_req_id': sch_req_id} }
-    if self.userdts_intf.relsend_to_dts(msg) == 0:
-      logging.error('send_session_done:: failed!')
-    else:
-      logging.debug('send_session_done:: success.')
-  
   def send_join_req(self):
     if self.state != 0:
       logging.error('send_join_req:: unexpected cur_state=%s', self.state)
@@ -253,8 +268,9 @@ class Producer(object):
   def close(self):
     self.userdts_intf.close()
     #
-    for i in range(len(self.sender_thread_list)):
-      self.queue_tosender.put('stop')
+    for sch_req_id,sinfo in self.sinfo_dict.items():
+      for qtosender in sinfo['qtosender_list']:
+        qtosender.put('STOP')
     #
     logging.info('close:: all sender threads joined.')
     logging.info('producer:: closed.')
