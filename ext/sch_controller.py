@@ -5,16 +5,19 @@ import pox.lib.packet as pkt
 from pox.openflow.of_json import *
 #from pox.lib.util import dpid_to_str
 from scheduler import Scheduler #, EventChief
-import pprint
+import pprint,logging
 log = core.getLogger()
 
 info_dict = {'scher_vip': '10.0.0.255',
              'scher_vmac': '00:00:00:00:00:00',
-             'sching_port': 7000,
-            }
+             'sching_port': 7000 }
   
 class SchController(object):
   def __init__(self):
+    logging.basicConfig(filename='logs/schcontroller.log',filemode='w',level=logging.DEBUG)
+    self.logger = logging.getLogger('schcontroller')
+    signal.signal(signal.SIGINT, self.signal_handler)
+    #
     self.scheduler = Scheduler(xml_net_num = 1,
                                sching_logto = 'console',
                                data_over_tp = 'tcp')
@@ -27,6 +30,11 @@ class SchController(object):
     core.openflow.addListenerByName("ConnectionUp", self._handle_ConnectionUp)
     core.openflow.addListenerByName("FlowStatsReceived", self._handle_FlowStatsReceived)
     core.openflow.addListenerByName("PacketIn", self._handle_PacketIn  )
+  
+  def signal_handler(self, signal, frame):
+    self.logger.info('signal_handler:: ctrl+c !')
+    couplingdoneinfo = self.scheduler.get_couplingdoneinfo()
+    self.logger.info('couplingdoneinfo=%s', pprint.pformat(couplingdoneinfo))
   
   #########################  _handle_*** methods  #######################
   def _handle_SendMsgToUser(self, event):

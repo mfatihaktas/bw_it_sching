@@ -96,30 +96,9 @@ class Scheduler(object):
                           c_addr = info_dict['acterl_addr'] )
     self.dtsuser_intf = DTSUserCommIntf()
     #
-    self.exp()
+    #self.exp()
+    self.couplingdone_dict = {}
   
-  def exp(self):
-    print '*** exp::'
-    userinfo_list = [ {'user_ip':'10.0.2.0','user_mac':'00:00:00:01:02:00','gw_dpid':1,'gw_conn_port':1},
-                      {'user_ip':'10.0.2.1','user_mac':'00:00:00:01:02:01','gw_dpid':1,'gw_conn_port':2},
-                      {'user_ip':'10.0.1.0','user_mac':'00:00:00:01:01:00','gw_dpid':2,'gw_conn_port':3},
-                      {'user_ip':'10.0.1.1','user_mac':'00:00:00:01:01:01','gw_dpid':2,'gw_conn_port':4} ]
-    #userinfo_list = [ {'user_ip':'10.0.0.2','user_mac':'00:00:00:01:00:02','gw_dpid':1,'gw_conn_port':1},
-    #                  {'user_ip':'10.0.0.1','user_mac':'00:00:00:01:00:01','gw_dpid':2,'gw_conn_port':3} ]
-    #
-    for userinfo in userinfo_list:
-      self.welcome_user(user_ip = userinfo['user_ip'],
-                        user_mac = userinfo['user_mac'],
-                        gw_dpid = userinfo['gw_dpid'],
-                        gw_conn_port = userinfo['gw_conn_port'] )
-      
-      
-      self.dtsuser_intf.reg_user(user_ip = userinfo['user_ip'],
-                                 userinfo_dict = userinfo,
-                                 _recv_callback = self._handle_recvfromuser,
-                                 _send_callback = self._handle_sendtouser )
-    print '***'
-    
   def recv_from_user(self, userinfo_dict, msg):
     user_ip = userinfo_dict['user_ip']
     #reg everytime, in case the user is new
@@ -129,6 +108,9 @@ class Scheduler(object):
                                _send_callback = self._handle_sendtouser )
     self.dtsuser_intf.pass_to_dts(user_ip = user_ip,
                                   msg =  msg )
+  
+  def get_couplingdoneinfo(self):
+    return self.couplingdone_dict
   
   #########################  _handle_*** methods  #######################
   def _handle_recvfromacter(self, msg):
@@ -214,6 +196,11 @@ class Scheduler(object):
                                                  'data':'sorry' } )
     elif type_ == 'session_done':
       self.bye_session(sch_req_id = int(data_['sch_req_id']) )
+    elif type_ == 'coupling_done':
+      sch_req_id = int(data_['sch_req_id'])
+      del data_['sch_req_id']
+      self.couplingdone_dict[sch_req_id] = data_
+    
   ####################  scher_state_management  methods  #######################
   def print_scher_state(self):
     print '<---------------------------------------->'
@@ -295,8 +282,7 @@ class Scheduler(object):
   def bye_session(self, sch_req_id):
     self.N -= 1
     # Send sessions whose "sching job" is done is sent to pre_served category
-    self.sessions_pre_served_dict.update(
-    {sch_req_id: self.sessions_beingserved_dict[sch_req_id]})
+    self.sessions_pre_served_dict[sch_req_id] = self.sessions_beingserved_dict[sch_req_id]
     del self.sessions_beingserved_dict[sch_req_id]
     del self.sid_res_dict[sch_req_id]
     #
@@ -698,6 +684,28 @@ class Scheduler(object):
     return {'walk_rule':walk_rule, 'itjob_rule':itjob_rule_dict}
   
   ##############################################################################
+  def exp(self):
+    print '*** exp::'
+    userinfo_list = [ {'user_ip':'10.0.2.0','user_mac':'00:00:00:01:02:00','gw_dpid':1,'gw_conn_port':1},
+                      {'user_ip':'10.0.2.1','user_mac':'00:00:00:01:02:01','gw_dpid':1,'gw_conn_port':2},
+                      {'user_ip':'10.0.1.0','user_mac':'00:00:00:01:01:00','gw_dpid':2,'gw_conn_port':3},
+                      {'user_ip':'10.0.1.1','user_mac':'00:00:00:01:01:01','gw_dpid':2,'gw_conn_port':4} ]
+    #userinfo_list = [ {'user_ip':'10.0.0.2','user_mac':'00:00:00:01:00:02','gw_dpid':1,'gw_conn_port':1},
+    #                  {'user_ip':'10.0.0.1','user_mac':'00:00:00:01:00:01','gw_dpid':2,'gw_conn_port':3} ]
+    #
+    for userinfo in userinfo_list:
+      self.welcome_user(user_ip = userinfo['user_ip'],
+                        user_mac = userinfo['user_mac'],
+                        gw_dpid = userinfo['gw_dpid'],
+                        gw_conn_port = userinfo['gw_conn_port'] )
+      
+      
+      self.dtsuser_intf.reg_user(user_ip = userinfo['user_ip'],
+                                 userinfo_dict = userinfo,
+                                 _recv_callback = self._handle_recvfromuser,
+                                 _send_callback = self._handle_sendtouser )
+    print '***'
+  
   def test(self):
     userinfo_list = [ {'user_ip':'10.0.0.2','user_mac':'00:00:00:01:00:02','gw_dpid':1,'gw_conn_port':1},
                       {'user_ip':'10.0.0.1','user_mac':'00:00:00:01:00:01','gw_dpid':2,'gw_conn_port':3} ]

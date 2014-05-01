@@ -70,11 +70,12 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
     logging.info('nofBs_rxed=%s, time=%s', nofBs_rxed, time.time() )
 ##########################################################################
 class Receiver(threading.Thread):
-  def __init__(self, in_queue, laddr, proto, rx_type, file_url, logto):
+  def __init__(self, in_queue, out_queue, laddr, proto, rx_type, file_url, logto):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
     self.in_queue = in_queue
+    self.out_queue = out_queue
     #
     if logto == 'file':
       logging.basicConfig(filename='logs/r_lport=%s.log' % laddr[1], filemode='w', level=logging.DEBUG)
@@ -164,8 +165,14 @@ class Receiver(threading.Thread):
     #
     sc.close()
     self.f_obj.close()
-    logging.info('rx_kstardata:: finished rxing; rxeddatasize=%s, dur=%s', self.rxeddatasize, time.time()-self.startedtorx_time)
+    
+    stoppedtorx_time = time.time()
+    logging.info('rx_kstardata:: finished rxing; rxeddatasize=%s, dur=%s', self.rxeddatasize, stoppedtorx_time-self.startedtorx_time)
     logging.info('rx_kstardata:: rxedsizewithfunc_dict=%s', self.rxedsizewithfunc_dict)
+    #let consumer know...
+    self.out_queue.put({'stoppedtorx_time': stoppedtorx_time,
+                        'rxedsize': rxeddatasize,
+                        'rxedsizewithfunc_dict': self.rxedsizewithfunc_dict })
     
   def push_to_kstarfile(self, data):
     """ returns 1:successful, 0:failed, -1:EOF, -2:datasize=0 """
@@ -342,6 +349,7 @@ def main(argv):
   import Queue
   queue_torecver = Queue.Queue(0)
   dr = Receiver(in_queue = queue_torecver,
+                out_queue = Queue.Queue(0),
                 laddr = (lip, lport),
                 proto = proto,
                 rx_type = rx_type,

@@ -4,7 +4,7 @@ from errors import *
 sctag_list = ['p-dts', 'c-dts', 't-dts']
 userdts_protocol_dict = {'p-dts':{'send_type':['join_req', 'sching_req', 'session_done', 'ack'],
                                   'recv_type':['join_reply', 'sching_reply', 'resching_reply', 'ack'] },
-                         'c-dts':{'send_type':['join_req', 'ack'],
+                         'c-dts':{'send_type':['join_req', 'ack', 'coupling_done'],
                                   'recv_type':['join_reply', 'ack', 'sching_reply'] },
                          't-dts':{'send_type':['ack'],
                                   'recv_type':['itjob_rule', 'ack', 'reitjob_rule'] },

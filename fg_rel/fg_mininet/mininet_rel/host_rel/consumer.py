@@ -57,9 +57,11 @@ class Consumer(object):
     pl = int(data_['parism_level'])
     p_tp_dst = data_['p_tp_dst']
     qtorecver_list = [Queue.Queue(0) for i in range(pl)]
+    qfromrecver_list = [Queue.Queue(0) for i in range(pl)]
     for i,stpdst in enumerate(p_tp_dst):
       laddr = (self.cl_ip, int(stpdst))
       recver = Receiver(in_queue = qtorecver_list[i],
+                        out_queue = qfromrecver_list[i],
                         laddr = laddr,
                         proto = self.proto,
                         rx_type = 'kstardata',
@@ -69,13 +71,41 @@ class Consumer(object):
     #
     self.sinfo_dict[sch_req_id] = {'parism_level': pl,
                                    'p_tp_dst': p_tp_dst,
-                                   'qtorecver_list': qtorecver_list }
+                                   'qtorecver_list': qtorecver_list,
+                                   'qfromrecver_list': qfromrecver_list }
     logging.info('welcome_s:: welcome sinfo=\n%s', pprint.pformat(self.sinfo_dict[sch_req_id]))
+    threading.Thread(target = self.waitfor_couplingtoend,
+                     kwargs = {'sch_req_id': sch_req_id} ).start()
+    
+  def waitfor_couplingtoend(self, sch_req_id):
+    couplinginfo_dict = {'sch_req_id': sch_req_id,
+                         'rxedsize': 0,
+                         'coupling_endtime': 0,
+                         'rxedsizewithfunc_dict': {} }
+    for qfromrecver in qfromrecver_list:
+      info_dict = qfromrecver.get(True, None)
+      couplinginfo_dict['rxedsize'] += info_dict['rxedsize']
+      couplinginfo_dict['coupling_endtime'] = max(couplinginfo_dict['coupling_endtime'], info_dict['stoppedtorx_time'])
+      
+      rxedsizewithfunc_dict = couplinginfo_dict['rxedsizewithfunc_dict']
+      for func,rxedsize in info_dict['rxedsizewithfunc_dict']:
+        if func in rxedsizewithfunc_dict:
+          rxedsizewithfunc_dict[func] += rxedsize
+        else:
+          rxedsizewithfunc_dict[func] = rxedsize
+        #
+      #
+    #
+    msg = {'type': 'coupling_done',
+           'data': couplinginfo_dict }
+    self.userdts_intf.relsend_to_dts(msg)
+    
+    logging.info('waitfor_couplingtoend:: coupling ended; couplinginfo_dict=\n%s', pprint.pformat(couplinginfo_dict))
     
   def send_join_req(self):
-    msg = json.dumps({'type':'join_req',
-                      'data':''})
-    self.userdts_intf.send_to_client('c-dts',msg)
+    msg = {'type':'join_req',
+           'data':''}
+    self.userdts_intf.relsend_to_dts(msg)
   
   def close(self):
     self.userdts_intf.close()
@@ -107,7 +137,7 @@ class Consumer(object):
     #
   
   def test(self):
-    #self.send_join_req()
+    self.send_join_req()
     #self.start_recvers()
     '''
     data_ = {'sch_req_id': 0,
