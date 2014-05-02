@@ -665,8 +665,8 @@ class Transit(object):
     self.stokenq_dict[stpdst] = stokenq
     #
     nchunks = datasize*(1024**2)/CHUNKSTRSIZE
-    intereq_time = 0 #(modelproct/nchunks)*0.95
-    #self.logger.warning('welcome_s:: nchunks=%s, intereq_time=%s, nchunks*intereq_time=%s', nchunks, intereq_time, nchunks*intereq_time)
+    intereq_time = (modelproct/nchunks)*0.95
+    self.logger.warning('welcome_s:: nchunks=%s, intereq_time=%s, nchunks*intereq_time=%s', nchunks, intereq_time, nchunks*intereq_time)
     threading.Thread(target = self.manage_stokenq,
                      kwargs = {'stpdst':stpdst,
                                'intereq_time':intereq_time } ).start()

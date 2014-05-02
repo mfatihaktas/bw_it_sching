@@ -93,11 +93,12 @@ class Receiver(threading.Thread):
     self.file_url = file_url
     self.rx_type = rx_type
     #
-    self.startedtorx_time = None
+    self.recvstart_time = 0
+    self.recvend_time = 0
     self.chunkstr = ''
     self.rxeddatasize = 0
     
-    self.rxedsizewithfunc_dict = {}
+    self.recvdsizewithfunc_dict = {}
   
   def run(self):
     if self.rx_type == 'file':
@@ -146,8 +147,8 @@ class Receiver(threading.Thread):
       datasize = len(data)
       #logging.info('init_rx:: lport=%s; rxed datasize=%sB', self.laddr[1], datasize)
       #
-      if self.startedtorx_time == None:
-        self.startedtorx_time = time.time()
+      if self.recvstart_time == 0:
+        self.recvstart_time = time.time()
       #
       return_ = self.push_to_kstarfile(data)
       if return_ == 0: #failed
@@ -166,13 +167,14 @@ class Receiver(threading.Thread):
     sc.close()
     self.f_obj.close()
     
-    stoppedtorx_time = time.time()
-    logging.info('rx_kstardata:: finished rxing; rxeddatasize=%s, dur=%s', self.rxeddatasize, stoppedtorx_time-self.startedtorx_time)
-    logging.info('rx_kstardata:: rxedsizewithfunc_dict=%s', self.rxedsizewithfunc_dict)
+    self.recvend_time = time.time()
+    logging.info('rx_kstardata:: finished rxing; rxeddatasize=%s, dur=%s', self.rxeddatasize, self.recvend_time-self.recvstart_time)
+    logging.info('rx_kstardata:: rxedsizewithfunc_dict=%s', self.recvdsizewithfunc_dict)
     #let consumer know...
-    self.out_queue.put({'stoppedtorx_time': stoppedtorx_time,
-                        'rxedsize': self.rxeddatasize,
-                        'rxedsizewithfunc_dict': self.rxedsizewithfunc_dict })
+    self.out_queue.put({'recvend_time': self.recvend_time,
+                        'recvstart_time': self.recvstart_time,
+                        'recvedsize': self.rxeddatasize,
+                        'recvedsizewithfunc_dict': self.recvdsizewithfunc_dict })
     
   def push_to_kstarfile(self, data):
     """ returns 1:successful, 0:failed, -1:EOF, -2:datasize=0 """
@@ -235,10 +237,10 @@ class Receiver(threading.Thread):
   
   def update_rxedsizewithfunc_dict(self, uptofunc_list, chunksize):
     for func in uptofunc_list:
-      if func in self.rxedsizewithfunc_dict:
-        self.rxedsizewithfunc_dict[func] += chunksize
+      if func in self.recvdsizewithfunc_dict:
+        self.recvdsizewithfunc_dict[func] += chunksize
       else:
-        self.rxedsizewithfunc_dict[func] = chunksize
+        self.recvdsizewithfunc_dict[func] = chunksize
       #
     #
   

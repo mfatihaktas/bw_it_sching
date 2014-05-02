@@ -90,7 +90,8 @@ class Producer(object):
   def waitfor_sessiontoend(self, sch_req_id):
     sinfo_dict = {'sch_req_id': sch_req_id,
                   'sendstart_time': float('Inf'),
-                  'send_dur': 0 }
+                  'sendstop_time': 0,
+                  'sentsize': 0 }
     
     sinfo = self.sinfo_dict[sch_req_id]
     pl = sinfo['pl']
@@ -98,7 +99,8 @@ class Producer(object):
     for i in range(pl):
       popped = qfromsender_list[i].get(True, None)
       sinfo_dict['sendstart_time'] = min(sinfo_dict['sendstart_time'], popped['sendstart_time'])
-      sinfo_dict['send_dur'] = max(sinfo_dict['send_dur'], popped['send_dur'])
+      sinfo_dict['sendstop_time'] = max(sinfo_dict['sendstop_time'], popped['sendstop_time'])
+      sinfo_dict['sentsize'] += popped['sentsize']
     #
     msg = {'type':'session_done',
            'data':sinfo_dict }

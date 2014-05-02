@@ -32,11 +32,27 @@ class SchController(object):
   def signal_handler(self, signal, frame):
     print 'signal_handler:: ctrl+c !'
     
-    couplingdoneinfo = pprint.pformat(self.scheduler.get_couplingdoneinfo())
-    print 'couplingdoneinfo=\n%s' % couplingdoneinfo
+    couplingdoneinfo_dict = self.scheduler.get_couplingdoneinfo_dict()
+    #do some additional analysis
+    for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items():
+      coupling_done = couplingdoneinfo['coupling_done']
+      session_done = couplingdoneinfo['session_done']
+      
+      coupling_dur = coupling_done['recvend_time'] - session_done['sendstart_time']
+      onthefly_dur = session_done['sendstop_time'] - coupling_done['recvstart_time']
+      recvedsize = coupling_done['recvedsize']
+      sentsize = session_done['sentsize']
+      
+      couplingdoneinfo['overall'] = {'coupling_dur': coupling_dur,
+                                     'onthefly_dur': onthefly_dur,
+                                     'recvedsize': recvedsize,
+                                     'sentsize': sentsize }
+    #
+    print 'couplingdoneinfo_dict=\n%s' % pprint.pformat(couplingdoneinfo_dict)
+    
     furl = '/home/ubuntu/pox/ext/logs/schcontroller.log'
     f = open(furl, 'w')
-    f.write(couplingdoneinfo)
+    f.write(pprint.pformat(couplingdoneinfo_dict))
     f.close()
     
     signal.signal(signal.SIGINT, None)

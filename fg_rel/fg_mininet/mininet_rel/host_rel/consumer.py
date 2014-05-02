@@ -79,22 +79,24 @@ class Consumer(object):
     
   def waitfor_couplingtoend(self, sch_req_id):
     couplinginfo_dict = {'sch_req_id': sch_req_id,
-                         'rxedsize': 0,
-                         'coupling_endtime': 0,
-                         'rxedsizewithfunc_dict': {} }
+                         'recvedsize': 0,
+                         'recvstart_time': float('Inf'),
+                         'recvend_time': 0,
+                         'recvedsizewithfunc_dict': {} }
     
     qfromrecver_list = self.sinfo_dict[sch_req_id]['qfromrecver_list']
     for qfromrecver in qfromrecver_list:
       info_dict = qfromrecver.get(True, None)
-      couplinginfo_dict['rxedsize'] += info_dict['rxedsize']
-      couplinginfo_dict['coupling_endtime'] = max(couplinginfo_dict['coupling_endtime'], info_dict['stoppedtorx_time'])
+      couplinginfo_dict['recvedsize'] += info_dict['recvedsize']
+      couplinginfo_dict['recvend_time'] = max(couplinginfo_dict['recvend_time'], info_dict['recvend_time'])
+      couplinginfo_dict['recvstart_time'] = min(couplinginfo_dict['recvstart_time'], info_dict['recvstart_time'])
       
-      rxedsizewithfunc_dict = couplinginfo_dict['rxedsizewithfunc_dict']
-      for func,rxedsize in info_dict['rxedsizewithfunc_dict'].items():
-        if func in rxedsizewithfunc_dict:
-          rxedsizewithfunc_dict[func] += rxedsize
+      recvedsizewithfunc_dict = couplinginfo_dict['recvedsizewithfunc_dict']
+      for func,recvedsize in info_dict['recvedsizewithfunc_dict'].items():
+        if func in recvedsizewithfunc_dict:
+          recvedsizewithfunc_dict[func] += recvedsize
         else:
-          rxedsizewithfunc_dict[func] = rxedsize
+          recvedsizewithfunc_dict[func] = recvedsize
         #
       #
     #

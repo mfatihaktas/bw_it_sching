@@ -43,7 +43,8 @@ class Sender(threading.Thread):
     self.kstardata_url = kstardata_url
     #
     self.sendstart_time = 0
-    self.send_dur = 0
+    self.sendstop_time = 0
+    self.sentsize = 0
   
   def run(self):
     if is_sender_run:
@@ -82,7 +83,8 @@ class Sender(threading.Thread):
     #
     if self.out_queue != None:
       sendinfo_dict = {'sendstart_time': self.sendstart_time,
-                       'send_dur': self.send_dur }
+                       'sendstop_time': self.sendstop_time,
+                       'sentsize': self.sentsize }
       self.out_queue.put(sendinfo_dict)
   
   def kstardata_send(self):
@@ -128,8 +130,10 @@ class Sender(threading.Thread):
     self.sock.sendall('EOF')
     logging.info('kstardata_send:: EOF is txed.')
     #
-    self.send_dur = time.time() - self.sendstart_time
-    logging.info('kstardata_send:: sent to %s; size=%sB, dur=%ssec', self.dst_addr,len_,self.send_dur)
+    self.sendstop_time = time.time()
+    self.sentsize = len_
+    send_dur = self.sendstop_time - self.sendstart_time
+    logging.info('kstardata_send:: sent to %s; size=%sB, dur=%ssec', self.dst_addr,len_,send_dur)
   
   def file_send(self):
     #TODO (??? ):This method needs to be rewritten according to threaded TCPServer approach

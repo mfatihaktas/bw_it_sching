@@ -109,7 +109,7 @@ class Scheduler(object):
     self.dtsuser_intf.pass_to_dts(user_ip = user_ip,
                                   msg =  msg )
   
-  def get_couplingdoneinfo(self):
+  def get_couplingdoneinfo_dict(self):
     return self.couplinginfo_dict
   
   #########################  _handle_*** methods  #######################
