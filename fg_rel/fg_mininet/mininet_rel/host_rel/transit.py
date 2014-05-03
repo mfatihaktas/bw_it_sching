@@ -29,10 +29,11 @@ CHUNKSIZE = 24*8*9*10 #B
 CHUNKSTRSIZE = CHUNKSIZE+CHUNKHSIZE
 
 class PipeServer(threading.Thread):
-  def __init__(self, server_addr, itwork_dict, to_addr, sflagq_in, sflagq_out, stokenq, intereq_time):
+  def __init__(self, nodename, server_addr, itwork_dict, to_addr, sflagq_in, sflagq_out, stokenq, intereq_time):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
+    self.nodename = nodename,
     self.server_addr = server_addr
     self.stpdst = int(self.server_addr[1])
     self.itwork_dict = itwork_dict
@@ -100,7 +101,8 @@ class PipeServer(threading.Thread):
     #
     procq = Queue.Queue(0)
     
-    self.itserv_handler = ItServHandler(itwork_dict = self.itwork_dict,
+    self.itserv_handler = ItServHandler(nodename = self.nodename,
+                                        itwork_dict = self.itwork_dict,
                                         stpdst = self.stpdst,
                                         to_addr = self.to_addr,
                                         flagq = self.flagq_toitservhandler,
@@ -256,11 +258,12 @@ class SessionClientHandler(threading.Thread):
       time.sleep(self.s_soft_state_span)
 
 class ItServHandler(threading.Thread):
-  def __init__(self, itwork_dict, stpdst, to_addr,
+  def __init__(self, nodename, itwork_dict, stpdst, to_addr,
                flagq, stokenq, intereq_time, procq):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
+    self.nodename = nodename
     self.itwork_dict = itwork_dict
     self.stpdst = stpdst
     self.to_addr = to_addr
@@ -435,11 +438,12 @@ class ItServHandler(threading.Thread):
             data = data_
             uptofunc_list.append(func)
         #
-        datasize = getsizeof(data)
-        self.forward_data(data = data,
-                          uptofunc_list = uptofunc_list,
-                          datasize = datasize )
-        
+        if not self.nodename[0] == 'mfa':
+          datasize = getsizeof(data)
+          self.forward_data(data = data,
+                            uptofunc_list = uptofunc_list,
+                            datasize = datasize )
+        #
         self.served_size_B += datasize_t
         #self.test_file.write(data)
         procdur = time.time() - procstart_time
@@ -672,7 +676,8 @@ class Transit(object):
                                'intereq_time':intereq_time } ).start()
     #
     if self.trans_type == 'file':
-      s_server_thread = PipeServer(server_addr = (self.tl_ip, stpdst),
+      s_server_thread = PipeServer(nodename = self.nodename,
+                                   server_addr = (self.tl_ip, stpdst),
                                    itwork_dict = data_,
                                    to_addr = to_addr,
                                    sflagq_in = sflagq_topipes,
@@ -715,19 +720,20 @@ class Transit(object):
   def test(self):
     self.logger.debug('test')
     
-    nimg = 100000
+    
+    datasize = 20 #MB
     imgsize = CHUNKSIZE/10
-    datasize = float(imgsize*nimg)/(1024**2)
+    nimg = datasize*(1024**2)/float(imgsize)
     #
     data = {'proto': 6,
             'data_to_ip': u'10.0.0.1',
             'datasize': datasize,
-            'itfunc_dict': {'fft': 1.0, 'upsampleplot':0.1},
+            'itfunc_dict': {'fft': 0.867226044101, 'upsampleplot': 0.0038516502104579617 },
             'uptoitfunc_dict': {},
-            'proc': 1.0,
+            'proc': 100.0,
             's_tp': 6000 }
     self.welcome_s(data.copy())
-    
+    '''
     data_ = {'proto': 6,
             'data_to_ip': u'10.0.0.1',
             'datasize': datasize,
@@ -737,7 +743,7 @@ class Transit(object):
             's_tp': 6000 }
     time.sleep(10)
     self.rewelcome_s(data_.copy())
-    
+    '''
     '''
     data = {'proto': 6,
             'data_to_ip': u'10.0.0.1',

@@ -5,7 +5,7 @@
 # TCPServer running at scheduler   -> port: 9998
 echo $1
 
-NIMG=100000
+DS=20
 
 if [ $1  = 'p' ]; then
   python producer.py --intf=p-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.0.1 \
@@ -21,7 +21,7 @@ elif [ $1  = 'p1' ]; then
   #                   --htbdir='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
   python producer.py --intf=p1-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.1.0 \
                      --proto=tcp --tx_type=kstardata --file_url=ltx1.dat --kstardata_url=/home/ubuntu/large_ecei_data.bp --logto=console \
-                     --req_dict='{"data_size":10,"slack_metric":12000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}' \
+                     --req_dict='{"data_size":20,"slack_metric":25000,"func_list":["fft", "upsampleplot"],"parism_level":1,"par_share":[1]}' \
                      --app_pref_dict='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}' \
                      --htbdir='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
 elif [ $1  = 'p2' ]; then
@@ -50,14 +50,14 @@ elif [ $1  = 't21' ]; then
 elif [ $1  = 't31' ]; then
   python transit.py --nodename=t31 --intf=eth0 --dtsl_ip=10.0.0.255 --dtsl_port=7001 --dtst_port=7001 --logto=file --trans_type=file
 elif [ $1  = 's' ]; then
-  #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=0 --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console --numimg=$NIMG --kstardata_url=/media/portable_large/large_ecei_data.bp
-  #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=0 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=$NIMG --kstardata_url=/home/ubuntu/large_ecei_data.bp
-  python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=0 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=$NIMG --kstardata_url=/media/portable_large/large_ecei_data.bp
-  #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=0 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=$NIMG --kstardata_url=/media/mehmet/portable_large/large_ecei_data.bp
+  #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=$DS --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console --kstardata_url=/media/portable_large/large_ecei_data.bp
+  #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=$DS --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --kstardata_url=/home/ubuntu/large_ecei_data.bp
+  python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=$DS --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console  --kstardata_url=/media/portable_large/large_ecei_data.bp
+  #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=$DS --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --kstardata_url=/media/mehmet/portable_large/large_ecei_data.bp
 elif [ $1  = 's6000' ]; then
-  python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=0 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=$NIMG --kstardata_url=/home/ubuntu/large_ecei_data.bp
+  python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=$DS --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --kstardata_url=/home/ubuntu/large_ecei_data.bp
 elif [ $1  = 's6001' ]; then
-  python sender.py --dst_ip=127.0.0.1 --dst_lport=6001 --datasize=0 --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --numimg=$NIMG --kstardata_url=/home/ubuntu/large_ecei_data.bp
+  python sender.py --dst_ip=127.0.0.1 --dst_lport=6001 --datasize=$DS --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --kstardata_url=/home/ubuntu/large_ecei_data.bp
 elif [ $1  = 'r' ]; then
   #python receiver.py --lintf=lo --lport=6000 --proto=tcp --rx_type=dummy --file_url=rx.dat --logto=console
   python receiver.py --lintf=lo --lport=6000 --proto=tcp --rx_type=kstardata --file_url=/home/mehmet/Desktop/rx.dat --logto=console

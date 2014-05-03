@@ -4,10 +4,10 @@ import sys,socket,json,getopt,struct,time,errno,logging,threading
 
 CHUNKHSIZE = 50
 TXCHUNK_SIZE = 24*8*9*10 #1024 #4096
-IMGSIZE = 24*8*9
+#IMGSIZE = 24*8*9
 
 class Sender(threading.Thread):
-  def __init__(self, dst_addr, proto, datasize, tx_type, file_url, logto, numimg, kstardata_url, in_queue=None, out_queue=None):
+  def __init__(self, dst_addr, proto, datasize, tx_type, file_url, logto, kstardata_url, in_queue=None, out_queue=None):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
@@ -39,7 +39,6 @@ class Sender(threading.Thread):
     self.dst_addr = dst_addr
     self.datasize = datasize
     self.file_url = file_url
-    self.numimg = numimg
     self.kstardata_url = kstardata_url
     #
     self.sendstart_time = 0
@@ -99,7 +98,7 @@ class Sender(threading.Thread):
     logging.info('kstardata_send:: started at time=%s', self.sendstart_time )
     f=open(self.kstardata_url, "r")
     
-    ds_tobesent_B = self.numimg*IMGSIZE
+    ds_tobesent_B = self.datasize*(1024**2)
     #
     len_ = 0
     l = f.read(TXCHUNK_SIZE)
@@ -264,9 +263,9 @@ def main(argv):
   global is_sender_run
   is_sender_run = True
   #
-  dst_ip = dst_lport = proto = datasize = tx_type = file_url = logto = kstardata_url = numimg = None
+  dst_ip = dst_lport = proto = datasize = tx_type = file_url = logto = kstardata_url = None
   try:
-    opts, args = getopt.getopt(argv,'',['dst_ip=','dst_lport=','proto=','datasize=','tx_type=', 'file_url=', 'logto=', 'kstardata_url=', 'numimg='])
+    opts, args = getopt.getopt(argv,'',['dst_ip=','dst_lport=','proto=','datasize=','tx_type=', 'file_url=', 'logto=', 'kstardata_url='])
   except getopt.GetoptError:
     print 'sender.py --dst_ip=<> --dst_lport=<> --proto=tcp/udp --datasize=Mb --tx_type=dummy/file --file_url=<> --logto=<>'
     sys.exit(0)
@@ -296,8 +295,6 @@ def main(argv):
       logto = arg
     elif opt == '--kstardata_url':
       kstardata_url = arg
-    elif opt == '--numimg':
-      numimg = int(arg)
   #
   import Queue
   queue_tosender = Queue.Queue(0)
@@ -308,8 +305,7 @@ def main(argv):
               tx_type = tx_type,
               file_url = file_url,
               logto = logto,
-              kstardata_url = kstardata_url,
-              numimg = numimg )
+              kstardata_url = kstardata_url )
   ds.start()
   #
   raw_input('Enter\n')

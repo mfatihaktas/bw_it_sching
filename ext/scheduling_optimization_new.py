@@ -9,6 +9,9 @@ import __builtin__
 #
 from expr_matrix import Expr as expr
 
+TOVERHEADCONST_ONTRANSFER = 1.1
+SLACKFEASIBILITYCONST = 1
+
 class SchingOptimizer:
   def __init__(self, sessions_beingserved_dict, actual_res_dict, sid_res_dict):
     logging.basicConfig(level=logging.INFO)
@@ -102,8 +105,7 @@ class SchingOptimizer:
   #modeling functions
   def txprocdurtrans_time_model(self,s_id,p_id, datasize,comp_list,num_itres):
     #datasize: MB, bw: Mbps
-    tx_t = 1000*(8*datasize)*cp.inv_pos(self.p_bw[s_id,p_id]) # (ms)
-    
+    tx_t = TOVERHEADCONST_ONTRANSFER* 1000*(8*datasize)*cp.inv_pos(self.p_bw[s_id,p_id]) # (ms)
     #proc: Mbps
     numitfuncs = len(comp_list)
     quadoverlin_vector = expr((1, numitfuncs))
@@ -698,7 +700,7 @@ class SchingOptimizer:
       ptranst_list = [0]*s_pl
       for pl_id in range(0,s_pl):
         p_ds = 8*s_ds*ps_list[pl_id] #s_ds: in MB
-        tx_t = p_ds*1000*1/p_bw[pl_id] # in (ms)
+        tx_t = SLACKFEASIBILITYCONST* TOVERHEADCONST_ONTRANSFER* p_ds*1000*1/p_bw[pl_id] # in (ms)
         ptranst_list.append(tx_t) #+ path_latency
       return __builtin__.max(ptranst_list) #s_transt
     

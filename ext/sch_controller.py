@@ -33,6 +33,8 @@ class SchController(object):
     print 'signal_handler:: ctrl+c !'
     
     couplingdoneinfo_dict = self.scheduler.get_couplingdoneinfo_dict()
+    sessionspreserved_dict = self.scheduler.get_sessionspreserved_dict()
+    print 'sessionspreserved_dict=\n%s' % pprint.pformat(sessionspreserved_dict)
     #do some additional analysis
     for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items():
       coupling_done = couplingdoneinfo['coupling_done']
@@ -42,11 +44,12 @@ class SchController(object):
       onthefly_dur = session_done['sendstop_time'] - coupling_done['recvstart_time']
       recvedsize = coupling_done['recvedsize']
       sentsize = session_done['sentsize']
-      
+
       couplingdoneinfo['overall'] = {'coupling_dur': coupling_dur,
                                      'onthefly_dur': onthefly_dur,
                                      'recvedsize': recvedsize,
                                      'sentsize': sentsize }
+      couplingdoneinfo['overall'].update(sessionspreserved_dict[sch_req_id])
     #
     print 'couplingdoneinfo_dict=\n%s' % pprint.pformat(couplingdoneinfo_dict)
     

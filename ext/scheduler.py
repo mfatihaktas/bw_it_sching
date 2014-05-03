@@ -81,8 +81,8 @@ class Scheduler(object):
     #
     self.N = 0 #num_activesessions
     self.alloc_dict = None
-    self.sessions_beingserved_dict = {}
-    self.sessions_pre_served_dict = {}
+    self.sessionsbeingserved_dict = {}
+    self.sessionspreserved_dict = {}
     self.sid_res_dict = {}
     self.actual_res_dict = self.gm.give_actual_resource_dict()
     #for perf plotting
@@ -112,6 +112,9 @@ class Scheduler(object):
   def get_couplingdoneinfo_dict(self):
     return self.couplinginfo_dict
   
+  def get_sessionspreserved_dict(self):
+    return self.sessionspreserved_dict
+  
   #########################  _handle_*** methods  #######################
   def _handle_recvfromacter(self, msg):
     #msg = [type_, data_]l
@@ -121,7 +124,7 @@ class Scheduler(object):
       #
       s_id, p_id = int(data_['s_id']), int(data_['p_id'])
       sch_req_id = self.sid_schregid_dict[s_id]
-      s_info = self.sessions_beingserved_dict[sch_req_id]
+      s_info = self.sessionsbeingserved_dict[sch_req_id]
       [p_ip, c_ip] = s_info['p_c_ip_list']
       user_info = self.users_beingserved_dict[p_ip]
       userinfo_dict = {'ip': p_ip,
@@ -129,7 +132,7 @@ class Scheduler(object):
                        'gw_dpid': user_info['gw_dpid'],
                        'gw_conn_port': user_info['gw_conn_port'] }
       if reply == 'done':
-        self.sessions_beingserved_dict[sch_req_id]['sching_job_done'][p_id] = True
+        self.sessionsbeingserved_dict[sch_req_id]['sching_job_done'][p_id] = True
         #get s_alloc_info
         s_alloc_info = self.alloc_dict['s-wise'][s_id]
         s_pl = s_alloc_info['parism_level']
@@ -214,9 +217,9 @@ class Scheduler(object):
     print 'users_beingserved_dict:'
     pprint.pprint(self.users_beingserved_dict)
     print 'sessions_beingserved_dict:'
-    pprint.pprint(self.sessions_beingserved_dict)
+    pprint.pprint(self.sessionsbeingserved_dict)
     print 'sessions_pre_served_dict:'
-    pprint.pprint(self.sessions_pre_served_dict)
+    pprint.pprint(self.sessionspreserved_dict)
     print '<---------------------------------------->'
   
   def next_sching_id(self):
@@ -271,7 +274,7 @@ class Scheduler(object):
     s_pl = req_dict['parism_level']
     s_tp_dst_list = [self.next_tp_dst() for i in range(s_pl)]
     sch_req_id = self.next_sch_req_id()
-    self.sessions_beingserved_dict.update(
+    self.sessionsbeingserved_dict.update(
       {sch_req_id:{'tp_dst_list': s_tp_dst_list,
                    'p_c_ip_list': p_c_ip_list,
                    'p_c_gwtag_list': p_c_gwtag_list,
@@ -280,19 +283,19 @@ class Scheduler(object):
                    'sching_job_done':[False]*s_pl }
       }
     )
-    #print 'self.sessions_beingserved_dict: '
-    #pprint.pprint(self.sessions_beingserved_dict)
+    #print 'self.sessionsbeingserved_dict: '
+    #pprint.pprint(self.sessionsbeingserved_dict)
     #
     return sch_req_id
   
   def bye_session(self, sch_req_id):
     self.N -= 1
     # Send sessions whose "sching job" is done is sent to pre_served category
-    self.sessions_pre_served_dict[sch_req_id] = self.sessions_beingserved_dict[sch_req_id]
-    del self.sessions_beingserved_dict[sch_req_id]
+    self.sessionspreserved_dict[sch_req_id] = self.sessionsbeingserved_dict[sch_req_id]
+    del self.sessionsbeingserved_dict[sch_req_id]
     del self.sid_res_dict[sch_req_id]
     #
-    print 'bye_session:: bye sch_req_id=%s, session_info=\n%s' % (sch_req_id, pprint.pformat(self.sessions_pre_served_dict[sch_req_id]))
+    print 'bye_session:: bye sch_req_id=%s, session_info=\n%s' % (sch_req_id, pprint.pformat(self.sessionspreserved_dict[sch_req_id]))
   
   def init_network_from_xml(self):
     node_edge_lst = self.xml_parser.give_node_and_edge_list_from_xml()
@@ -310,8 +313,8 @@ class Scheduler(object):
     """
     logging.info('update_sid_res_dict:')
     #TODO: sessions whose resources are already specified no need for putting them in the loop
-    for s_id in self.sessions_beingserved_dict:
-      p_c_gwdpid_list = self.sessions_beingserved_dict[s_id]['p_c_gwtag_list']
+    for s_id in self.sessionsbeingserved_dict:
+      p_c_gwdpid_list = self.sessionsbeingserved_dict[s_id]['p_c_gwtag_list']
       s_all_paths = self.gm.give_all_paths(p_c_gwdpid_list[0], p_c_gwdpid_list[1])
       #print forward all_paths for debugging
       dict_ = {i:p for i,p in enumerate(s_all_paths)}
@@ -332,7 +335,7 @@ class Scheduler(object):
     self.sid_schregid_dict = {}
     #
     i = 0
-    for k in self.sessions_beingserved_dict:
+    for k in self.sessionsbeingserved_dict:
       self.sid_schregid_dict[i] = k
       i += 1
   
@@ -361,7 +364,7 @@ class Scheduler(object):
     logging.info('do_sching:: sching_id=%s started;', sching_id)
     self.update_sid_res_dict()
     self.update_sid_schregid_dict()
-    sching_opter = SchingOptimizer(self.give_incintkeyform(self.sessions_beingserved_dict),
+    sching_opter = SchingOptimizer(self.give_incintkeyform(self.sessionsbeingserved_dict),
                                    self.actual_res_dict,
                                    self.give_incintkeyform(self.sid_res_dict) )
     sching_opter.solve()
@@ -402,7 +405,11 @@ class Scheduler(object):
         #
         #Dispatching rule to actuator_actuator
         sch_req_id = self.sid_schregid_dict[s_id]
-        s_info = self.sessions_beingserved_dict[sch_req_id]
+        s_info = self.sessionsbeingserved_dict[sch_req_id]
+        #update s_info
+        s_info['trans_time'] = s_allocinfo_dict['trans_time']
+        s_info['slack-tt'] = s_allocinfo_dict['slack-tt']
+        #
         if s_info['sching_job_done'][p_id] == False:
           type_toacter = 'sp_sching_req'
         else:
@@ -461,7 +468,7 @@ class Scheduler(object):
     #print 'chopped_pwalk_list='
     #pprint.pprint(chopped_pwalk_list)
     #
-    s_info_dict =  self.sessions_beingserved_dict[self.sid_schregid_dict[s_id]]
+    s_info_dict =  self.sessionsbeingserved_dict[self.sid_schregid_dict[s_id]]
     s_tp_dst = s_info_dict['tp_dst_list'][p_id]
     p_c_ip_list = s_info_dict['p_c_ip_list']
     #
@@ -599,7 +606,7 @@ class Scheduler(object):
     pprint.pprint(pitwalkbundle_dict)
     print 'p_walk: ', p_walk
     #
-    s_info_dict =  self.sessions_beingserved_dict[self.sid_schregid_dict[s_id]]
+    s_info_dict =  self.sessionsbeingserved_dict[self.sid_schregid_dict[s_id]]
     s_tp_dst = s_info_dict['tp_dst_list'][p_id]
     p_c_ip_list = s_info_dict['p_c_ip_list']
     #
