@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys,getopt,commands,pprint,mmap,logging,os,Queue,errno,signal,copy,json
+import sys,getopt,commands,pprint,mmap,logging,os,Queue,errno,signal,copy,json,subprocess
 import SocketServer,threading,time,socket,thread
 from errors import CommandLineOptionError,NoItruleMatchError
 from userdts_comm_intf import UserDTSCommIntf
@@ -320,11 +320,26 @@ class ItServHandler(threading.Thread):
     #
     self.logger.debug('reinit_itjobdicts:: jobremaining=\n%s', pprint.pformat(self.jobremaining))
     
+  def init_eceiproc(self):
+    if self.nodename[0] == 't':
+      subprocess.call(['./eceiproc2', '--stpdst=%s' % self.stpdst, '--loc=mfa'])
+    else:
+      subprocess.call(['./eceiproc2', '--stpdst=%s' % self.stpdst, '--loc=mininet',
+                       '>', 'logs/eceproc%s.log' % self.stpdst ])
+    #
+  
   def init_procsocks(self):
     for func in self.procsock_dict:
-      sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-      sock.connect(self.procsockpath_dict[func])
-      self.procsock_dict[func] = sock
+      while 1:
+        try:
+          sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+          sock.connect(self.procsockpath_dict[func]+str(self.stpdst))
+          self.procsock_dict[func] = sock
+        except:
+          continue
+        #
+        break
+      #
     #
     self.logger.debug('init_procsocks:: done')
   
@@ -375,6 +390,7 @@ class ItServHandler(threading.Thread):
     t = threading.Thread(target=self.listen_pipeserver)
     t.start()
     #
+    threading.Thread(target=self.init_eceiproc).start()
     self.init_procsocks()
     self.startedtohandle_time = time.time()
     

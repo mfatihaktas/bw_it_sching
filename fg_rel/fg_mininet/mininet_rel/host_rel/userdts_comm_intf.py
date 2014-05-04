@@ -32,7 +32,9 @@ class UserDTSCommIntf(object):
     #state; 0:ready to send, 1:waiting for ack
     self.state = 0
     self.tx_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    self.tx_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     self.rx_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    self.rx_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     self.rx_sock.bind(self.user_addr)
     #
     self.timeout = 5 #sec

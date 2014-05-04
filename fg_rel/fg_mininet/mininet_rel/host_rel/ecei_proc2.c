@@ -831,15 +831,9 @@ int main (int argc, char** argv)
   pthread_join(fft_thread, NULL);
   pthread_join(upsampleplot_thread, NULL);
   
-  /*
-  pthread_t fft_thread, upsample_thread, plot_thread, upsampleplot_thread;
-  if ((pthread_create( &fft_thread, NULL, &run_fft, (void*)stpdst ) != 0) ||
-      (pthread_create( &upsample_thread, NULL, &run_upsample, (void*)stpdst ) != 0) ||
-      (pthread_create( &fft_thread, NULL, &run_plot, (void*)stpdst ) != 0) ||
-      (pthread_create( &fft_thread, NULL, &run_upsampleplot, (void*)stpdst ) != 0)){
-    perror("Error with pthread_create");
-  }
-  */
+  printf("totalfftelapsed_t=%g\n", totalfftelapsed_t);
+  printf("totalupsampleplotelapsed_t=%g\n", totalupsampleplotelapsed_t);
+  
   //
   /*
   if (strcmp(loc, (const char*)"mfa") == 0){
@@ -854,8 +848,6 @@ int main (int argc, char** argv)
     close(connfd[i]);
   }
   */
-  printf("totalfftelapsed_t=%g\n", totalfftelapsed_t);
-  printf("totalupsampleplotelapsed_t=%g\n", totalupsampleplotelapsed_t);
   
   return 0;
 }
