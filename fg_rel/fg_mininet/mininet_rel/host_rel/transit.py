@@ -420,13 +420,15 @@ class ItServHandler(threading.Thread):
       print 'itfunc_list=%s' % pprint.pformat(itfunc_list)
       #
       (data, datasize, uptofunc_list) = self.pop_from_pipe()
-      print 'uptofunc_list=%s' % uptofunc_list
       datasize_t = copy.copy(datasize)
       if data == None:
         if datasize == 0: #failed
           pass
         elif datasize == -1: #EOF
-          self.logger.debug('run:: EOF! Aborting...')
+          self.forward_data(data = 'EOF',
+                            uptofunc_list = '[]',
+                            datasize = 3 )
+          self.logger.debug('run:: EOF is rxed and forwarded! Aborting...')
           self.stopflag = True
         elif datasize == -2: #STOP
           self.logger.debug('run:: STOP! Aborting...')
@@ -435,12 +437,10 @@ class ItServHandler(threading.Thread):
           self.logger.error('run:: FATAL! Aborting...')
           sys.exit(2)
       else:
-        self.logger.debug('run:: datasize=%s popped.', datasize)
+        self.logger.debug('run:: datasize=%s popped. uptofunc_list=%s', datasize, uptofunc_list)
         self.active_last_time = time.time()
         #
         #self.logger.debug('run:: ready proc and forward datasize=%s', datasize)
-        
-        #print 'itwork_dict=%s' % pprint.pformat(self.itwork_dict)
         procstart_time = time.time()
         [datasize_, data_] = [0, None]
         
@@ -532,11 +532,12 @@ class ItServHandler(threading.Thread):
         self.sock.connect(self.to_addr)
         self.logger.info('forward_data:: itserv_sock is connected to addr=%s', self.to_addr)
         self.forwarding_started = True
-      #add uptofunc_list as header
-      header = json.dumps(uptofunc_list)
-      padding_length = CHUNKHSIZE - len(header)
-      header += ' '*padding_length
-      data = header+data
+      if not (datasize == 3 and data == 'EOF'):
+        #add uptofunc_list as header
+        header = json.dumps(uptofunc_list)
+        padding_length = CHUNKHSIZE - len(header)
+        header += ' '*padding_length
+        data = header+data
       #
       self.sock.sendall(data)
       self.logger.info('forward_data:: datasize=%s forwarded to_addr=%s', datasize+CHUNKHSIZE, self.to_addr)

@@ -35,6 +35,11 @@ elif [ $1  = 'p2' ]; then
   python producer.py --intf=p2-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.1.1 \
                      --proto=tcp --tx_type=kstardata --file_url=ltx2.dat --kstardata_url=/home/ubuntu/large_ecei_data.bp --logto=file --nodename=p2 \
                      --req_dict=$P2_REQDICT --app_pref_dict=$P2_APPPREFDICT --htbdir=$MINHTBDIR
+elif [ $1  = 'p3' ]; then
+  sleep $P3D
+  python producer.py --intf=p3-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.1.2 \
+                     --proto=tcp --tx_type=kstardata --file_url=... --kstardata_url=/home/ubuntu/large_ecei_data.bp --logto=file --nodename=p3 \
+                     --req_dict=$P3_REQDICT --app_pref_dict=$P3_APPPREFDICT --htbdir=$MINHTBDIR
 elif [ $1  = 'c' ]; then
   python consumer.py --intf=lo --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
                      --proto=tcp --rx_type=kstardata --logto=console --nodename=mfa
@@ -46,6 +51,10 @@ elif [ $1  = 'c2' ]; then
   sleep $C2D
   python consumer.py --intf=c2-eth0 --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
                      --proto=tcp --rx_type=kstardata --logto=file --nodename=c2
+elif [ $1  = 'c3' ]; then
+  sleep $C3D
+  python consumer.py --intf=c3-eth0 --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
+                     --proto=tcp --rx_type=kstardata --logto=file --nodename=c
 elif [ $1  = 't' ]; then
   python transit.py --nodename=t --intf=lo --dtsl_ip=127.0.0.1 --dtsl_port=7002 --dtst_port=7001 --logto=file --trans_type=file
 elif [ $1  = 't11' ]; then
