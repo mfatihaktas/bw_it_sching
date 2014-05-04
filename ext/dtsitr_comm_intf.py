@@ -1,7 +1,7 @@
 import sys,json,socket,threading,time,logging,errno,pprint,Queue
 from errors import *
 
-dtsitr_protocol_dict = {'send_type':['itjob_rule', 'ack'],
+dtsitr_protocol_dict = {'send_type':['itjob_rule', 'ack', 'reitjob_rule'],
                         'recv_type':['ack'] }
 RX_SIZE = 1024
 

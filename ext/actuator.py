@@ -194,7 +194,7 @@ class Actuator (object):
         t.start()
         '''
     #
-    print 'install_proactive_scheditjob:: installed for s_id=%s, p_id=%s' % (s_id, p_id)
+    print 'install_proactive_scheditjob:: installed for s_id=%s, p_id=%s; type_toitr=%s' % (s_id, p_id, type_toitr)
   
   def install_proactive_schedwalk(self, s_id,p_id):
     [dict_I, hmfromdpid_dict] = ruleparser.get_walkruledict_forsp(str(s_id), str(p_id))

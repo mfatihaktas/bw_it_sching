@@ -270,6 +270,7 @@ double*** alloc_3dmat(uint64_t len, size_t dimx, size_t dimy) {
 #define DIMY_ DIMY*SCALE
 
 //0:fft, 1:upsample, 2:plot, 3:upsampleplot
+char* stpdst;
 #define numfs 4
 int connfd[numfs];
 struct sockaddr_un cliaddr[numfs];
@@ -290,7 +291,12 @@ void* init_chunkrw_sock(void* fi){
   }
   memset(&servaddr[i], 0, sizeof(struct sockaddr_un));
   servaddr[i].sun_family = AF_UNIX;
-  strcpy(servaddr[i].sun_path, sockpath[i]);
+  
+  char complete_sockpath[50];
+  strcpy(complete_sockpath, sockpath[i]);
+  strcat(complete_sockpath, stpdst);
+  
+  strcpy(servaddr[i].sun_path, complete_sockpath);
   unlink(servaddr[i].sun_path);
   int len = strlen(servaddr[i].sun_path) + sizeof(servaddr[i].sun_family);
   if (bind(listenfd[i], (struct sockaddr *)&servaddr[i], len) == -1) {
@@ -777,18 +783,19 @@ void* run_upsampleplot(void* stpdst){
 
 int main (int argc, char** argv)
 {
-  char* stpdst;
+  char* loc;
   int c;
   while (1){
     static struct option long_options[] =
     {
       {"stpdst",  required_argument, 0, 's'},
+      {"loc",  required_argument, 0, 'l'},
       {0, 0, 0, 0}
     };
      /* getopt_long stores the option index here. */
      int option_index = 0;
   
-     c = getopt_long (argc, argv, "d:",
+     c = getopt_long (argc, argv, "s:",
                       long_options, &option_index);
      /* Detect the end of the options. */
      if (c == -1)
@@ -804,6 +811,10 @@ int main (int argc, char** argv)
         stpdst = optarg;
         printf ("option -s with value `%s'\n", optarg);
         break;
+      case 'l':
+        loc = optarg;
+        printf ("option -l with value `%s'\n", optarg);
+        break;
       case '?':
         /* getopt_long already printed an error message. */
         break;
@@ -817,6 +828,8 @@ int main (int argc, char** argv)
       (pthread_create( &fft_thread, NULL, &run_upsampleplot, (void*)stpdst ) != 0)){
     perror("Error with pthread_create");
   }
+  pthread_join(fft_thread, NULL);
+  pthread_join(upsampleplot_thread, NULL);
   
   /*
   pthread_t fft_thread, upsample_thread, plot_thread, upsampleplot_thread;
@@ -828,12 +841,19 @@ int main (int argc, char** argv)
   }
   */
   //
-  printf("Enter\n");
-  scanf("...");
+  /*
+  if (strcmp(loc, (const char*)"mfa") == 0){
+    printf("Enter\n");
+    scanf("...");
+  }
+  else{
+    sleep(100000);
+  }
   STOPFLAG = 1;
   for (int i=0; i<numfs; i++){
     close(connfd[i]);
   }
+  */
   printf("totalfftelapsed_t=%g\n", totalfftelapsed_t);
   printf("totalupsampleplotelapsed_t=%g\n", totalupsampleplotelapsed_t);
   

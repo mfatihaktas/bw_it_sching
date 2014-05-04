@@ -119,7 +119,9 @@ class SchingOptimizer:
     
     stage_t = self.p_dur.get((s_id,p_id))
     #
-    trans_t = tx_t + proc_t + stage_t
+    #trans_t = tx_t + proc_t + stage_t
+    trans_t = cp.max(tx_t, proc_t)
+    
     return [tx_t, proc_t, stage_t, trans_t]
   
   def R_hard(self, s_id):
@@ -438,8 +440,18 @@ class SchingOptimizer:
            [self.r_dur >= 0] + \
            [self.tt >= 0] + \
            [self.s_n >= 0] + \
-           [self.s_n <= 1] #+ \
-           #s_n_consts
+           [self.s_n <= 1] + \
+           s_n_consts
+  
+  def new_constraint0(self):
+    '''
+    consts = []
+    for i in range(self.N):
+      consts += [cp.vstack(*self.sp_proc.get_row(i)) <= cp.vstack(*self.sp_tx.get_row(i))]
+    #
+    return consts
+    '''
+    return [cp.vstack(*self.a.get_row(1)) <= cp.vstack(*self.a.get_row(0))]
   
   def res_cap_constraint(self):
     # resource capacity constraints
@@ -844,6 +856,7 @@ class SchingOptimizer:
       
       self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
       self.logger.debug('constraint0=\n%s', self.constraint0())
+      self.logger.debug('new_constraint0=\n%s', self.new_constraint0())
       self.logger.debug('self.tt_epigraph_form_constraint()=\n%s', self.tt_epigraph_form_constraint())
       self.logger.debug('res_cap_constraint=\n%s', self.res_cap_constraint())
       self.logger.debug('p_bwprocdur_sparsity_constraint=\n%s', self.p_bwprocdur_sparsity_constraint())
@@ -852,6 +865,7 @@ class SchingOptimizer:
       
       p = cp.Problem(cp.Minimize(self.F()),
                      self.constraint0() + \
+                     self.new_constraint0() + \
                      self.tt_epigraph_form_constraint() + \
                      self.res_cap_constraint() + \
                      self.r_bwprocdur_sparsity_constraint()  + \

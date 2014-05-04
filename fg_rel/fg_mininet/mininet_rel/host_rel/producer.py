@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys,json,logging,subprocess,getopt,commands,pprint,os,Queue,threading
+import sys,json,logging,subprocess,getopt,commands,pprint,os,Queue,threading,time
 from errors import CommandLineOptionError
 from userdts_comm_intf import UserDTSCommIntf
 from sender import Sender
@@ -14,8 +14,6 @@ def get_addr(lintf):
   intf_eth0_ip = commands.getoutput("ip address show dev " + intf_eth0).split()
   intf_eth0_ip = intf_eth0_ip[intf_eth0_ip.index('inet') + 1].split('/')[0]
   return intf_eth0_ip
-
-IMGSIZE = 24*8*9
 
 class Producer(object):
   def __init__(self, intf, pl_port, dtsl_ip, dtsl_port, cl_ip, proto,tx_type, file_url, kstardata_url,
@@ -78,8 +76,7 @@ class Producer(object):
                       tx_type = self.tx_type,
                       file_url = self.file_url,
                       logto = self.logto,
-                      kstardata_url = self.kstardata_url,
-                      numimg = int(float(float(ds)*(1024**2))/IMGSIZE) )
+                      kstardata_url = self.kstardata_url )
       sender.start()
       self.sender_thread_list.append(sender)
     #
@@ -292,12 +289,12 @@ class Producer(object):
     #self.state = 1
   
 def main(argv):
-  intf = pl_port = dtsl_ip = dtsl_port = cl_ip = proto = tx_type = file_url = kstardata_url = logto = None
+  intf = pl_port = dtsl_ip = dtsl_port = cl_ip = proto = tx_type = file_url = kstardata_url = logto = nodename = None
   req_dict = app_pref_dict = htbdir = None
   try:
-    opts, args = getopt.getopt(argv,'',['intf=','dtst_port=','dtsl_ip=','dtsl_port=', 'cl_ip=','proto=','tx_type=','file_url=', 'kstardata_url=', 'logto=','req_dict=','app_pref_dict=', 'htbdir='])
+    opts, args = getopt.getopt(argv,'',['intf=','dtst_port=','dtsl_ip=','dtsl_port=', 'cl_ip=','proto=','tx_type=','file_url=', 'kstardata_url=', 'logto=','nodename=','req_dict=','app_pref_dict=', 'htbdir='])
   except getopt.GetoptError:
-    print 'producer.py --intf=<> --dtst_port=<> --dtsl_ip=<> --dtsl_port=<> --cl_ip=<> --proto=tcp/udp --tx_type=file/dummy --file_url=<> --kstardata_url=<> --logto=<> --req_dict=<> --app_pref_dict=<> --htbdir=<>'
+    print 'producer.py --intf=<> --dtst_port=<> --dtsl_ip=<> --dtsl_port=<> --cl_ip=<> --proto=tcp/udp --tx_type=file/dummy --file_url=<> --kstardata_url=<> --logto=<> --nodename=<> --req_dict=<> --app_pref_dict=<> --htbdir=<>'
     sys.exit(2)
   #Initializing global variables with comman line options
   for opt, arg in opts:
@@ -329,6 +326,8 @@ def main(argv):
       kstardata_url = arg
     elif opt == '--logto':
       logto = arg
+    elif opt == '--nodename':
+      nodename = arg
     elif opt == '--req_dict':
       req_dict = json.loads(arg)
     elif opt == '--app_pref_dict':
@@ -337,7 +336,7 @@ def main(argv):
       htbdir = arg
   #where to log; console or file
   if logto == 'file':
-    logging.basicConfig(filename='logs/p.log', filemode='w', level=logging.DEBUG)
+    logging.basicConfig(filename='logs/%s.log' % nodename, filemode='w', level=logging.DEBUG)
   elif logto == 'console':
     logging.basicConfig(level=logging.DEBUG)
   else:
@@ -361,7 +360,11 @@ def main(argv):
   t = threading.Thread(target=p.test)
   t.start()
   #
-  raw_input('Enter\n')
+  if nodename == 'p':
+    raw_input('Enter\n')
+  else:
+    time.sleep(100000)
+  #
   p.close()
   
 if __name__ == "__main__":

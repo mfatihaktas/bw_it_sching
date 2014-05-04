@@ -40,16 +40,23 @@ class SchController(object):
       coupling_done = couplingdoneinfo['coupling_done']
       session_done = couplingdoneinfo['session_done']
       
+      sessionpreserved = sessionspreserved_dict[sch_req_id]
+      
       coupling_dur = coupling_done['recvend_time'] - session_done['sendstart_time']
       onthefly_dur = session_done['sendstop_time'] - coupling_done['recvstart_time']
-      recvedsize = coupling_done['recvedsize']
-      sentsize = session_done['sentsize']
-
+      couplingdur_error = 100*(coupling_dur-sessionpreserved['trans_time'])/sessionpreserved['trans_time']
+      
       couplingdoneinfo['overall'] = {'coupling_dur': coupling_dur,
                                      'onthefly_dur': onthefly_dur,
-                                     'recvedsize': recvedsize,
-                                     'sentsize': sentsize }
-      couplingdoneinfo['overall'].update(sessionspreserved_dict[sch_req_id])
+                                     'couplingdur_error': couplingdur_error,
+                                     'recvedsize': coupling_done['recvedsize'],
+                                     'sentsize': session_done['sentsize'],
+                                     'trans_time': sessionpreserved['trans_time'],
+                                     'slack-tt': sessionpreserved['slack-tt'],
+                                     'slack-transtime': sessionpreserved['slack-transtime'],
+                                     'app_pref_dict': sessionpreserved['app_pref_dict'],
+                                     }
+      #couplingdoneinfo['overall'].update(sessionspreserved_dict[sch_req_id])
     #
     print 'couplingdoneinfo_dict=\n%s' % pprint.pformat(couplingdoneinfo_dict)
     

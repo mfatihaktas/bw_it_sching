@@ -36,10 +36,19 @@ class MyTopo(Topo):
 def run_tnodes(hosts):
   popens = {}
   for host in hosts:
+    popens[host] = {}
     host.cmdPrint('pwd')
-    popens[host] = host.popen('./run_hosts.sh %s' % host.name)
+    popens[host]['eceiproc'] = host.popen('./run_hosts.sh ep2m')
+    popens[host]['t'] = host.popen('./run_hosts.sh %s' % host.name) #host.popen('./run_hosts.sh t')
   #
   print 'itnodes are ready...'
+
+def run_pcnodes(hosts):
+  popens = {}
+  for host in hosts:
+    popens[host] = host.popen('./run_hosts.sh %s' % host.name)
+  #
+  print 'pcnodes are ready...'
   
 if __name__ == '__main__':
   setLogLevel( 'info' )
@@ -70,7 +79,8 @@ if __name__ == '__main__':
   #
   net.start()
   #
-  #run_tnodes([t11])
+  run_tnodes([t11])
+  run_pcnodes([c1, p1])
   #
   CLI( net )
   net.stop()

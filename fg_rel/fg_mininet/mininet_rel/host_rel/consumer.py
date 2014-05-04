@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys,json,logging,getopt,commands,Queue,pprint,threading
+import sys,json,logging,getopt,commands,Queue,pprint,threading,time
 from errors import CommandLineOptionError
 from userdts_comm_intf import UserDTSCommIntf
 from receiver import Receiver
@@ -151,14 +151,14 @@ class Consumer(object):
     '''
     
 def main(argv):
-  intf = cl_port_list_ = dtst_port = dtsl_ip = dtsl_port = proto = rx_type = logto = None
+  intf = cl_port_list_ = dtst_port = dtsl_ip = dtsl_port = proto = rx_type = logto = nodename = None
   cl_port_list = []
   try:
     opts, args = getopt.getopt(argv,'', \
-    ['intf=','cl_port_list=','dtst_port=','dtsl_ip=','dtsl_port=','proto=','rx_type=','logto='])
+    ['intf=','cl_port_list=','dtst_port=','dtsl_ip=','dtsl_port=','proto=','rx_type=','logto=','nodename='])
   except getopt.GetoptError:
     print 'transit.py --intf=<> --cl_port_list=lport1,lport2, ... --dtst_port=<>', \
-          '--dtsl_port=<> --dtsl_ip=<> --proto=<> --rx_type=<> --logto=<>'
+          '--dtsl_port=<> --dtsl_ip=<> --proto=<> --rx_type=<> --logto=<> --nodename=<>'
     sys.exit(2)
 
   #Initializing global variables with command line options
@@ -187,12 +187,14 @@ def main(argv):
         sys.exit(2)
     elif opt == '--logto':
       logto = arg
+    elif opt == '--nodename':
+      nodename = arg
   #
   for port in cl_port_list_.split(','):
     cl_port_list.append(int(port))
   #where to log, console or file
   if logto == 'file':
-    logging.basicConfig(filename='logs/c.log',filemode='w',level=logging.DEBUG)
+    logging.basicConfig(filename='logs/%s.log' % nodename,filemode='w',level=logging.DEBUG)
   elif logto == 'console':
     logging.basicConfig(level=logging.DEBUG)
   else:
@@ -210,7 +212,11 @@ def main(argv):
   #
   c.test()
   #
-  raw_input('Enter\n')
+  if nodename == 'c':
+    raw_input('Enter\n')
+  else:
+    time.sleep(100000)
+  #
   c.close()
   
 if __name__ == "__main__":

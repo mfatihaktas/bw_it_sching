@@ -438,7 +438,7 @@ class ItServHandler(threading.Thread):
             data = data_
             uptofunc_list.append(func)
         #
-        if not self.nodename[0] == 'mfa':
+        if not self.nodename[0] == 't':
           datasize = getsizeof(data)
           self.forward_data(data = data,
                             uptofunc_list = uptofunc_list,
@@ -720,7 +720,6 @@ class Transit(object):
   def test(self):
     self.logger.debug('test')
     
-    
     datasize = 20 #MB
     imgsize = CHUNKSIZE/10
     nimg = datasize*(1024**2)/float(imgsize)
@@ -730,7 +729,7 @@ class Transit(object):
             'datasize': datasize,
             'itfunc_dict': {'fft': 0.867226044101, 'upsampleplot': 0.0038516502104579617 },
             'uptoitfunc_dict': {},
-            'proc': 100.0,
+            'proc': 50.0,
             's_tp': 6000 }
     self.welcome_s(data.copy())
     '''
@@ -744,17 +743,16 @@ class Transit(object):
     time.sleep(10)
     self.rewelcome_s(data_.copy())
     '''
-    '''
+    
     data = {'proto': 6,
             'data_to_ip': u'10.0.0.1',
             'datasize': datasize,
-            'itfunc_dict': {'upsampleplot': 1.0},
+            'itfunc_dict': {'fft': 1},
             'uptoitfunc_dict': {},
-            'proc': 1.0,
+            'proc': 50.0,
             's_tp': 6001 }
-    self.welcome_s(data)
-    '''
-
+    self.welcome_s(data.copy())
+    
 def main(argv):
   nodename = intf = dtsl_ip = dtsl_port= dtst_port = logto = trans_type = None
   try:
@@ -780,7 +778,7 @@ def main(argv):
       trans_type = arg
   #where to log, console or file
   if logto == 'file':
-    fname = 'logs/'+nodename+'.log'
+    fname = 'logs/%s.log' % nodename
     logging.basicConfig(filename=fname,filemode='w',level=logging.DEBUG)
   elif logto == 'console':
     logging.basicConfig(level=logging.DEBUG)
@@ -797,7 +795,7 @@ def main(argv):
                trans_type = trans_type,
                logger = logger )
   #
-  if nodename == 'mfa':
+  if nodename == 't':
     tr.test()
     raw_input('Enter\n')
     tr.shutdown()

@@ -407,8 +407,9 @@ class Scheduler(object):
         sch_req_id = self.sid_schregid_dict[s_id]
         s_info = self.sessionsbeingserved_dict[sch_req_id]
         #update s_info
-        s_info['trans_time'] = s_allocinfo_dict['trans_time']
+        s_info['trans_time'] = s_allocinfo_dict['trans_time']*0.001 #sec
         s_info['slack-tt'] = s_allocinfo_dict['slack-tt']
+        s_info['slack-transtime'] = abs(s_allocinfo_dict['trans_time']-s_info['req_dict']['slack_metric'])
         #
         if s_info['sching_job_done'][p_id] == False:
           type_toacter = 'sp_sching_req'
@@ -731,7 +732,7 @@ class Scheduler(object):
     #
     num_session = 1
     #data_size (MB) slack_metric (ms)
-    req_dict_list = [ {'data_size':1, 'slack_metric':3000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+    req_dict_list = [ {'data_size':20, 'slack_metric':25000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':1, 'slack_metric':3000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':1, 'slack_metric':1200, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':1, 'slack_metric':1000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},

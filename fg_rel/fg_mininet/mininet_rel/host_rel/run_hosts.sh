@@ -7,42 +7,47 @@ echo $1
 
 DS=20
 
+C1D=1
+P1D=5
+P1_REQDICT='{"data_size":20,"slack_metric":60000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P1_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
+
+C2D=1
+P2D=15
+P2_REQDICT='{"data_size":10,"slack_metric":20000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P2_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
+
+MINHTBDIR='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
+
 if [ $1  = 'p' ]; then
   python producer.py --intf=p-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.0.1 \
-                     --proto=tcp --tx_type=file --file_url=ltx.dat --kstardata_url=... --logto=console \
+                     --proto=tcp --tx_type=file --file_url=ltx.dat --kstardata_url=... --logto=console --nodename=p \
                      --req_dict='{"data_size":1,"slack_metric":1000,"func_list":["f1","f2","f3"],"parism_level":1,"par_share":[1]}' \
                      --app_pref_dict='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}' \
                      --htbdir='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
 elif [ $1  = 'p1' ]; then
-  #python producer.py --intf=p1-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.1.0 \
-  #                   --proto=tcp --tx_type=kstardata --file_url=ltx1.dat --kstardata_url=/home/ubuntu/large_ecei_data.bp --logto=console \
-  #                   --req_dict='{"data_size":1,"slack_metric":1000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}' \
-  #                   --app_pref_dict='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}' \
-  #                   --htbdir='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
+  sleep $P1D
   python producer.py --intf=p1-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.1.0 \
-                     --proto=tcp --tx_type=kstardata --file_url=ltx1.dat --kstardata_url=/home/ubuntu/large_ecei_data.bp --logto=console \
-                     --req_dict='{"data_size":20,"slack_metric":25000,"func_list":["fft", "upsampleplot"],"parism_level":1,"par_share":[1]}' \
-                     --app_pref_dict='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}' \
-                     --htbdir='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
+                     --proto=tcp --tx_type=kstardata --file_url=ltx1.dat --kstardata_url=/home/ubuntu/large_ecei_data.bp --logto=file --nodename=p1 \
+                     --req_dict=$P1_REQDICT --app_pref_dict=$P1_APPPREFDICT --htbdir=$MINHTBDIR
 elif [ $1  = 'p2' ]; then
+  sleep $P2D
   python producer.py --intf=p2-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.1.1 \
-                     --proto=tcp --tx_type=kstardata --file_url=ltx2.dat --kstardata_url=/home/ubuntu/large_ecei_data.bp --logto=console \
-                     --req_dict='{"data_size":1,"slack_metric":1000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}' \
-                     --app_pref_dict='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}' \
-                     --htbdir='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
+                     --proto=tcp --tx_type=kstardata --file_url=ltx2.dat --kstardata_url=/home/ubuntu/large_ecei_data.bp --logto=file --nodename=p2 \
+                     --req_dict=$P2_REQDICT --app_pref_dict=$P2_APPPREFDICT --htbdir=$MINHTBDIR
 elif [ $1  = 'c' ]; then
   python consumer.py --intf=lo --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
-                     --proto=tcp --rx_type=kstardata --logto=console
-  #python consumer.py --intf=c-eth0 --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
-  #                   --proto=tcp --rx_type=dummy --logto=console
+                     --proto=tcp --rx_type=kstardata --logto=console --nodename=mfa
 elif [ $1  = 'c1' ]; then
+  sleep $C1D
   python consumer.py --intf=c1-eth0 --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
-                     --proto=tcp --rx_type=kstardata --logto=console
+                     --proto=tcp --rx_type=kstardata --logto=file --nodename=c1
 elif [ $1  = 'c2' ]; then
+  sleep $C2D
   python consumer.py --intf=c2-eth0 --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
-                     --proto=tcp --rx_type=kstardata --logto=console
+                     --proto=tcp --rx_type=kstardata --logto=file --nodename=c2
 elif [ $1  = 't' ]; then
-  python transit.py --nodename=mfa --intf=lo --dtsl_ip=127.0.0.1 --dtsl_port=7002 --dtst_port=7001 --logto=file --trans_type=file
+  python transit.py --nodename=t --intf=lo --dtsl_ip=127.0.0.1 --dtsl_port=7002 --dtst_port=7001 --logto=file --trans_type=file
 elif [ $1  = 't11' ]; then
   python transit.py --nodename=t11 --intf=eth0 --dtsl_ip=10.0.0.255 --dtsl_port=7001 --dtst_port=7001 --logto=file --trans_type=file
 elif [ $1  = 't21' ]; then
@@ -63,18 +68,11 @@ elif [ $1  = 'r' ]; then
   python receiver.py --lintf=lo --lport=6000 --proto=tcp --rx_type=kstardata --file_url=/home/mehmet/Desktop/rx.dat --logto=console
 elif [ $1  = 'glf' ]; then
 	dd if=/dev/urandom of=ltx.dat bs=1728 count=10000 #outputs bs x count Bs 
-elif [ $1  = 'pexp' ]; then
-  #python producer.py --intf=p-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.0.1 \
-  #                   --proto=tcp --tx_type=dummy --file_url=ltx.dat --logto=file \
-  #                   --req_dict='{"data_size":100,"slack_metric":1050,"func_list":["f1","f2","f3"],"parism_level":1,"par_share":[1]}' \
-  #                   --app_pref_dict='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}' \
-  #                   --htbdir='/home/mininet/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
-  echo "p1"
-  sleep 2
-  echo "p2"
-  sleep 2
-  echo "p3"
-#eceiprocing
+elif [ $1  = 'k' ]; then
+  sudo pkill -f transit
+  sudo pkill -f producer
+  sudo pkill -f consumer
+  sudo pkill -f eceiproc
 elif [ $1  = 'den' ]; then
   g++ deneme.c -o deneme
   ./deneme
@@ -83,13 +81,15 @@ elif [ $1  = 'den' ]; then
   #python deneme.py | ./deneme
 elif [ $1  = 'ep' ]; then
   make eceiproc
-  ./eceiproc --datafname "/media/portable_large/ecei_data.bp" \
-             --outdir "/media/portable_large/cb_sim_rel/fg_rel/fg_mininet/mininet_rel/host_rel/companalysis" \
-             --compfname "fft_1.dat"
+  #./eceiproc --datafname "/media/portable_large/ecei_data.bp" \
+  #           --outdir "/media/portable_large/cb_sim_rel/fg_rel/fg_mininet/mininet_rel/host_rel/companalysis" \
+  #           --compfname "fft_1.dat"
 elif [ $1  = 'ep2' ]; then
   make eceiproc2
-  ./eceiproc2 --stpdst=6000
-  
+  ./eceiproc2 --stpdst=6000 --loc="mfa"
+elif [ $1  = 'ep2m' ]; then
+  make eceiproc2
+  ./eceiproc2 --stpdst=6000 --loc="mininet" > logs/eceiproc2.log
 else
 	echo "Argument did not match !"
 fi
