@@ -8,20 +8,20 @@ echo $1
 DS=20
 
 C1D=1
-P1D=10
+P1D=15
 P1_REQDICT='{"data_size":20,"slack_metric":60000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P1_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 
 C2D=1
-P2D=15
-P2_REQDICT='{"data_size":10,"slack_metric":40000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P2D=10
+P2_REQDICT='{"data_size":100,"slack_metric":300000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P2_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 
 MINHTBDIR='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
 
 C3D=1
 P3D=5
-P3_REQDICT='{"data_size":10,"slack_metric":40000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P3_REQDICT='{"data_size":100,"slack_metric":250000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P3_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 
 MINHTBDIR='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'

@@ -44,21 +44,25 @@ class SchController(object):
       
       coupling_dur = coupling_done['recvend_time'] - session_done['sendstart_time']
       onthefly_dur = session_done['sendstop_time'] - coupling_done['recvstart_time']
-      couplingdur_error = 100*(coupling_dur-sessionpreserved['trans_time'])/sessionpreserved['trans_time']
       
       couplingdoneinfo['overall'] = {'coupling_dur': coupling_dur,
                                      'onthefly_dur': onthefly_dur,
-                                     'couplingdur_error': couplingdur_error,
                                      'recvedsize': coupling_done['recvedsize'],
                                      'sentsize': session_done['sentsize'],
                                      'trans_time': sessionpreserved['trans_time'],
                                      'slack-tt': sessionpreserved['slack-tt'],
                                      'slack-transtime': sessionpreserved['slack-transtime'],
-                                     'app_pref_dict': sessionpreserved['app_pref_dict'],
-                                     'preslackmetric_list': sessionpreserved['preslackmetric_list']
-                                     }
-      #couplingdoneinfo['overall'].update(sessionspreserved_dict[sch_req_id])
-      #print 'sch_req_id=%s, couplingdoneinfo=\n%s' % (sch_req_id, pprint.pformat(couplingdoneinfo))
+                                     'app_pref_dict': sessionpreserved['app_pref_dict'] }
+      initial_slack = None
+      if 'preslackmetric_list' in sessionpreserved:
+        initial_slack = max(sessionpreserved['preslackmetric_list'])*0.001 #sec
+        couplingdoneinfo['overall'].update({'preslackmetric_list': sessionpreserved['preslackmetric_list'] })
+      else:
+        initial_slack = sessionpreserved['slack-transtime'] + sessionpreserved['trans_time']
+      #
+      couplingdur_error = 100*(coupling_dur - initial_slack)/initial_slack
+      couplingdoneinfo['overall'].update({'initial_slack': initial_slack,
+                                           'couplingdur_error': couplingdur_error })
     #
     print 'couplingdoneinfo_dict=\n%s' % pprint.pformat(couplingdoneinfo_dict)
     
