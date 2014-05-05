@@ -19,3 +19,8 @@ p_bw = N x max_numspaths
 s_n = N x max_numitfuncs
 r_proc = N x max_parismlevel
 r_dur = N x max_parismlevel
+
+f1=fft  f2=upsampleplot
+
+sch_req_id  recvedsize  slacktime  couplingdur  couplingdur_relerr  
+recvedsizewithf1  recvedpercwithf1  recvedsizewithf2  recvedpercwithf2
