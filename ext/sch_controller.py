@@ -54,18 +54,22 @@ class SchController(object):
                                      'slack-transtime': sessionpreserved['slack-transtime'],
                                      'app_pref_dict': sessionpreserved['app_pref_dict'] }
       initial_slack = None
-      if 'preslackmetric_list' in sessionpreserved:
-        initial_slack = max([sessionpreserved['slack-transtime'] + sessionpreserved['trans_time']] + sessionpreserved['preslackmetric_list'])*0.001 #sec
-        couplingdoneinfo['overall']['preslackmetric_list'] = sessionpreserved['preslackmetric_list']
+      if 'slackmetric_list' in sessionpreserved:
+        initial_slack = max(sessionpreserved['slackmetric_list']) #sec
+        couplingdoneinfo['overall']['slackmetric_list'] = sessionpreserved['slackmetric_list']
+        couplingdoneinfo['overall']['schedtime_list'] = sessionpreserved['schedtime_list']
+        couplingdoneinfo['overall']['bw_list'] = sessionpreserved['bw_list']
+        couplingdoneinfo['overall']['proc_list'] = sessionpreserved['proc_list']
+        couplingdoneinfo['overall']['datasize_list'] = sessionpreserved['datasize_list']
       else:
-        initial_slack = sessionpreserved['slack-transtime'] + sessionpreserved['trans_time']
+        initial_slack = sessionpreserved['slackmetric_list'][-1]
       #
       couplingdur_relerr = 100*(coupling_dur - initial_slack)/initial_slack
       couplingdoneinfo['overall'].update({'initial_slack': initial_slack,
                                           'couplingdur_relerr': couplingdur_relerr })
       #
       couplingdoneinfo['overall']['recvedpercentwithfunc_dict'] = \
-        {func:100*size/coupling_done['recvedsize'] for func,size in coupling_done['recvedsizewithfunc_dict'].items()}
+        {func:100*float(size)/coupling_done['recvedsize'] for func,size in coupling_done['recvedsizewithfunc_dict'].items()}
     #
     print 'couplingdoneinfo_dict=\n%s' % pprint.pformat(couplingdoneinfo_dict)
     
@@ -80,7 +84,7 @@ class SchController(object):
     for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items():
       infostr = str(sch_req_id) + ' ' + \
                 str(couplingdoneinfo['overall']['recvedsize']) + ' ' + \
-                str(couplingdoneinfo['overall']['inital_slack']) + ' ' + \
+                str(couplingdoneinfo['overall']['initial_slack']) + ' ' + \
                 str(couplingdoneinfo['overall']['coupling_dur']) + ' ' + \
                 str(couplingdoneinfo['overall']['couplingdur_relerr'])
       for func,size in couplingdoneinfo['coupling_done']['recvedsizewithfunc_dict'].items():

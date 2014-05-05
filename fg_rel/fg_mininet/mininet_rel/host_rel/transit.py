@@ -606,6 +606,7 @@ class Transit(object):
     self.sflagq_frompipes_dict = {}
     self.stokenq_dict = {}
     #
+    self.stpdst_firstitwork_dict = {}
     self.logger.info('%s is ready...', self.nodename)
 
   ###  handle dts_comm  ###
@@ -629,14 +630,16 @@ class Transit(object):
     del data_['proto']
     del data_['proc']
     
+    datasize = self.stpdst_firstitwork_dict[stpdst]['datasize']
+    
     uptojobdone = {}
     for ftag,n in data_['uptoitfunc_dict'].items():
-      uptojobdone[ftag] = data_['datasize']*float(n)
+      uptojobdone[ftag] = datasize*float(n)
     data_.update( {'uptojobdone': uptojobdone} )
     
     jobtobedone = {}
     for ftag,n in data_['itfunc_dict'].items():
-      jobtobedone[ftag] = data_['datasize']*float(n)
+      jobtobedone[ftag] = datasize*float(n)
     data_.update( {'jobtobedone': jobtobedone} )
     #
     self.sflagq_topipes_dict[stpdst].put(data_)
@@ -695,6 +698,8 @@ class Transit(object):
                      kwargs = {'stpdst':stpdst,
                                'intereq_time':intereq_time } ).start()
     #
+    self.stpdst_firstitwork_dict[stpdst] = data_
+    self.logger.debug('stpdst_firstitwork_dict=%s', pprint.pformat(self.stpdst_firstitwork_dict))
     if self.trans_type == 'file':
       s_server_thread = PipeServer(nodename = self.nodename,
                                    server_addr = (self.tl_ip, stpdst),

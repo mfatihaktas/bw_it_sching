@@ -98,6 +98,7 @@ class Scheduler(object):
     #
     #self.exp()
     self.couplinginfo_dict = {}
+    self.startedtime = time.time()
   
   def recv_from_user(self, userinfo_dict, msg):
     user_ip = userinfo_dict['user_ip']
@@ -363,15 +364,10 @@ class Scheduler(object):
     #
     #'''
     for sch_req_id, sinfo in self.sessionsbeingserved_dict.items():
-      if 'sched_lasttime' in sinfo:
-        elapsed_time = time.time() - sinfo['sched_lasttime']
-        elapsed_datasize = elapsed_time*sinfo['bw']/8 #MB
+      if 'schedtime_list' in sinfo:
+        elapsed_time = 1.1*(time.time() - self.startedtime - sinfo['schedtime_list'][-1])
+        elapsed_datasize = elapsed_time*sinfo['bw_list'][-1]/8 #MB
         sinfo['req_dict']['data_size'] -= elapsed_datasize
-        
-        if not 'preslackmetric_list' in sinfo:
-          sinfo['preslackmetric_list'] = []
-        #
-        sinfo['preslackmetric_list'].append(sinfo['req_dict']['slack_metric'])
         sinfo['req_dict']['slack_metric'] -= elapsed_time
       #
     #
@@ -390,8 +386,19 @@ class Scheduler(object):
     for s_id, salloc in self.alloc_dict['s-wise'].items():
       sch_req_id = self.sid_schregid_dict[s_id]
       sinfo = self.sessionsbeingserved_dict[sch_req_id]
+      if not 'schedtime_list' in sinfo:
+        sinfo['schedtime_list'] = []
+        sinfo['slackmetric_list'] = []
+        sinfo['bw_list'] = []
+        sinfo['proc_list'] = []
+        sinfo['datasize_list'] = []
+      #
+      sinfo['schedtime_list'].append(time.time()-self.startedtime)
+      sinfo['slackmetric_list'].append(sinfo['req_dict']['slack_metric']*0.001)
+      sinfo['bw_list'].append(salloc['bw'])
+      sinfo['proc_list'].append(salloc['proc'])
+      sinfo['datasize_list'].append(sinfo['req_dict']['data_size'])
       
-      sinfo['sched_lasttime'] = time.time()
       sinfo['trans_time'] = salloc['trans_time']*0.001
       sinfo['bw'] = salloc['bw'] #Mbps
     #'''

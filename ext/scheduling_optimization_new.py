@@ -10,7 +10,7 @@ import __builtin__
 from expr_matrix import Expr as expr
 
 TOVERHEADCONST_ONTRANSFER = 1.1
-SLACKFEASIBILITYCONST = 1.05
+SLACKFEASIBILITYCONST = 1
 
 class SchingOptimizer:
   def __init__(self, sessions_beingserved_dict, actual_res_dict, sid_res_dict):
