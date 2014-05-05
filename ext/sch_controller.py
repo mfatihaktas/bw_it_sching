@@ -5,7 +5,7 @@ import pox.lib.packet as pkt
 from pox.openflow.of_json import *
 #from pox.lib.util import dpid_to_str
 from scheduler import Scheduler #, EventChief
-import pprint,logging,signal
+import pprint,logging,signal,threading
 log = core.getLogger()
 
 info_dict = {'scher_vip': '10.0.0.255',
@@ -14,7 +14,7 @@ info_dict = {'scher_vip': '10.0.0.255',
   
 class SchController(object):
   def __init__(self):
-    signal.signal(signal.SIGINT, self.signal_handler)
+    threading.Thread(target=self.waitforenter).start()
     #
     self.scheduler = Scheduler(xml_net_num = 1,
                                sching_logto = 'console',
@@ -29,8 +29,8 @@ class SchController(object):
     core.openflow.addListenerByName("FlowStatsReceived", self._handle_FlowStatsReceived)
     core.openflow.addListenerByName("PacketIn", self._handle_PacketIn  )
   
-  def signal_handler(self, signal, frame):
-    print 'signal_handler:: ctrl+c !'
+  def waitforenter(self):
+    raw_input('Enter\n')
     
     couplingdoneinfo_dict = self.scheduler.get_couplingdoneinfo_dict()
     sessionspreserved_dict = self.scheduler.get_sessionspreserved_dict()
@@ -55,8 +55,10 @@ class SchController(object):
                                      'slack-tt': sessionpreserved['slack-tt'],
                                      'slack-transtime': sessionpreserved['slack-transtime'],
                                      'app_pref_dict': sessionpreserved['app_pref_dict'],
+                                     'preslackmetric_list': sessionpreserved['preslackmetric_list']
                                      }
       #couplingdoneinfo['overall'].update(sessionspreserved_dict[sch_req_id])
+      #print 'sch_req_id=%s, couplingdoneinfo=\n%s' % (sch_req_id, pprint.pformat(couplingdoneinfo))
     #
     print 'couplingdoneinfo_dict=\n%s' % pprint.pformat(couplingdoneinfo_dict)
     
@@ -64,8 +66,6 @@ class SchController(object):
     f = open(furl, 'w')
     f.write(pprint.pformat(couplingdoneinfo_dict))
     f.close()
-    
-    signal.signal(signal.SIGINT, None)
   
   #########################  _handle_*** methods  #######################
   def _handle_SendMsgToUser(self, event):

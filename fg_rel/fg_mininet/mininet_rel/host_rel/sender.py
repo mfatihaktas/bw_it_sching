@@ -92,7 +92,9 @@ class Sender(threading.Thread):
       return
     #
     self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    logging.info('kstardata_send:: trying to connect to %s ...', self.dst_addr )
     self.sock.connect(self.dst_addr)
+    logging.info('kstardata_send:: connected to %s ...', self.dst_addr )
     #
     self.sendstart_time = time.time()
     logging.info('kstardata_send:: started at time=%s', self.sendstart_time )

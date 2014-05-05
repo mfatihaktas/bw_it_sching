@@ -1,4 +1,4 @@
-import json, pprint, os, inspect, sys, logging
+import json,pprint,os,inspect,sys,logging,time
 from xmlparser import XMLParser
 from graphman import GraphMan
 from scheduling_optimization_new import SchingOptimizer
@@ -361,6 +361,21 @@ class Scheduler(object):
     elif self.sching_logto == 'console':
       logging.basicConfig(level=logging.DEBUG)
     #
+    #'''
+    for sch_req_id, sinfo in self.sessionsbeingserved_dict.items():
+      if 'sched_lasttime' in sinfo:
+        elapsed_time = time.time() - sinfo['sched_lasttime']
+        elapsed_datasize = elapsed_time*sinfo['bw']/8 #MB
+        sinfo['req_dict']['data_size'] -= elapsed_datasize
+        
+        if not 'preslackmetric_list' in sinfo:
+          sinfo['preslackmetric_list'] = []
+        #
+        sinfo['preslackmetric_list'].append(sinfo['req_dict']['slack_metric'])
+        sinfo['req_dict']['slack_metric'] -= elapsed_time
+      #
+    #
+    #'''
     logging.info('do_sching:: sching_id=%s started;', sching_id)
     self.update_sid_res_dict()
     self.update_sid_schregid_dict()
@@ -368,8 +383,18 @@ class Scheduler(object):
                                    self.actual_res_dict,
                                    self.give_incintkeyform(self.sid_res_dict) )
     sching_opter.solve()
+    #
     self.alloc_dict = sching_opter.get_sching_result()
     logging.info('do_sching:: alloc_dict=\n%s', pprint.pformat(self.alloc_dict))
+    #'''
+    for s_id, salloc in self.alloc_dict['s-wise'].items():
+      sch_req_id = self.sid_schregid_dict[s_id]
+      sinfo = self.sessionsbeingserved_dict[sch_req_id]
+      
+      sinfo['sched_lasttime'] = time.time()
+      sinfo['trans_time'] = salloc['trans_time']*0.001
+      sinfo['bw'] = salloc['bw'] #Mbps
+    #'''
     #
     """
     logging.info('saving sching_dec to figs...')
@@ -407,7 +432,7 @@ class Scheduler(object):
         sch_req_id = self.sid_schregid_dict[s_id]
         s_info = self.sessionsbeingserved_dict[sch_req_id]
         #update s_info
-        s_info['trans_time'] = s_allocinfo_dict['trans_time']*0.001 #sec
+        #s_info['trans_time'] = s_allocinfo_dict['trans_time']*0.001 #sec
         s_info['slack-tt'] = s_allocinfo_dict['slack-tt']
         s_info['slack-transtime'] = abs(s_allocinfo_dict['trans_time']-s_info['req_dict']['slack_metric'])
         #

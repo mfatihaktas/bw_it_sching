@@ -3,7 +3,7 @@
         "/default.json"
     ],
     "preferences": {
-        "theme": "github",
+        "theme": "terminal",
         "fontSize": 13,
         "tabSize": 2
     },

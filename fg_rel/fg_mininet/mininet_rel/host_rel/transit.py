@@ -324,8 +324,9 @@ class ItServHandler(threading.Thread):
     if self.nodename[0] == 't':
       subprocess.call(['./eceiproc2', '--stpdst=%s' % self.stpdst, '--loc=mfa'])
     else:
-      subprocess.call(['./eceiproc2', '--stpdst=%s' % self.stpdst, '--loc=mininet',
-                       '>', 'logs/eceproc%s.log' % self.stpdst ])
+      subprocess.call(['./eceiproc2', '--stpdst=%s' % self.stpdst, '--loc=mininet' ])
+      #subprocess.call(['./eceiproc2', '--stpdst=%s' % self.stpdst, '--loc=mininet',
+      #                 '>', 'logs/eceproc%s.log' % self.stpdst ])
     #
   
   def init_procsocks(self):
@@ -417,7 +418,7 @@ class ItServHandler(threading.Thread):
         continue
       #
       itfunc_list = self.get_itfunclist_overnextchunk()
-      print 'itfunc_list=%s' % pprint.pformat(itfunc_list)
+      #print 'itfunc_list=%s' % pprint.pformat(itfunc_list)
       #
       (data, datasize, uptofunc_list) = self.pop_from_pipe()
       datasize_t = copy.copy(datasize)
@@ -425,9 +426,11 @@ class ItServHandler(threading.Thread):
         if datasize == 0: #failed
           pass
         elif datasize == -1: #EOF
-          self.forward_data(data = 'EOF',
-                            uptofunc_list = '[]',
-                            datasize = 3 )
+          if not self.nodename[0] == 't':
+            self.forward_data(data = 'EOF',
+                              uptofunc_list = '[]',
+                              datasize = 3 )
+          #
           self.logger.debug('run:: EOF is rxed and forwarded! Aborting...')
           self.stopflag = True
         elif datasize == -2: #STOP
@@ -768,6 +771,15 @@ class Transit(object):
             'uptoitfunc_dict': {},
             'proc': 50.0,
             's_tp': 6001 }
+    self.welcome_s(data.copy())
+    
+    data = {'proto': 6,
+            'data_to_ip': u'10.0.0.1',
+            'datasize': datasize,
+            'itfunc_dict': {'fft': 0.5},
+            'uptoitfunc_dict': {},
+            'proc': 50.0,
+            's_tp': 6002 }
     self.welcome_s(data.copy())
     
 def main(argv):

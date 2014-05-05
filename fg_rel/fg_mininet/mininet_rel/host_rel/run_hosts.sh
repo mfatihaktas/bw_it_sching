@@ -8,14 +8,21 @@ echo $1
 DS=20
 
 C1D=1
-P1D=5
+P1D=10
 P1_REQDICT='{"data_size":20,"slack_metric":60000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P1_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 
 C2D=1
 P2D=15
-P2_REQDICT='{"data_size":10,"slack_metric":20000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P2_REQDICT='{"data_size":10,"slack_metric":40000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P2_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
+
+MINHTBDIR='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
+
+C3D=1
+P3D=5
+P3_REQDICT='{"data_size":10,"slack_metric":40000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P3_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 
 MINHTBDIR='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
 
@@ -54,7 +61,7 @@ elif [ $1  = 'c2' ]; then
 elif [ $1  = 'c3' ]; then
   sleep $C3D
   python consumer.py --intf=c3-eth0 --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
-                     --proto=tcp --rx_type=kstardata --logto=file --nodename=c
+                     --proto=tcp --rx_type=kstardata --logto=file --nodename=c3
 elif [ $1  = 't' ]; then
   python transit.py --nodename=t --intf=lo --dtsl_ip=127.0.0.1 --dtsl_port=7002 --dtst_port=7001 --logto=file --trans_type=file
 elif [ $1  = 't11' ]; then
@@ -72,6 +79,8 @@ elif [ $1  = 's6000' ]; then
   python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=$DS --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --kstardata_url=/home/ubuntu/large_ecei_data.bp
 elif [ $1  = 's6001' ]; then
   python sender.py --dst_ip=127.0.0.1 --dst_lport=6001 --datasize=$DS --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --kstardata_url=/home/ubuntu/large_ecei_data.bp
+elif [ $1  = 's6002' ]; then
+  python sender.py --dst_ip=127.0.0.1 --dst_lport=6002 --datasize=$DS --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --kstardata_url=/home/ubuntu/large_ecei_data.bp
 elif [ $1  = 'r' ]; then
   #python receiver.py --lintf=lo --lport=6000 --proto=tcp --rx_type=dummy --file_url=rx.dat --logto=console
   python receiver.py --lintf=lo --lport=6000 --proto=tcp --rx_type=kstardata --file_url=/home/mehmet/Desktop/rx.dat --logto=console
@@ -82,6 +91,8 @@ elif [ $1  = 'k' ]; then
   sudo pkill -f producer
   sudo pkill -f consumer
   sudo pkill -f eceiproc
+  sudo pkill -f deneme
+  sudo pkill -f hosts
 elif [ $1  = 'den' ]; then
   g++ deneme.c -o deneme
   ./deneme
@@ -95,10 +106,10 @@ elif [ $1  = 'ep' ]; then
   #           --compfname "fft_1.dat"
 elif [ $1  = 'ep2' ]; then
   make eceiproc2
-  ./eceiproc2 --stpdst=6000 --loc="mfa"
+  ./eceiproc2 --stpdst=6000
 elif [ $1  = 'ep2m' ]; then
   make eceiproc2
-  ./eceiproc2 --stpdst=6000 --loc="mininet" > logs/eceiproc2.log
+  ./eceiproc2 --stpdst=6000 > logs/eceiproc2.log
 else
 	echo "Argument did not match !"
 fi

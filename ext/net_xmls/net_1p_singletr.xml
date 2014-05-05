@@ -1,9 +1,9 @@
 <!--
-p1....[eth1]S1[eth4]......[eth1]S2[eth3].....c1
-p2....[eth2]                      [eth4].....c2
+p1....[ethX]S1[eth2]......[eth1]S2[ethX].....c1
+p2....[ethX]                      [ethX].....c2
 
 SW              ITR
-S1[eth3] ... [eth0]t11 - 5
+S1[eth1] ... [eth0]t11 - 5
 
 Caps:
 
@@ -18,13 +18,13 @@ Caps:
     <edges>
       <!-- SW...SW-->
       <edge pre_node="s1" post_node="s2">
-        <dev pre_dev="s1-eth4" post_dev="s2-eth1"/>
+        <dev pre_dev="s1-eth2" post_dev="s2-eth1"/>
         <session/>
         <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>
       </edge>
       <!-- SW...ITR -->
       <edge pre_node="s1" post_node="t11">
-        <dev pre_dev="s1-eth3" post_dev="t11-eth0"/>
+        <dev pre_dev="s1-eth1" post_dev="t11-eth0"/>
         <session/>
         <link_cap bw="20" delay="0" loss="0" max_queue_size="10000"/>
       </edge>
