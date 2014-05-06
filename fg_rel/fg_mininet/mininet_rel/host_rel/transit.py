@@ -28,6 +28,8 @@ CHUNKHSIZE = 50 #B
 CHUNKSIZE = 24*8*9*10 #B
 CHUNKSTRSIZE = CHUNKSIZE+CHUNKHSIZE
 
+INTEREQTIME_CORRECTIONCONST = 0.95
+
 class PipeServer(threading.Thread):
   def __init__(self, nodename, server_addr, itwork_dict, to_addr, sflagq_in, sflagq_out, stokenq, intereq_time):
     threading.Thread.__init__(self)
@@ -322,9 +324,9 @@ class ItServHandler(threading.Thread):
     
   def init_eceiproc(self):
     if self.nodename[0] == 't':
-      subprocess.call(['./eceiproc2', '--stpdst=%s' % self.stpdst, '--loc=mfa'])
+      subprocess.call(['./eceiproc2', '--stpdst=%s' % self.stpdst ])
     else:
-      subprocess.call(['./eceiproc2', '--stpdst=%s' % self.stpdst, '--loc=mininet' ])
+      subprocess.call(['./eceiproc2', '--stpdst=%s' % self.stpdst ])
       #subprocess.call(['./eceiproc2', '--stpdst=%s' % self.stpdst, '--loc=mininet',
       #                 '>', 'logs/eceproc%s.log' % self.stpdst ])
     #
@@ -351,6 +353,7 @@ class ItServHandler(threading.Thread):
       #flag can only be new itwork_dict
       self.itwork_dict = flag
       self.reinit_itjobdicts()
+      
       self.logger.debug('listen_pipeserver:: NEW itwork_dict=%s\n', pprint.pformat(self.itwork_dict))
   
   def get_itfunclist_overnextchunk(self):
@@ -605,6 +608,7 @@ class Transit(object):
     self.sflagq_topipes_dict = {}
     self.sflagq_frompipes_dict = {}
     self.stokenq_dict = {}
+    self.sintereqtime_dict = {}
     #
     self.stpdst_firstitwork_dict = {}
     self.logger.info('%s is ready...', self.nodename)
@@ -626,10 +630,6 @@ class Transit(object):
       self.logger.error('Recved reitjob_rule msg for a nonreged stpdst=%s', stpdst)
       return
     #
-    del data_['data_to_ip']
-    del data_['proto']
-    del data_['proc']
-    
     datasize = self.stpdst_firstitwork_dict[stpdst]['datasize']
     
     uptojobdone = {}
@@ -642,18 +642,28 @@ class Transit(object):
       jobtobedone[ftag] = datasize*float(n)
     data_.update( {'jobtobedone': jobtobedone} )
     #
+    proc_cap = float(data_['proc'])
+    datasize_ = float(data_['datasize'])
+    nchunks = datasize_*(1024**2)/CHUNKSTRSIZE
+    modelproct = proc_time_model(datasize = datasize_,
+                                 func_n_dict = data_['itfunc_dict'],
+                                 proc_cap = proc_cap )
+    self.sintereqtime_dict[stpdst] = (modelproct/nchunks)*INTEREQTIME_CORRECTIONCONST
+    self.logger.debug('rewelcome_s:: stpdst=%s, new intereq_time=%s', stpdst, self.sintereqtime_dict[stpdst])
+    #
     self.sflagq_topipes_dict[stpdst].put(data_)
     self.logger.debug('rewelcome_s:: done for stpdst=%s', stpdst)
     
-  def manage_stokenq(self, stpdst, intereq_time):
+    
+  def manage_stokenq(self, stpdst):
     stokenq = self.stokenq_dict[stpdst]
     while not self.stopflag:
       try:
         stokenq.put(CHUNKSIZE, False)
       except Queue.Full:
         pass
-      #self.logger.debug('manage_stokenq_%s:: sleeping for %ssecs', stpdst, intereq_time)
-      time.sleep(intereq_time)
+      #self.logger.debug('manage_stokenq_%s:: sleeping for %ssecs', stpdst, self.sintereqtime_dict[stpdst])
+      time.sleep(self.sintereqtime_dict[stpdst])
     #
     self.logger.debug('manage_stokenq_%s:: stoppped by STOP flag!', stpdst)
   
@@ -692,11 +702,11 @@ class Transit(object):
     self.stokenq_dict[stpdst] = stokenq
     #
     nchunks = datasize*(1024**2)/CHUNKSTRSIZE
-    intereq_time = (modelproct/nchunks)*0.95
+    intereq_time = (modelproct/nchunks)*INTEREQTIME_CORRECTIONCONST
+    self.sintereqtime_dict[stpdst] = intereq_time
     self.logger.warning('welcome_s:: nchunks=%s, intereq_time=%s, nchunks*intereq_time=%s', nchunks, intereq_time, nchunks*intereq_time)
     threading.Thread(target = self.manage_stokenq,
-                     kwargs = {'stpdst':stpdst,
-                               'intereq_time':intereq_time } ).start()
+                     kwargs = {'stpdst':stpdst } ).start()
     #
     self.stpdst_firstitwork_dict[stpdst] = data_
     self.logger.debug('stpdst_firstitwork_dict=%s', pprint.pformat(self.stpdst_firstitwork_dict))

@@ -53,19 +53,15 @@ class SchController(object):
                                      'slack-tt': sessionpreserved['slack-tt'],
                                      'slack-transtime': sessionpreserved['slack-transtime'],
                                      'app_pref_dict': sessionpreserved['app_pref_dict'] }
-      initial_slack = None
-      if 'slackmetric_list' in sessionpreserved:
-        initial_slack = max(sessionpreserved['slackmetric_list']) #sec
-        couplingdoneinfo['overall']['slackmetric_list'] = sessionpreserved['slackmetric_list']
-        couplingdoneinfo['overall']['schedtime_list'] = sessionpreserved['schedtime_list']
-        couplingdoneinfo['overall']['bw_list'] = sessionpreserved['bw_list']
-        couplingdoneinfo['overall']['proc_list'] = sessionpreserved['proc_list']
-        couplingdoneinfo['overall']['datasize_list'] = sessionpreserved['datasize_list']
-      else:
-        initial_slack = sessionpreserved['slackmetric_list'][-1]
-      #
-      couplingdur_relerr = 100*(coupling_dur - initial_slack)/initial_slack
-      couplingdoneinfo['overall'].update({'initial_slack': initial_slack,
+      idealtrans_time = sessionpreserved['trans_time'] + sessionpreserved['schedtime_list'][-1] - sessionpreserved['schedtime_list'][0]#sec
+      couplingdoneinfo['overall']['slackmetric_list'] = sessionpreserved['slackmetric_list']
+      couplingdoneinfo['overall']['schedtime_list'] = sessionpreserved['schedtime_list']
+      couplingdoneinfo['overall']['bw_list'] = sessionpreserved['bw_list']
+      couplingdoneinfo['overall']['proc_list'] = sessionpreserved['proc_list']
+      couplingdoneinfo['overall']['datasize_list'] = sessionpreserved['datasize_list']
+      
+      couplingdur_relerr = 100*(coupling_dur - idealtrans_time)/idealtrans_time
+      couplingdoneinfo['overall'].update({'idealtrans_time': idealtrans_time,
                                           'couplingdur_relerr': couplingdur_relerr })
       #
       couplingdoneinfo['overall']['recvedpercentwithfunc_dict'] = \
@@ -84,7 +80,7 @@ class SchController(object):
     for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items():
       infostr = str(sch_req_id) + ' ' + \
                 str(couplingdoneinfo['overall']['recvedsize']) + ' ' + \
-                str(couplingdoneinfo['overall']['initial_slack']) + ' ' + \
+                str(couplingdoneinfo['overall']['idealtrans_time']) + ' ' + \
                 str(couplingdoneinfo['overall']['coupling_dur']) + ' ' + \
                 str(couplingdoneinfo['overall']['couplingdur_relerr'])
       for func,size in couplingdoneinfo['coupling_done']['recvedsizewithfunc_dict'].items():

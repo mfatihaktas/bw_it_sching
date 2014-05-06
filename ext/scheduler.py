@@ -365,8 +365,9 @@ class Scheduler(object):
     #'''
     for sch_req_id, sinfo in self.sessionsbeingserved_dict.items():
       if 'schedtime_list' in sinfo:
-        elapsed_time = 1.1*(time.time() - self.startedtime - sinfo['schedtime_list'][-1])
-        elapsed_datasize = elapsed_time*sinfo['bw_list'][-1]/8 #MB
+        elapsed_time = 1.0*(time.time() - self.startedtime - sinfo['schedtime_list'][-1])
+        #elapsed_datasize = elapsed_time*sinfo['proc_list'][-1]/8 #MB
+        elapsed_datasize = sinfo['req_dict']['data_size']*elapsed_time/sinfo['trans_time'] #MB
         sinfo['req_dict']['data_size'] -= elapsed_datasize
         sinfo['req_dict']['slack_metric'] -= elapsed_time
       #
