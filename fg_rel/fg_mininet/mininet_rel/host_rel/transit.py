@@ -756,13 +756,13 @@ class Transit(object):
     self.logger.debug('test')
     
     datasize = 20 #MB
-    imgsize = CHUNKSIZE/10
-    nimg = datasize*(1024**2)/float(imgsize)
+    #imgsize = CHUNKSIZE/10
+    #nimg = datasize*(1024**2)/float(imgsize)
     #
     data = {'proto': 6,
-            'data_to_ip': u'10.0.0.1',
+            'data_to_ip': u'10.0.1.0',
             'datasize': datasize,
-            'itfunc_dict': {'fft': 0.867226044101, 'upsampleplot': 0.0038516502104579617 },
+            'itfunc_dict': {'fft': 1 },
             'uptoitfunc_dict': {},
             'proc': 50.0,
             's_tp': 6000 }
