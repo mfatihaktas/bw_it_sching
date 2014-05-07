@@ -49,7 +49,7 @@ class SchingOptimizer:
     By assuming in-transit host NIC bws are ALWAYS higher than allocated bw:
     stor (Mb) = dur (ms)/1000 x bw (Mbps)
     '''
-    self.a = expr((3,self.N))
+    self.a = expr((2,self.N))
     self.r_soft_grain = 100
     #RESOURCE ALLOC for each diff path of sessions; modeling parameter
     self.max_numspaths = self.get_max_numspaths()
@@ -57,14 +57,14 @@ class SchingOptimizer:
     self.max_numitfuncs = 2
     self.s_n = cp.Variable(self.N, self.max_numitfuncs, name='s_n')
     self.p_proc = expr((self.N, self.max_numspaths))
-    self.p_dur = expr((self.N, self.max_numspaths))
+    #self.p_dur = expr((self.N, self.max_numspaths))
     #RESOURCE ALLOC for each session; modeling parameter
     self.r_bw = expr((self.N, self.num_link))
     #
     self.r_bw__p_bw_map()
     
     self.r_proc2 = expr((self.N, self.num_itr))
-    self.r_dur2 = expr((self.N, self.num_itr))
+    #self.r_dur2 = expr((self.N, self.num_itr))
     '''
     Problem:
     Intersection of s_path_itres sets become a bug for speculation
@@ -75,20 +75,20 @@ class SchingOptimizer:
     '''
     self.max_parismlevel = self.get_max_parismlevel()
     self.r_proc = cp.Variable(self.N*self.max_parismlevel,self.num_itr,name='r_proc')
-    self.r_dur = cp.Variable(self.N*self.max_parismlevel,self.num_itr,name='r_dur')
+    #self.r_dur = cp.Variable(self.N*self.max_parismlevel,self.num_itr,name='r_dur')
     #
     self.p_procdur__r_procdur_map()
     self.r_proc2dur2__r_procdur_map()
     self.a__p_bwprocdur_map()
     #to check min storage requirement for staging
-    self.r_stor = expr((1, self.num_itr))
-    self.r_stor__r_durXs_bw_map()
+    #self.r_stor = expr((1, self.num_itr))
+    #self.r_stor__r_durXs_bw_map()
     #to find out actual stor used by <bw_vector, dur_vector>
-    self.r_stor_actual = [0]*self.num_itr #list index: res_id
+    #self.r_stor_actual = [0]*self.num_itr #list index: res_id
     #
     self.sp_tx = expr((self.N,self.max_numspaths))
     self.sp_proc = expr((self.N,self.max_numspaths))
-    self.sp_dur = expr((self.N,self.max_numspaths))
+    #self.sp_dur = expr((self.N,self.max_numspaths))
     self.sp_trans = expr((self.N,self.max_numspaths))
     self.fill__sp_txprocdurtrans_matrices()
     #To avoid re-run of r_hard&soft stuff
@@ -117,7 +117,7 @@ class SchingOptimizer:
     
     proc_t = num_itres* 1000*(8*datasize)*(quadoverlin) # (ms)
     
-    stage_t = self.p_dur.get((s_id,p_id))
+    stage_t = 0 #self.p_dur.get((s_id,p_id))
     #
     #trans_t = tx_t + proc_t + stage_t
     trans_t = cp.max(tx_t, proc_t)
@@ -211,7 +211,7 @@ class SchingOptimizer:
     return cp.sum_entries(temp)
     '''
     return sum(l)
-
+  '''
   def r_stor__r_durXs_bw_map(self):
     def norm2_square(l):
       #l: python list
@@ -226,7 +226,7 @@ class SchingOptimizer:
       return self.sumlist(l_)
     # itr_storage requirement modeling for self.r_storstaging
     for i in range(0, self.num_itr):
-      dur_vector = self.r_dur2.get_column(i) #list, 1xN
+      #dur_vector = self.r_dur2.get_column(i) #list, 1xN
       bw_vector = self.a.get_row(0) #list, 1xN
       #(|x|^2+|y|^2)/2 >= |x|.|y| >= <x,y>: actual_dur
       upper_bound = (float)(0.001/2)*( norm2_square(bw_vector)+norm2_square(dur_vector) )
@@ -234,7 +234,8 @@ class SchingOptimizer:
       
       #(0.001/2)*( square(norm2(bw_vector))+square(norm2(dur_vector)) )
       #(0.001/2)*( power_pos(norm2(bw_vector), 2)+power_pos(norm2(dur_vector), 2) )
-    self.logger.debug('r_stor__r_durXs_bw_map:: r_stor=\n%s', self.r_stor)
+    #self.logger.debug('r_stor__r_durXs_bw_map:: r_stor=\n%s', self.r_stor)
+  '''
   
   def r_proc2dur2__r_procdur_map(self):
     par_proc2 = expr((self.N,self.num_itr))
@@ -246,15 +247,15 @@ class SchingOptimizer:
           s_id_ = s_id + pl*self.N
           if par_proc2.is_none((s_id,r_id)): #not touched yet
             par_proc2.set_((s_id,r_id), self.r_proc[s_id_,r_id])
-            par_dur2.set_((s_id,r_id), self.r_dur[s_id_,r_id])
+            #par_dur2.set_((s_id,r_id), self.r_dur[s_id_,r_id])
           else:
             par_proc2.add_to((s_id,r_id), self.r_proc[s_id_,r_id])
-            par_dur2.add_to((s_id,r_id), self.r_dur[s_id_,r_id])
+            #par_dur2.add_to((s_id,r_id), self.r_dur[s_id_,r_id])
     self.r_proc2 = par_proc2
-    self.r_dur2 = par_dur2
-    self.logger.debug('r_proc2dur2__r_procdur_map::')
-    self.logger.debug('r_proc2=\n%s', self.r_proc2)
-    self.logger.debug('r_dur2=\n%s', self.r_dur2)
+    #self.r_dur2 = par_dur2
+    #self.logger.debug('r_proc2dur2__r_procdur_map::')
+    #self.logger.debug('r_proc2=\n%s', self.r_proc2)
+    ##self.logger.debug('r_dur2=\n%s', self.r_dur2)
   
   def get_max_parismlevel(self):
     #finds and returns maximum level of parism among sessions
@@ -279,9 +280,9 @@ class SchingOptimizer:
     for i in range(0,self.N):
       self.a.set_((0,i), cp.sum_entries(self.p_bw[i,:]) )
       self.a.set_((1,i), self.sumlist(self.p_proc.get_row(i)) )
-      self.a.set_((2,i), self.sumlist(self.p_dur.get_row(i)) )
+      #self.a.set_((2,i), self.sumlist(self.p_dur.get_row(i)) )
     #
-    self.logger.debug('a__p_bwprocdur_map:: a=\n%s', self.a)
+    #self.logger.debug('a__p_bwprocdur_map:: a=\n%s', self.a)
   
   def r_bw__p_bw_map(self):
     par_ =  expr((self.N, self.num_link))
@@ -296,7 +297,7 @@ class SchingOptimizer:
             par_.add_to((s_id,l_id), self.p_bw[s_id,i])
     #
     self.r_bw = par_
-    self.logger.debug('r_bw__p_bw_map:: self.r_bw=\n%s', self.r_bw)
+    #self.logger.debug('r_bw__p_bw_map:: self.r_bw=\n%s', self.r_bw)
   
   def p_procdur__r_procdur_map(self):
     par_proc = expr((self.N,self.max_numspaths))
@@ -314,16 +315,16 @@ class SchingOptimizer:
           if par_proc.is_none((s_id,p_id)) and par_dur.is_none((s_id,p_id)): #not touched yet
             #print 's_id_:%i, itr_id_:%i' % (s_id_,itr_id_)
             par_proc.set_((s_id,p_id), self.r_proc[s_id_,itr_id_])
-            par_dur.set_((s_id,p_id), self.r_dur[s_id_,itr_id_])
+            #par_dur.set_((s_id,p_id), self.r_dur[s_id_,itr_id_])
           else:
             par_proc.add_to((s_id,p_id), self.r_proc[s_id_,itr_id_])
-            par_dur.add_to((s_id,p_id), self.r_dur[s_id_,itr_id_])
+            #par_dur.add_to((s_id,p_id), self.r_dur[s_id_,itr_id_])
     #
     self.p_proc = par_proc
-    self.p_dur = par_dur
-    self.logger.debug('p_procdur__r_procdur_map::')
-    self.logger.debug('self.p_proc=\n%s', self.p_proc)
-    self.logger.debug('self.p_dur=\n%s', self.p_dur)
+    #self.p_dur = par_dur
+    #self.logger.debug('p_procdur__r_procdur_map::')
+    #self.logger.debug('self.p_proc=\n%s', self.p_proc)
+    ##self.logger.debug('self.p_dur=\n%s', self.p_dur)
   
   def p_bwprocdur_sparsity_constraint(self):
     '''
@@ -354,11 +355,11 @@ class SchingOptimizer:
         for i in range(0, num_sparsity):
           bw_sparsity_list[ti+i] = self.p_bw[s_id,pi+i]
           proc_sparsity_list[ti+i] = self.p_proc.get((s_id,pi+i))
-          dur_sparsity_list[ti+i] = self.p_dur.get((s_id,pi+i))
+          #dur_sparsity_list[ti+i] = self.p_dur.get((s_id,pi+i))
         ti += num_sparsity
       return [cp.vstack(*bw_sparsity_list) == 0] + \
-             [cp.vstack(*proc_sparsity_list) == 0] + \
-             [cp.vstack(*dur_sparsity_list) == 0]
+             [cp.vstack(*proc_sparsity_list) == 0] #+ \
+             #[cp.vstack(*dur_sparsity_list) == 0]
   
   def r_bwprocdur_sparsity_constraint(self):
     s_rid_notindomain_list = []
@@ -391,7 +392,7 @@ class SchingOptimizer:
       for i,tup in enumerate(s_rid_notindomain_list):
         s_id_ = tup[0]+tup[1]*self.N
         proc_sparsity_list[i] = self.r_proc.get((s_id_, tup[2]))
-        dur_sparsity_list[i] = self.r_dur.get((s_id_, tup[2]))
+        #dur_sparsity_list[i] = self.r_dur.get((s_id_, tup[2]))
       #
       return  [cp.vstack(*proc_sparsity_list) == 0] + \
               [cp.vstack(*dur_sparsity_list) == 0]
@@ -413,14 +414,14 @@ class SchingOptimizer:
                                             num_itres = num_itres )
         self.sp_tx.set_((s_id,p_id), l_[0])
         self.sp_proc.set_((s_id,p_id), l_[1])
-        self.sp_dur.set_((s_id,p_id), l_[2])
+        #self.sp_dur.set_((s_id,p_id), l_[2])
         self.sp_trans.set_((s_id,p_id), l_[3])
     #log
-    self.logger.debug('fill__sp_txprocdurtrans_matrices::')
-    self.logger.debug('self.sp_tx=\n%s', self.sp_tx)
-    self.logger.debug('self.sp_proc=\n%s', self.sp_proc)
-    self.logger.debug('self.sp_dur=\n%s', self.sp_dur)
-    self.logger.debug('self.sp_trans=\n%s', self.sp_trans)
+    #self.logger.debug('fill__sp_txprocdurtrans_matrices::')
+    #self.logger.debug('self.sp_tx=\n%s', self.sp_tx)
+    #self.logger.debug('self.sp_proc=\n%s', self.sp_proc)
+    ##self.logger.debug('self.sp_dur=\n%s', self.sp_dur)
+    #self.logger.debug('self.sp_trans=\n%s', self.sp_trans)
   
   def fill__r_hardsoft__s_penutil_vectors(self):
     for s_id in range(self.N):
@@ -430,11 +431,11 @@ class SchingOptimizer:
       self.s_pen_vector.set_((0,s_id), self.P(s_id, cp.square(self.tt[0,s_id]-s_st)) )
       self.s_util_vector.set_((0,s_id), self.U(s_id, self.r_soft_vector.get((0,s_id)) ) )
     #log
-    self.logger.debug('fill__r_hardsoft__s_penutil_vectors::')
-    self.logger.debug('self.r_hard_vector=\n%s', self.r_hard_vector)
-    self.logger.debug('self.r_soft_vector=\n%s', self.r_soft_vector)
-    self.logger.debug('self.s_pen_vector=\n%s', self.s_pen_vector)
-    self.logger.debug('self.s_util_vector=\n%s', self.s_util_vector)
+    #self.logger.debug('fill__r_hardsoft__s_penutil_vectors::')
+    #self.logger.debug('self.r_hard_vector=\n%s', self.r_hard_vector)
+    #self.logger.debug('self.r_soft_vector=\n%s', self.r_soft_vector)
+    #self.logger.debug('self.s_pen_vector=\n%s', self.s_pen_vector)
+    #self.logger.debug('self.s_util_vector=\n%s', self.s_util_vector)
   
   # Constraint functions
   def tt_epigraph_form_constraint(self):
@@ -448,11 +449,11 @@ class SchingOptimizer:
     #
     return [self.p_bw >= 0] + \
            [self.r_proc >= 0] + \
-           [self.r_dur >= 0] + \
            [self.tt >= 0] + \
            [self.s_n >= 0] + \
            [self.s_n <= 1] + \
            s_n_consts
+           #[self.r_dur >= 0] + \
   
   def new_constraint0(self):
     '''
@@ -482,12 +483,12 @@ class SchingOptimizer:
       r_proc_cap_list[i] = float(res_id_info_map[i_corr]['proc_cap'])
       r_stor_cap_list[i] = float(res_id_info_map[i_corr]['stor_cap'])
     
-    #self.logger.debug('res_cap_constraint:: r_bw_agged_row=%s', r_bw_agged_row)
-    #self.logger.debug('res_cap_constraint:: r_bw_agged_row.get_row(0)=%s', r_bw_agged_row.get_row(0))
+    ##self.logger.debug('res_cap_constraint:: r_bw_agged_row=%s', r_bw_agged_row)
+    ##self.logger.debug('res_cap_constraint:: r_bw_agged_row.get_row(0)=%s', r_bw_agged_row.get_row(0))
 
     return  [cp.vstack(*r_bw_agged_row.get_row(0)) <= cp.vstack(*r_bw_cap_list) ] + \
-            [cp.vstack(*r_proc_agged_row.get_row(0)) <= cp.vstack(*r_proc_cap_list) ] + \
-            [cp.vstack(*self.r_stor.get_row(0)) <= cp.vstack(*r_stor_cap_list) ]
+            [cp.vstack(*r_proc_agged_row.get_row(0)) <= cp.vstack(*r_proc_cap_list) ] # + \
+            #[cp.vstack(*self.r_stor.get_row(0)) <= cp.vstack(*r_stor_cap_list) ]
   
   def get_var_val(self, name, (i,j) ):
     if self.N == 1:
@@ -511,16 +512,14 @@ class SchingOptimizer:
                                       s_app_pref_dict['x_p'])
       (bw, proc, dur) = (self.a.get((0,i)).value,
                          self.a.get((1,i)).value,
-                         self.a.get((2,i)).value )
+                         0 )#self.a.get((2,i)).value )
       print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
       print 'self.s_n[i, :].value=%s' % self.s_n[i, :].value
       #print 'sn_list=%s' % [n.value for n in self.s_n[i, :]]
-      #print 'bw=%s, proc=%s, dur=%s' % (bw, proc, dur)
-      #print 'trans_t=%s' % self.r_hard_vector.get((0,i)).value
-      #print 'tt=%s' % self.get_var_val('tt',(0,i))
+      print 'bw=%s, proc=%s, dur=%s' % (bw, proc, dur)
+      print 'trans_t=%s' % self.r_hard_vector.get((0,i)).value
+      print 'tt=%s' % self.get_var_val('tt',(0,i))
       print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-      if bw == None: #for N=1, weird None solution
-        return False
       #
       sn_list = [(float(self.s_n[i, k].value)**2) for k in range(self.max_numitfuncs)]
       #sn_list = [(float(n)**2) for n in (self.s_n[i, :].value)[0]]
@@ -538,11 +537,11 @@ class SchingOptimizer:
       for k in range(0,num_ps):
         p_bw.append(self.get_var_val('p_bw',(i,k)))
         p_proc.append(self.p_proc.get((i,k)).value)
-        p_dur.append(self.p_dur.get((i,k)).value)
+        #p_dur.append(self.p_dur.get((i,k)).value)
         
         sp_txt.append(self.sp_tx.get((i,k)).value)
         sp_proct.append(self.sp_proc.get((i,k)).value)
-        sp_durt.append(self.sp_dur.get((i,k)).value)
+        #sp_durt.append(self.sp_dur.get((i,k)).value)
         sp_transt.append(self.sp_trans.get((i,k)).value)
       #
       self.session_res_alloc_dict['s-wise'][i] = {
@@ -568,7 +567,7 @@ class SchingOptimizer:
     ###RES-WISE
     r_bw_in_row = self.r_bw.agg_to_row()
     r_proc2_in_row = self.r_proc2.agg_to_row()
-    r_dur2_in_row = self.r_dur2.agg_to_row()
+    #r_dur2_in_row = self.r_dur2.agg_to_row()
     #FOR network links
     for i in range(self.num_link):
       #link_cap total usage
@@ -579,17 +578,17 @@ class SchingOptimizer:
     #FOR it-resources
     for i in range(self.num_itr):
       #calculation of actual storage space
-      dur_vector = [e.value for e in self.r_dur2.get_column(i)]
+      #dur_vector = [e.value for e in self.r_dur2.get_column(i)]
       bw_vector = [e.value for e in self.a.get_row(0)]
-      self.r_stor_actual[i] = np.dot(dur_vector, bw_vector)*0.001
+      #self.r_stor_actual[i] = np.dot(dur_vector, bw_vector)*0.001
       #res_cap total usage and res_cap-session portion alloc
       self.session_res_alloc_dict['res-wise'][i+self.num_link] = {
         'proc': r_proc2_in_row.get((0,i)).value,
-        'dur': r_dur2_in_row.get((0,i)).value,
-        'stor_model': self.r_stor.get((0,i)).value,
-        'stor_actual': float(self.r_stor_actual[i]),
-        'proc_salloc_dict': {s_id:e.value for s_id,e in enumerate(self.r_proc2.get_column(i))},
-        'dur_salloc_dict': {s_id:e.value for s_id,e in enumerate(self.r_dur2.get_column(i))}
+        'proc_salloc_dict': {s_id:e.value for s_id,e in enumerate(self.r_proc2.get_column(i))}
+        #'dur': r_dur2_in_row.get((0,i)).value,
+        #'dur_salloc_dict': {s_id:e.value for s_id,e in enumerate(self.r_dur2.get_column(i))}
+        #'stor_actual': float(self.r_stor_actual[i]),
+        #'stor_model': self.r_stor.get((0,i)).value,
       }
     #general info about sching_decision
     self.session_res_alloc_dict['general']['max_numspaths'] = self.max_numspaths
@@ -655,7 +654,7 @@ class SchingOptimizer:
       for t_id in range(0, self.num_itr):
         s_id_ = s_id + p_id*self.N
         it_proc = float(self.r_proc[s_id_,t_id].value)
-        it_dur = float(self.r_dur[s_id_,t_id].value)
+        #it_dur = float(self.r_dur[s_id_,t_id].value)
         if it_proc > 1:
           p_proc += it_proc
           t_id_ = t_id + self.ll_index + 1
@@ -665,6 +664,7 @@ class SchingOptimizer:
           except KeyError:
             pitbundle_dict[it_tag] = {'proc': it_proc}
         #
+        '''
         if it_dur > 1:
           p_dur += it_dur
           t_id_ = t_id + self.ll_index + 1
@@ -674,6 +674,7 @@ class SchingOptimizer:
           except KeyError:
             pitbundle_dict[it_tag] = {'dur': it_dur}
         #
+        '''
       #
       p_info_dict['p_proc'] = p_proc
       p_info_dict['p_dur'] = p_dur
@@ -860,23 +861,23 @@ class SchingOptimizer:
       (self.scal_var).value = 1
       #
       '''
-      self.logger.debug('------------------------------')
-      self.logger.debug('F0()=%s', self.F0())
-      self.logger.debug('F0().is_convex()=%s', self.F0().is_convex())
-      self.logger.debug('F1()=%s', self.F1())
-      self.logger.debug('F1().is_concave()=%s', self.F1().is_concave())
-      self.logger.debug('F()=%s', self.F())
-      self.logger.debug('F().is_convex()=%s', self.F().is_convex())
-      self.logger.debug('------------------------------')
+      #self.logger.debug('------------------------------')
+      #self.logger.debug('F0()=%s', self.F0())
+      #self.logger.debug('F0().is_convex()=%s', self.F0().is_convex())
+      #self.logger.debug('F1()=%s', self.F1())
+      #self.logger.debug('F1().is_concave()=%s', self.F1().is_concave())
+      #self.logger.debug('F()=%s', self.F())
+      #self.logger.debug('F().is_convex()=%s', self.F().is_convex())
+      #self.logger.debug('------------------------------')
       
-      self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-      self.logger.debug('constraint0=\n%s', self.constraint0())
-      self.logger.debug('new_constraint0=\n%s', self.new_constraint0())
-      self.logger.debug('self.tt_epigraph_form_constraint()=\n%s', self.tt_epigraph_form_constraint())
-      self.logger.debug('res_cap_constraint=\n%s', self.res_cap_constraint())
-      self.logger.debug('p_bwprocdur_sparsity_constraint=\n%s', self.p_bwprocdur_sparsity_constraint())
-      self.logger.debug('r_bwprocdur_sparsity_constraint=\n%s', self.r_bwprocdur_sparsity_constraint())
-      self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+      #self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+      #self.logger.debug('constraint0=\n%s', self.constraint0())
+      #self.logger.debug('new_constraint0=\n%s', self.new_constraint0())
+      #self.logger.debug('self.tt_epigraph_form_constraint()=\n%s', self.tt_epigraph_form_constraint())
+      #self.logger.debug('res_cap_constraint=\n%s', self.res_cap_constraint())
+      #self.logger.debug('p_bwprocdur_sparsity_constraint=\n%s', self.p_bwprocdur_sparsity_constraint())
+      #self.logger.debug('r_bwprocdur_sparsity_constraint=\n%s', self.r_bwprocdur_sparsity_constraint())
+      #self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
       '''
       
       p = cp.Problem(cp.Minimize(self.F()),
@@ -905,29 +906,32 @@ class SchingOptimizer:
       '''
       t_s = time.time()
       print 'solving...' 
-      opts = {'MAX_ITERS': 10000}
-      p.solve(verbose=True, solver=cp.SCS, solver_specific_opts=opts)
+      #opts = {'MAX_ITERS': 100000}
+      #p.solve(verbose=True, solver=cp.SCS, solver_specific_opts=opts)
+      opts = {'maxiters': 500}
+      #p.solve(verbose=True, solver=cp.CVXOPT)
+      p.solve(solver=cp.CVXOPT)
       print 'solved.took %s secs' % (time.time()-t_s)
       print 'status=%s' % p.status
       if p.status == 'solver_error':
         continue
       #
       '''
-      self.logger.debug('||||||||||||||||||||||||||||||||||||')
-      self.logger.debug('a=\n%s', self.a.value)
-      self.logger.debug('p_bw=\n%s', self.p_bw.value)
-      self.logger.debug('p_proc=\n%s', self.p_proc.value)
-      self.logger.debug('p_dur=\n%s', self.p_dur.value)
-      self.logger.debug('r_bw=\n%s', self.r_bw.value)
-      self.logger.debug('r_proc=\n%s', self.r_proc.value)
-      self.logger.debug('r_dur=\n%s', self.r_dur.value)
-      self.logger.debug('r_proc2=\n%s', self.r_proc2.value)
-      self.logger.debug('r_dur2=\n%s', self.r_dur2.value)
+      #self.logger.debug('||||||||||||||||||||||||||||||||||||')
+      #self.logger.debug('a=\n%s', self.a.value)
+      #self.logger.debug('p_bw=\n%s', self.p_bw.value)
+      #self.logger.debug('p_proc=\n%s', self.p_proc.value)
+      ##self.logger.debug('p_dur=\n%s', self.p_dur.value)
+      #self.logger.debug('r_bw=\n%s', self.r_bw.value)
+      #self.logger.debug('r_proc=\n%s', self.r_proc.value)
+      ##self.logger.debug('r_dur=\n%s', self.r_dur.value)
+      #self.logger.debug('r_proc2=\n%s', self.r_proc2.value)
+      ##self.logger.debug('r_dur2=\n%s', self.r_dur2.value)
       
-      self.logger.debug('F0().value=%s', self.F0().value)
-      self.logger.debug('F1().value=%s', self.F1().value)
-      self.logger.debug('F().value=%s', self.F().value)
-      self.logger.debug('||||||||||||||||||||||||||||||||||||')
+      #self.logger.debug('F0().value=%s', self.F0().value)
+      #self.logger.debug('F1().value=%s', self.F1().value)
+      #self.logger.debug('F().value=%s', self.F().value)
+      #self.logger.debug('||||||||||||||||||||||||||||||||||||')
       '''
       if self.grab_sching_result():
         break
