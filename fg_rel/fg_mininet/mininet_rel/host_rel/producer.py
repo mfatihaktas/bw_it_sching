@@ -47,6 +47,11 @@ class Producer(object):
     self.sender_thread_list = []
     self.qtosender_list = None
     self.qfromsender_list = None
+    #
+    self.joinreqsent_time = 0
+    self.joinreplyrecved_time = 0
+    self.schingreqsent_time = 0
+    self.schingreplyrecved_time = 0
     
   ########################  _handle_***  ########################
   def welcome_s(self, sch_req_id, data_):
@@ -99,6 +104,9 @@ class Producer(object):
       sinfo_dict['sendstop_time'] = max(sinfo_dict['sendstop_time'], popped['sendstop_time'])
       sinfo_dict['sentsize'] += popped['sentsize']
     #
+    sinfo_dict['joinrr_time'] = self.joinreqsent_time - self.joinreplyrecved_time
+    sinfo_dict['schingrr_time'] = self.schingreplyrecved_time - self.schingreqsent_time
+    
     msg = {'type':'session_done',
            'data':sinfo_dict }
     self.userdts_intf.relsend_to_dts(msg)
@@ -116,6 +124,7 @@ class Producer(object):
       if data_ != 'sorry':
         self.state = 2
         logging.info('successful sch_req :) data_=\n%s', pprint.pformat(data_))
+        self.schingreplyrecved_time = time.time()
         
         sch_req_id = int(data_['sch_req_id'])
         del data_['sch_req_id']
@@ -148,6 +157,7 @@ class Producer(object):
       if data_ == 'welcome':
         self.state = 1
         logging.info('joined to dts :) data_=%s', data_)
+        self.joinreplyrecved_time = time.time()
         self.send_sching_req()
       elif data_ == 'sorry':
         logging.info('cannot join to dts :( data_=%s', data_)
@@ -249,6 +259,7 @@ class Producer(object):
       logging.error('send_join_req:: failed!')
     else:
       logging.debug('send_join_req:: success.')
+      self.joinreqsent_time = time.time()
   
   def send_sching_req(self):
     if self.state != 1:
@@ -263,6 +274,7 @@ class Producer(object):
       logging.error('send_sching_req: failed !')
     else:
       logging.debug('send_sching_req:: success.')
+      self.schingreqsent_time = time.time()
     
   def close(self):
     self.userdts_intf.close()

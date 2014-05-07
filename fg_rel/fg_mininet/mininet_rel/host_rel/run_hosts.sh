@@ -9,19 +9,19 @@ DS=20
 
 C1D=1
 P1D=2
-P1_REQDICT='{"data_size":100,"slack_metric":100000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P1_REQDICT='{"data_size":100,"slack_metric":100,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P1_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 
 C2D=1
 P2D=15
-P2_REQDICT='{"data_size":100,"slack_metric":150000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P2_REQDICT='{"data_size":100,"slack_metric":150,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P2_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 
 MINHTBDIR='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
 
 C3D=1
 P3D=30
-P3_REQDICT='{"data_size":100,"slack_metric":150000,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P3_REQDICT='{"data_size":100,"slack_metric":150,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P3_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 
 MINHTBDIR='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
@@ -29,7 +29,7 @@ MINHTBDIR='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
 if [ $1  = 'p' ]; then
   python producer.py --intf=p-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.0.1 \
                      --proto=tcp --tx_type=file --file_url=ltx.dat --kstardata_url=... --logto=console --nodename=p \
-                     --req_dict='{"data_size":1,"slack_metric":1000,"func_list":["f1","f2","f3"],"parism_level":1,"par_share":[1]}' \
+                     --req_dict='{"data_size":1,"slack_metric":10,"func_list":["f1","f2","f3"],"parism_level":1,"par_share":[1]}' \
                      --app_pref_dict='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}' \
                      --htbdir='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
 elif [ $1  = 'p1' ]; then

@@ -396,12 +396,12 @@ class Scheduler(object):
         sinfo['datasize_list'] = []
       #
       sinfo['schedtime_list'].append(time.time()-self.startedtime)
-      sinfo['slackmetric_list'].append(sinfo['req_dict']['slack_metric']*0.001)
+      sinfo['slackmetric_list'].append(sinfo['req_dict']['slack_metric'])
       sinfo['bw_list'].append(salloc['bw'])
       sinfo['proc_list'].append(salloc['proc'])
       sinfo['datasize_list'].append(sinfo['req_dict']['data_size'])
       
-      sinfo['trans_time'] = salloc['trans_time']*0.001
+      sinfo['trans_time'] = salloc['trans_time']
       sinfo['bw'] = salloc['bw'] #Mbps
     #'''
     #
@@ -764,18 +764,18 @@ class Scheduler(object):
                         gw_dpid = userinfo['gw_dpid'],
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
-    num_session = 1
+    num_session = 3
     #data_size (MB) slack_metric (ms)
-    req_dict_list = [ {'data_size':20, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+    req_dict_list = [ {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':350, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                     ]
     app_pref_dict_list = [
                           {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
-                          {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
-                          {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
+                          {'m_p': 0.1,'m_u': 0.1,'x_p': 0,'x_u': 0},
+                          {'m_p': 10,'m_u': 10,'x_p': 0,'x_u': 0},
                           {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
                           {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
                          ]

@@ -403,28 +403,15 @@ class ItServHandler(threading.Thread):
     totalrunround_dur = 0
     #
     while not self.stopflag:
-      #wait for the proc turn
-      stoken = self.stokenq.get(True, None)
-      
       runround_dur = time.time()-startrunround_time
       self.logger.warning('run:: runround_dur=%s\n', runround_dur)
       totalrunround_dur += runround_dur
       startrunround_time = time.time()
-      if stoken == CHUNKSIZE:
-        pass
-      elif stoken == -1:
-        self.stopflag = True
-        continue
-      else:
-        self.logger.error('run:: Unexpected stoken=%s', stoken)
-        self.stopflag = True
-        continue
-      #
-      itfunc_list = self.get_itfunclist_overnextchunk()
-      #print 'itfunc_list=%s' % pprint.pformat(itfunc_list)
       #
       (data, datasize, uptofunc_list) = self.pop_from_pipe()
       datasize_t = copy.copy(datasize)
+      self.active_last_time = time.time()
+      
       if data == None:
         if datasize == 0: #failed
           pass
@@ -443,35 +430,55 @@ class ItServHandler(threading.Thread):
           self.logger.error('run:: FATAL! Aborting...')
           sys.exit(2)
       else:
+        itfunc_list = self.get_itfunclist_overnextchunk()
+        #print 'itfunc_list=%s' % pprint.pformat(itfunc_list)
         self.logger.debug('run:: datasize=%s popped. uptofunc_list=%s', datasize, uptofunc_list)
-        self.active_last_time = time.time()
+        if len(itfunc_list) == 0:
+          if not self.nodename[0] == 't':
+            self.forward_data(data = data,
+                              uptofunc_list = uptofunc_list,
+                              datasize = datasize )
+        else:
+          #wait for the proc turn
+          stoken = self.stokenq.get(True, None)
+          if stoken == CHUNKSIZE:
+            pass
+          elif stoken == -1:
+            self.stopflag = True
+            continue
+          else:
+            self.logger.error('run:: Unexpected stoken=%s', stoken)
+            self.stopflag = True
+            continue
+          #
+          #self.logger.debug('run:: ready proc and forward datasize=%s', datasize)
+          procstart_time = time.time()
+          [datasize_, data_] = [0, None]
+          
+          for func in itfunc_list:
+            if self.canfunc_berun(func, uptofunc_list):
+              [datasize_, data_] = self.proc(func = func,
+                                             datasize = datasize,
+                                             data = data )
+              self.jobremaining[func] -= datasize
+              datasize = datasize_
+              data = data_
+              uptofunc_list.append(func)
+          #
+          if not self.nodename[0] == 't':
+            datasize = getsizeof(data)
+            self.forward_data(data = data,
+                              uptofunc_list = uptofunc_list,
+                              datasize = datasize )
+          #
+          self.served_size_B += datasize_t
+          #self.test_file.write(data)
+          procdur = time.time() - procstart_time
+          self.logger.debug('run:: acted on procdur=%s, datasize=%sB, datasize_=%sB, self.served_size_B=%s', procdur, datasize_t, datasize_, self.served_size_B)
+          if procdur > self.intereq_time:
+            self.logger.warning('run:: !!! procdur > intereq_time !!!')
+          #
         #
-        #self.logger.debug('run:: ready proc and forward datasize=%s', datasize)
-        procstart_time = time.time()
-        [datasize_, data_] = [0, None]
-        
-        for func in itfunc_list:
-          if self.canfunc_berun(func, uptofunc_list):
-            [datasize_, data_] = self.proc(func = func,
-                                           datasize = datasize,
-                                           data = data )
-            self.jobremaining[func] -= datasize
-            datasize = datasize_
-            data = data_
-            uptofunc_list.append(func)
-        #
-        if not self.nodename[0] == 't':
-          datasize = getsizeof(data)
-          self.forward_data(data = data,
-                            uptofunc_list = uptofunc_list,
-                            datasize = datasize )
-        #
-        self.served_size_B += datasize_t
-        #self.test_file.write(data)
-        procdur = time.time() - procstart_time
-        self.logger.debug('run:: acted on procdur=%s, datasize=%sB, datasize_=%sB, self.served_size_B=%s', procdur, datasize_t, datasize_, self.served_size_B)
-        if procdur > self.intereq_time:
-          self.logger.warning('run:: !!! procdur > intereq_time !!!')
     #
     self.test_file.close()
     self.sock.close()
