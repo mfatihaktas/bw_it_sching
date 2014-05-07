@@ -50,7 +50,8 @@ info_dict = {'acterl_addr':('127.0.0.1',7999), #192.168.56.1
 class Scheduler(object):
   event_chief = EventChief()
   def __init__(self, xml_net_num, sching_logto, data_over_tp):
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(filename='logs/schinglog',filemode='w',level=logging.DEBUG)
+    #logging.basicConfig(level=logging.DEBUG)
     #
     if not (sching_logto == 'console' or sching_logto == 'file'):
       logging.error('Unexpected sching_logto=%s', sching_logto)
@@ -765,7 +766,7 @@ class Scheduler(object):
     #
     num_session = 10
     #data_size (MB) slack_metric (ms)
-    req_dict_list = [ {'data_size':20, 'slack_metric':60000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+    req_dict_list = [ {'data_size':20, 'slack_metric':10000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':350000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},

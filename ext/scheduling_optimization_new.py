@@ -14,7 +14,8 @@ SLACKFEASIBILITYCONST = 1
 
 class SchingOptimizer:
   def __init__(self, sessions_beingserved_dict, actual_res_dict, sid_res_dict):
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(filename='logs/schinglog',filemode='w',level=logging.DEBUG)
+    #logging.basicConfig(level=logging.INFO)
     self.logger = logging.getLogger('SchingOptimizer')
     #
     self.sessions_beingserved_dict = sessions_beingserved_dict
@@ -234,7 +235,7 @@ class SchingOptimizer:
       
       #(0.001/2)*( square(norm2(bw_vector))+square(norm2(dur_vector)) )
       #(0.001/2)*( power_pos(norm2(bw_vector), 2)+power_pos(norm2(dur_vector), 2) )
-    #self.logger.debug('r_stor__r_durXs_bw_map:: r_stor=\n%s', self.r_stor)
+    self.logger.debug('r_stor__r_durXs_bw_map:: r_stor=\n%s', self.r_stor)
   '''
   
   def r_proc2dur2__r_procdur_map(self):
@@ -253,9 +254,9 @@ class SchingOptimizer:
             #par_dur2.add_to((s_id,r_id), self.r_dur[s_id_,r_id])
     self.r_proc2 = par_proc2
     #self.r_dur2 = par_dur2
-    #self.logger.debug('r_proc2dur2__r_procdur_map::')
-    #self.logger.debug('r_proc2=\n%s', self.r_proc2)
-    ##self.logger.debug('r_dur2=\n%s', self.r_dur2)
+    self.logger.debug('r_proc2dur2__r_procdur_map::')
+    self.logger.debug('r_proc2=\n%s', self.r_proc2)
+    #self.logger.debug('r_dur2=\n%s', self.r_dur2)
   
   def get_max_parismlevel(self):
     #finds and returns maximum level of parism among sessions
@@ -282,7 +283,7 @@ class SchingOptimizer:
       self.a.set_((1,i), self.sumlist(self.p_proc.get_row(i)) )
       #self.a.set_((2,i), self.sumlist(self.p_dur.get_row(i)) )
     #
-    #self.logger.debug('a__p_bwprocdur_map:: a=\n%s', self.a)
+    self.logger.debug('a__p_bwprocdur_map:: a=\n%s', self.a)
   
   def r_bw__p_bw_map(self):
     par_ =  expr((self.N, self.num_link))
@@ -297,7 +298,7 @@ class SchingOptimizer:
             par_.add_to((s_id,l_id), self.p_bw[s_id,i])
     #
     self.r_bw = par_
-    #self.logger.debug('r_bw__p_bw_map:: self.r_bw=\n%s', self.r_bw)
+    self.logger.debug('r_bw__p_bw_map:: self.r_bw=\n%s', self.r_bw)
   
   def p_procdur__r_procdur_map(self):
     par_proc = expr((self.N,self.max_numspaths))
@@ -322,9 +323,9 @@ class SchingOptimizer:
     #
     self.p_proc = par_proc
     #self.p_dur = par_dur
-    #self.logger.debug('p_procdur__r_procdur_map::')
-    #self.logger.debug('self.p_proc=\n%s', self.p_proc)
-    ##self.logger.debug('self.p_dur=\n%s', self.p_dur)
+    self.logger.debug('p_procdur__r_procdur_map::')
+    self.logger.debug('self.p_proc=\n%s', self.p_proc)
+    #self.logger.debug('self.p_dur=\n%s', self.p_dur)
   
   def p_bwprocdur_sparsity_constraint(self):
     '''
@@ -417,11 +418,11 @@ class SchingOptimizer:
         #self.sp_dur.set_((s_id,p_id), l_[2])
         self.sp_trans.set_((s_id,p_id), l_[3])
     #log
-    #self.logger.debug('fill__sp_txprocdurtrans_matrices::')
-    #self.logger.debug('self.sp_tx=\n%s', self.sp_tx)
-    #self.logger.debug('self.sp_proc=\n%s', self.sp_proc)
-    ##self.logger.debug('self.sp_dur=\n%s', self.sp_dur)
-    #self.logger.debug('self.sp_trans=\n%s', self.sp_trans)
+    self.logger.debug('fill__sp_txprocdurtrans_matrices::')
+    self.logger.debug('self.sp_tx=\n%s', self.sp_tx)
+    self.logger.debug('self.sp_proc=\n%s', self.sp_proc)
+    #self.logger.debug('self.sp_dur=\n%s', self.sp_dur)
+    self.logger.debug('self.sp_trans=\n%s', self.sp_trans)
   
   def fill__r_hardsoft__s_penutil_vectors(self):
     for s_id in range(self.N):
@@ -431,11 +432,11 @@ class SchingOptimizer:
       self.s_pen_vector.set_((0,s_id), self.P(s_id, cp.square(self.tt[0,s_id]-s_st)) )
       self.s_util_vector.set_((0,s_id), self.U(s_id, self.r_soft_vector.get((0,s_id)) ) )
     #log
-    #self.logger.debug('fill__r_hardsoft__s_penutil_vectors::')
-    #self.logger.debug('self.r_hard_vector=\n%s', self.r_hard_vector)
-    #self.logger.debug('self.r_soft_vector=\n%s', self.r_soft_vector)
-    #self.logger.debug('self.s_pen_vector=\n%s', self.s_pen_vector)
-    #self.logger.debug('self.s_util_vector=\n%s', self.s_util_vector)
+    self.logger.debug('fill__r_hardsoft__s_penutil_vectors::')
+    self.logger.debug('self.r_hard_vector=\n%s', self.r_hard_vector)
+    self.logger.debug('self.r_soft_vector=\n%s', self.r_soft_vector)
+    self.logger.debug('self.s_pen_vector=\n%s', self.s_pen_vector)
+    self.logger.debug('self.s_util_vector=\n%s', self.s_util_vector)
   
   # Constraint functions
   def tt_epigraph_form_constraint(self):
@@ -483,8 +484,8 @@ class SchingOptimizer:
       r_proc_cap_list[i] = float(res_id_info_map[i_corr]['proc_cap'])
       r_stor_cap_list[i] = float(res_id_info_map[i_corr]['stor_cap'])
     
-    ##self.logger.debug('res_cap_constraint:: r_bw_agged_row=%s', r_bw_agged_row)
-    ##self.logger.debug('res_cap_constraint:: r_bw_agged_row.get_row(0)=%s', r_bw_agged_row.get_row(0))
+    #self.logger.debug('res_cap_constraint:: r_bw_agged_row=%s', r_bw_agged_row)
+    #self.logger.debug('res_cap_constraint:: r_bw_agged_row.get_row(0)=%s', r_bw_agged_row.get_row(0))
 
     return  [cp.vstack(*r_bw_agged_row.get_row(0)) <= cp.vstack(*r_bw_cap_list) ] + \
             [cp.vstack(*r_proc_agged_row.get_row(0)) <= cp.vstack(*r_proc_cap_list) ] # + \
@@ -858,26 +859,26 @@ class SchingOptimizer:
       self.sid_res_dict[s_id]['s_info'].update({'fair_bw':s_fair_bw})
   def solve(self):
     while(1):
-      (self.scal_var).value = 1
+      (self.scal_var).value = 100
       #
       '''
-      #self.logger.debug('------------------------------')
-      #self.logger.debug('F0()=%s', self.F0())
-      #self.logger.debug('F0().is_convex()=%s', self.F0().is_convex())
-      #self.logger.debug('F1()=%s', self.F1())
-      #self.logger.debug('F1().is_concave()=%s', self.F1().is_concave())
-      #self.logger.debug('F()=%s', self.F())
-      #self.logger.debug('F().is_convex()=%s', self.F().is_convex())
-      #self.logger.debug('------------------------------')
+      self.logger.debug('------------------------------')
+      self.logger.debug('F0()=%s', self.F0())
+      self.logger.debug('F0().is_convex()=%s', self.F0().is_convex())
+      self.logger.debug('F1()=%s', self.F1())
+      self.logger.debug('F1().is_concave()=%s', self.F1().is_concave())
+      self.logger.debug('F()=%s', self.F())
+      self.logger.debug('F().is_convex()=%s', self.F().is_convex())
+      self.logger.debug('------------------------------')
       
-      #self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-      #self.logger.debug('constraint0=\n%s', self.constraint0())
-      #self.logger.debug('new_constraint0=\n%s', self.new_constraint0())
-      #self.logger.debug('self.tt_epigraph_form_constraint()=\n%s', self.tt_epigraph_form_constraint())
-      #self.logger.debug('res_cap_constraint=\n%s', self.res_cap_constraint())
-      #self.logger.debug('p_bwprocdur_sparsity_constraint=\n%s', self.p_bwprocdur_sparsity_constraint())
-      #self.logger.debug('r_bwprocdur_sparsity_constraint=\n%s', self.r_bwprocdur_sparsity_constraint())
-      #self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+      self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+      self.logger.debug('constraint0=\n%s', self.constraint0())
+      self.logger.debug('new_constraint0=\n%s', self.new_constraint0())
+      self.logger.debug('self.tt_epigraph_form_constraint()=\n%s', self.tt_epigraph_form_constraint())
+      self.logger.debug('res_cap_constraint=\n%s', self.res_cap_constraint())
+      self.logger.debug('p_bwprocdur_sparsity_constraint=\n%s', self.p_bwprocdur_sparsity_constraint())
+      self.logger.debug('r_bwprocdur_sparsity_constraint=\n%s', self.r_bwprocdur_sparsity_constraint())
+      self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
       '''
       
       p = cp.Problem(cp.Minimize(self.F()),
@@ -906,33 +907,38 @@ class SchingOptimizer:
       '''
       t_s = time.time()
       print 'solving...' 
-      #opts = {'MAX_ITERS': 100000}
-      #p.solve(verbose=True, solver=cp.SCS, solver_specific_opts=opts)
-      opts = {'maxiters': 500}
-      #p.solve(verbose=True, solver=cp.CVXOPT)
-      p.solve(solver=cp.CVXOPT)
+      '''
+      opts = {'MAX_ITERS': 100000,
+              'USE_INDIRECT': True }
+      p.solve(verbose=True, solver=cp.SCS, solver_specific_opts=opts)
+      '''
+      opts = {'maxiters': 5000}
+      p.solve(verbose=True, solver=cp.CVXOPT, solver_specific_opts=opts.items())
+      #p.solve(solver=cp.CVXOPT, solver_specific_opts=opts.items())
       print 'solved.took %s secs' % (time.time()-t_s)
       print 'status=%s' % p.status
       if p.status == 'solver_error':
         continue
       #
       '''
-      #self.logger.debug('||||||||||||||||||||||||||||||||||||')
-      #self.logger.debug('a=\n%s', self.a.value)
-      #self.logger.debug('p_bw=\n%s', self.p_bw.value)
-      #self.logger.debug('p_proc=\n%s', self.p_proc.value)
-      ##self.logger.debug('p_dur=\n%s', self.p_dur.value)
-      #self.logger.debug('r_bw=\n%s', self.r_bw.value)
-      #self.logger.debug('r_proc=\n%s', self.r_proc.value)
-      ##self.logger.debug('r_dur=\n%s', self.r_dur.value)
-      #self.logger.debug('r_proc2=\n%s', self.r_proc2.value)
-      ##self.logger.debug('r_dur2=\n%s', self.r_dur2.value)
-      
-      #self.logger.debug('F0().value=%s', self.F0().value)
-      #self.logger.debug('F1().value=%s', self.F1().value)
-      #self.logger.debug('F().value=%s', self.F().value)
-      #self.logger.debug('||||||||||||||||||||||||||||||||||||')
+      self.logger.debug('||||||||||||||||||||||||||||||||||||')
+      self.logger.debug('a=\n%s', self.a.value)
+      self.logger.debug('p_bw=\n%s', self.p_bw.value)
+      self.logger.debug('p_proc=\n%s', self.p_proc.value)
+      #self.logger.debug('p_dur=\n%s', self.p_dur.value)
+      self.logger.debug('r_bw=\n%s', self.r_bw.value)
+      self.logger.debug('r_proc=\n%s', self.r_proc.value)
+      #self.logger.debug('r_dur=\n%s', self.r_dur.value)
+      self.logger.debug('r_proc2=\n%s', self.r_proc2.value)
+      #self.logger.debug('r_dur2=\n%s', self.r_dur2.value)
       '''
+      
+      self.logger.debug('F0().value=%s', self.F0().value)
+      self.logger.debug('F1().value=%s', self.F1().value)
+      self.logger.debug('F().value=%s', self.F().value)
+      #self.logger.debug('tt.value=%s', self.tt.value)
+      self.logger.debug('||||||||||||||||||||||||||||||||||||')
       if self.grab_sching_result():
         break
+      #
     #
