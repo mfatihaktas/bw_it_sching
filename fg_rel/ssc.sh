@@ -40,7 +40,8 @@ elif [ $1  = 'sshvm' ]; then
 elif [ $1  = 'fvm' ]; then
   if [ $2 = 0 ]; then
 	  #scp -i $VMKEYDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]}:~/cvxpy_test.log .
-	  scp -i $VMKEYDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]}:~/pox/ext/scheduling_optimization_new.py .
+	  #scp -i $VMKEYDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]}:~/pox/ext/scheduling_optimization_new.py .
+	  scp -i $VMKEYDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]}:~/pox/ext/logs/* ~/Desktop/imgs
 	else
 	  scp -r -i $VMKEYDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]}:~/mininet/mininet_rel/host_rel .
 	fi

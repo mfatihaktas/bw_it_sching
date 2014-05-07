@@ -96,7 +96,8 @@ class Scheduler(object):
                           c_addr = info_dict['acterl_addr'] )
     self.dtsuser_intf = DTSUserCommIntf()
     #
-    #self.exp()
+    self.exp()
+    
     self.couplinginfo_dict = {}
     self.startedtime = time.time()
   
@@ -732,8 +733,8 @@ class Scheduler(object):
   ##############################################################################
   def exp(self):
     print '*** exp::'
-    userinfo_list = [ {'user_ip':'10.0.2.0','user_mac':'00:00:00:01:02:00','gw_dpid':1,'gw_conn_port':1},
-                      {'user_ip':'10.0.2.1','user_mac':'00:00:00:01:02:01','gw_dpid':1,'gw_conn_port':2},
+    userinfo_list = [ {'user_ip':'10.0.2.0','user_mac':'00:00:00:01:02:00','gw_dpid':1,'gw_conn_port':3},
+                      {'user_ip':'10.0.2.1','user_mac':'00:00:00:01:02:01','gw_dpid':1,'gw_conn_port':4},
                       {'user_ip':'10.0.1.0','user_mac':'00:00:00:01:01:00','gw_dpid':2,'gw_conn_port':3},
                       {'user_ip':'10.0.1.1','user_mac':'00:00:00:01:01:01','gw_dpid':2,'gw_conn_port':4} ]
     #userinfo_list = [ {'user_ip':'10.0.0.2','user_mac':'00:00:00:01:00:02','gw_dpid':1,'gw_conn_port':1},
@@ -762,11 +763,11 @@ class Scheduler(object):
                         gw_dpid = userinfo['gw_dpid'],
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
-    num_session = 1
+    num_session = 3
     #data_size (MB) slack_metric (ms)
-    req_dict_list = [ {'data_size':20, 'slack_metric':25000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':1, 'slack_metric':3000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':1, 'slack_metric':1200, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+    req_dict_list = [ {'data_size':20, 'slack_metric':60000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':300000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':350000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':1, 'slack_metric':1000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':1, 'slack_metric':1000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':1, 'slack_metric':1000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},

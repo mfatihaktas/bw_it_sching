@@ -22,5 +22,5 @@ r_dur = N x max_parismlevel
 
 f1=fft  f2=upsampleplot
 
-sch_req_id  recvedsize  slacktime  couplingdur  couplingdur_relerr  
-recvedsizewithf1  recvedpercwithf1  recvedsizewithf2  recvedpercwithf2
+1:sch_req_id  2:recvedsize  3:slacktime  4:couplingdur  5:couplingdur_relerr  
+6:recvedsizewithf1  7:recvedpercwithf1  8:recvedsizewithf2  9:recvedpercwithf2

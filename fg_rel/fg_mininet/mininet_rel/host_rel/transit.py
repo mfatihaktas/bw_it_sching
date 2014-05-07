@@ -28,7 +28,7 @@ CHUNKHSIZE = 50 #B
 CHUNKSIZE = 24*8*9*10 #B
 CHUNKSTRSIZE = CHUNKSIZE+CHUNKHSIZE
 
-INTEREQTIME_CORRECTIONCONST = 0.95
+INTEREQTIME_CORRECTIONCONST = 1
 
 class PipeServer(threading.Thread):
   def __init__(self, nodename, server_addr, itwork_dict, to_addr, sflagq_in, sflagq_out, stokenq, intereq_time):

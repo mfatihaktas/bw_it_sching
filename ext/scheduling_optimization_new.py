@@ -845,6 +845,7 @@ class SchingOptimizer:
     while(1):
       (self.scal_var).value = 1
       #
+      '''
       self.logger.debug('------------------------------')
       self.logger.debug('F0()=%s', self.F0())
       self.logger.debug('F0().is_convex()=%s', self.F0().is_convex())
@@ -862,6 +863,7 @@ class SchingOptimizer:
       self.logger.debug('p_bwprocdur_sparsity_constraint=\n%s', self.p_bwprocdur_sparsity_constraint())
       self.logger.debug('r_bwprocdur_sparsity_constraint=\n%s', self.r_bwprocdur_sparsity_constraint())
       self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+      '''
       
       p = cp.Problem(cp.Minimize(self.F()),
                      self.constraint0() + \
@@ -869,7 +871,8 @@ class SchingOptimizer:
                      self.tt_epigraph_form_constraint() + \
                      self.res_cap_constraint() + \
                      self.r_bwprocdur_sparsity_constraint()  + \
-                     self.p_bwprocdur_sparsity_constraint()
+                     self.p_bwprocdur_sparsity_constraint(),
+                     options={'maxiters':100}
                     )
       #print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
       #p.show()
@@ -890,8 +893,12 @@ class SchingOptimizer:
       '''
       t_s = time.time()
       print 'solving...' 
-      p.solve()
+      p.solve(verbose=True, solver=cp.CVXOPT)
       print 'solved.took %s secs' % (time.time()-t_s)
+      print 'status=%s' % p.status
+      if p.status == 'solver_error':
+        continue
+      #
       '''
       self.logger.debug('||||||||||||||||||||||||||||||||||||')
       self.logger.debug('a=\n%s', self.a.value)

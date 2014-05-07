@@ -74,17 +74,17 @@ class SchController(object):
     f.write(pprint.pformat(couplingdoneinfo_dict))
     f.close()
     # 2
-    pfurl = '/home/ubuntu/pox/ext/logs/plotdata'
+    pfurl = '/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat'
     pf = open(pfurl, 'w')
     
     for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items():
       infostr = str(sch_req_id) + ' ' + \
-                str(couplingdoneinfo['overall']['recvedsize']) + ' ' + \
+                str(float(couplingdoneinfo['overall']['recvedsize'])/(1024**2)) + ' ' + \
                 str(couplingdoneinfo['overall']['idealtrans_time']) + ' ' + \
                 str(couplingdoneinfo['overall']['coupling_dur']) + ' ' + \
-                str(couplingdoneinfo['overall']['couplingdur_relerr'])
+                str(couplingdoneinfo['overall']['couplingdur_relerr']) + ' '
       for func,size in couplingdoneinfo['coupling_done']['recvedsizewithfunc_dict'].items():
-        infostr += str(size) + ' ' + str(couplingdoneinfo['overall']['recvedpercentwithfunc_dict'][func]) + ' '
+        infostr += str(float(size)/(1024**2)) + ' ' + str(couplingdoneinfo['overall']['recvedpercentwithfunc_dict'][func]) + ' '
       #
       infostr += '\n'
       pf.write(infostr)
@@ -93,9 +93,32 @@ class SchController(object):
     # 3
     '''
     pipe = subprocess.Popen(['gnuplot'], stdin=subprocess.PIPE)
-    pipe.stdin.write('set output "/home/ubuntu/pox/ext/logs/plotdeneme.png"\n')
-    pipe.stdin.write('set xrange [0:10]; set yrange [-2:2]\n')
-    pipe.stdin.write('plot sin(x)\n')
+    pipe.stdin.write('set title Coupling data size for each session \n')
+    pipe.stdin.write('set output "/home/ubuntu/pox/ext/logs/recvedsize_sid.png"\n')
+    #pipe.stdin.write('set xrange [0:10]; set yrange [-2:2]\n')
+    pipe.stdin.write('unset xticks\n')
+    pipe.stdin.write('set style data histogram\n')
+    pipe.stdin.write('set style histogram rowstacked\n')
+    pipe.stdin.write('set style fill solid border -1\n')
+    pipe.stdin.write('set boxwidth 0.75\n')
+    pipe.stdin.write('plot "couplingdoneinfo.dat" using xtic(1):2 title "Col2", "" using 6 title "Col6", "" using 8 title "Col8"\n')
+    
+    pipe = subprocess.Popen(['gnuplot'], shell = True, stdin=subprocess.PIPE)
+    pipe.stdin.write("set term png enhanced font '/usr/share/fonts/liberation/LiberationSans-Regular.ttf' 12\n")
+    pipe.stdin.write('set output "recvedsize_sid.png"\n')
+    pipe.stdin.write('set title "Coupling data size for each session" \n')
+    #pipe.stdin.write('set auto x\n')
+    pipe.stdin.write('set xrange [-1:5] \n')
+    pipe.stdin.write('set yrange [0:110] \n')
+    #pipe.stdin.write('set boxwidth 0.6 absolute\n')
+    pipe.stdin.write('set grid\n')
+    pipe.stdin.write('set boxwidth 0.2 absolute\n')
+    pipe.stdin.write('set key inside right top vertical Right noreverse noenhanced autotitles nobox\n')
+    #pipe.stdin.write('set style data histogram\n')
+    #pipe.stdin.write('set style fill solid 1.00 border -1\n')
+    pipe.stdin.write('set style fill solid border -1\n')
+    #pipe.stdin.write('set xtics rotate out\n')
+    pipe.stdin.write('plot "deneme.dat" using 2:xtic(1) w boxes lc rgb "#9FAFDF" title "rxed size" \n')
     '''
     
   
