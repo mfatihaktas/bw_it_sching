@@ -45,11 +45,6 @@ class SchingOptimizer:
     # optimization variable vector: tt_epigraph_form_tracer
     self.tt = cp.Variable(1,self.N, name='tt')
     # SESSION ALLOC MATRIX
-    '''
-    a[:,i]: [bw_i (Mbps); proc_i (Mbps); dur_i (ms)]
-    By assuming in-transit host NIC bws are ALWAYS higher than allocated bw:
-    stor (Mb) = dur (ms)/1000 x bw (Mbps)
-    '''
     self.a = expr((2,self.N))
     self.r_soft_grain = 100
     #RESOURCE ALLOC for each diff path of sessions; modeling parameter
@@ -106,7 +101,7 @@ class SchingOptimizer:
   #modeling functions
   def txprocdurtrans_time_model(self,s_id,p_id, datasize,comp_list,num_itres):
     #datasize: MB, bw: Mbps
-    tx_t = TOVERHEADCONST_ONTRANSFER* 1000*(8*datasize)*cp.inv_pos(self.p_bw[s_id,p_id]) # (ms)
+    tx_t = TOVERHEADCONST_ONTRANSFER* (8*datasize)*cp.inv_pos(self.p_bw[s_id,p_id]) # sec
     #proc: Mbps
     numitfuncs = len(comp_list)
     quadoverlin_vector = expr((1, numitfuncs))
@@ -116,7 +111,7 @@ class SchingOptimizer:
     #
     quadoverlin = (quadoverlin_vector.agg_to_column()).get((0,0))
     
-    proc_t = num_itres* 1000*(8*datasize)*(quadoverlin) # (ms)
+    proc_t = num_itres* (8*datasize)*(quadoverlin) # sec
     
     stage_t = 0 #self.p_dur.get((s_id,p_id))
     #
@@ -709,7 +704,7 @@ class SchingOptimizer:
         try:
           p_c = job['comp'] #pinfo_dict['p_info']['totalcomp']
           p_proc = job['proc']
-          p_ttime += 1000*(p_ds/64)*p_c /p_proc #in (ms)
+          p_ttime += (p_ds/64)*p_c /p_proc #sec
         except KeyError:
           pass
       #
@@ -728,7 +723,7 @@ class SchingOptimizer:
       ptranst_list = [0]*s_pl
       for pl_id in range(0,s_pl):
         p_ds = 8*s_ds*ps_list[pl_id] #s_ds: in MB
-        tx_t = SLACKFEASIBILITYCONST* TOVERHEADCONST_ONTRANSFER* p_ds*1000*1/p_bw[pl_id] # in (ms)
+        tx_t = TOVERHEADCONST_ONTRANSFER* p_ds*1/p_bw[pl_id] # sec
         ptranst_list.append(tx_t) #+ path_latency
       return __builtin__.max(ptranst_list) #s_transt
     
@@ -738,7 +733,6 @@ class SchingOptimizer:
       Find out the min slack metric requirement for the requirements of a session
       to be feasible for the resource allocation optimization process.
     """
-    safe_p = 0.002 #safety margin for feasibility purposes
     for s_id in range(0, self.N):
       s_req_dict = self.sessions_beingserved_dict[s_id]['req_dict']
       s_pl = s_req_dict['parism_level']
@@ -750,7 +744,7 @@ class SchingOptimizer:
                                 s_st = s_req_dict['slack_metric'],
                                 p_bw = p_bw,
                                 ps_list = s_req_dict['par_share'] )
-      min_tt = trans_t*(1+safe_p)
+      min_tt = trans_t*SLACKFEASIBILITYCONST
       slack = s_req_dict['slack_metric']
       #
       if slack < min_tt:
@@ -912,9 +906,11 @@ class SchingOptimizer:
               'USE_INDIRECT': True }
       p.solve(verbose=True, solver=cp.SCS, solver_specific_opts=opts)
       '''
+      #'''
       opts = {'maxiters': 5000}
       p.solve(verbose=True, solver=cp.CVXOPT, solver_specific_opts=opts.items())
-      #p.solve(solver=cp.CVXOPT, solver_specific_opts=opts.items())
+      #'''
+      #p.solve()
       print 'solved.took %s secs' % (time.time()-t_s)
       print 'status=%s' % p.status
       if p.status == 'solver_error':

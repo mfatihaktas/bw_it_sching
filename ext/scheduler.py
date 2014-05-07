@@ -764,36 +764,15 @@ class Scheduler(object):
                         gw_dpid = userinfo['gw_dpid'],
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
-    num_session = 10
+    num_session = 1
     #data_size (MB) slack_metric (ms)
-    req_dict_list = [ {'data_size':20, 'slack_metric':10000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':350000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300000, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300000, 'func_list':['fft','upsampleplot'], 'parism_level':2, 'par_share':[0.5, 0.5]},
-                      {'data_size':100, 'slack_metric':300000, 'func_list':['fft','upsampleplot'], 'parism_level':2, 'par_share':[0.5, 0.5]},
-                      {'data_size':1, 'slack_metric':24, 'func_list':['fft','upsampleplot'], 'parism_level':2, 'par_share':[0.5, 0.5]},
-                      {'data_size':1, 'slack_metric':24, 'func_list':['fft','upsampleplot'], 'parism_level':2, 'par_share':[0.5, 0.5]},
-                      {'data_size':1, 'slack_metric':24, 'func_list':['fft','upsampleplot'], 'parism_level':2, 'par_share':[0.5, 0.5]},
-                      {'data_size':1, 'slack_metric':24, 'func_list':['fft','upsampleplot'], 'parism_level':2, 'par_share':[0.5, 0.5]},
-                      {'data_size':1, 'slack_metric':24, 'func_list':['fft','upsampleplot'], 'parism_level':2, 'par_share':[0.5, 0.5]},
-                      {'data_size':1, 'slack_metric':24, 'func_list':['fft','upsampleplot'], 'parism_level':2, 'par_share':[0.5, 0.5]},
-                      {'data_size':1, 'slack_metric':24, 'func_list':['fft','upsampleplot'], 'parism_level':2, 'par_share':[0.5, 0.5]},
+    req_dict_list = [ {'data_size':20, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':350, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                     ]
     app_pref_dict_list = [
-                          {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
-                          {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
-                          {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
-                          {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
-                          {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
                           {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
                           {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
                           {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
@@ -805,8 +784,8 @@ class Scheduler(object):
                        ]
     for i in range(0, num_session):
       self.welcome_session(p_c_ip_list = p_c_ip_list_list[0],
-                           req_dict = req_dict_list[i],
-                           app_pref_dict = app_pref_dict_list[i] )
+                           req_dict = req_dict_list[int(i%5)],
+                           app_pref_dict = app_pref_dict_list[int(i%5)] )
     self.do_sching()
   
 is_scheduler_run = False
