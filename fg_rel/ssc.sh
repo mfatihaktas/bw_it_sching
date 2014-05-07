@@ -1,6 +1,9 @@
 #!/bin/bash
 echo $1
 
+VMUSRNAME=ubuntu
+VMPUBIP=149.165.159.16
+
 VMKEYDIR=./keys/mininet-key
 VM_NAMES=( controller mininet1 mininet2 mininet3 mininet4 mininet5 )
 VM_USRNAMES=( ubuntu ubuntu ubuntu ubuntu ubuntu ubuntu )
@@ -36,21 +39,27 @@ elif [ $1  = 'scpkeys' ]; then
   scp mfa51@india.futuregrid.org:~/.ssh/mfa* ./keys
 #######################################################
 elif [ $1  = 'sshvm' ]; then
-  ssh -X -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]}
+  if [ $2 = -1 ]; then
+    ssh -X -l $VMUSRNAME -i $VMKEYDIR $VMPUBIP
+  else
+    ssh -X -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]}
+  fi
 elif [ $1  = 'fvm' ]; then
   if [ $2 = 0 ]; then
-	  #scp -i $VMKEYDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]}:~/cvxpy_test.log .
-	  #scp -i $VMKEYDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]}:~/pox/ext/scheduling_optimization_new.py .
-	  scp -i $VMKEYDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]}:~/pox/ext/logs/* ~/Desktop/imgs
-	else
-	  scp -r -i $VMKEYDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]}:~/mininet/mininet_rel/host_rel .
-	fi
+    #scp -i $VMKEYDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]}:~/cvxpy_test.log .
+    #scp -i $VMKEYDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]}:~/pox/ext/scheduling_optimization_new.py .
+    scp -i $VMKEYDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]}:~/pox/ext/logs/* ~/Desktop/imgs
+  else
+    scp -r -i $VMKEYDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]}:~/mininet/mininet_rel/host_rel .
+  fi
 elif [ $1  = 'tvm' ]; then
-  #scp -v -r $FGRELDIR -i $VMKEYDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]}:~/
-  if [ $2 = 0 ]; then
+  if [ $2 = -1 ]; then
+    tar czf - $POXEXTDIR | ssh -l $VMUSRNAME -i $VMKEYDIR $VMPUBIP "tar xzf -; cp -r ~/ext ~/pox; rm -r ~/ext"
+  elif [ $2 = 0 ]; then
     tar czf - $POXEXTDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r ~/ext ~/pox; rm -r ~/ext"
     #tar czf - $MINRELDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r $MINRELDIR ~/; rm -r ~/fg_mininet; cp -r ~/mininet_rel ~/mininet; rm -r ~/mininet_rel"
     #tar czf - $FVRELDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r ~/fg_controller/fv_rel ~/; rm -r ~/fg_controller"
+    #tar czf - $FONTDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -"
   else
     #tar czf - $MINRELDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r ~$MINRELDIR ~/; rm -r ~/home; cp -r ~/mininet_rel ~/mininet; rm -r ~/mininet_rel"
     tar czf - $MINRELDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r $MINRELDIR ~/; rm -r ~/fg_mininet; cp -r ~/mininet_rel ~/mininet; rm -r ~/mininet_rel"

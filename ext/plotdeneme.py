@@ -7,7 +7,7 @@ def main():
   
   pipe = subprocess.Popen(['gnuplot'], shell = True, stdin=subprocess.PIPE)
   pipe.stdin.write("set term png enhanced font '/usr/share/fonts/liberation/LiberationSans-Regular.ttf' 12\n")
-  pipe.stdin.write('set output %s\n' % outfurl)
+  pipe.stdin.write('set output "%s"\n' % outfurl)
   pipe.stdin.write('set title "Coupling data size for each session" \n')
   #pipe.stdin.write('set auto x\n')
   pipe.stdin.write('set xrange [-1:5] \n')
@@ -22,7 +22,7 @@ def main():
   pipe.stdin.write('set style fill pattern border\n')
   pipe.stdin.write('set samples 11\n')
   #pipe.stdin.write('set xtics rotate out\n')
-  pipe.stdin.write('plot %s using 2:xtic(1) w boxes title "rxed size"\n' % datafurl)
+  pipe.stdin.write('plot "%s" using 2:xtic(1) w boxes title "rxed size"\n' % datafurl)
   #lc rgb "#9FAFDF"
   
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #basic commands to run vm in openstack_india
-echo $1
+echo "1="$1 "2="$2
 
 KEYDIR=~/.ssh/mininet-key #mfa51-key
 KEY=mininet-key #mfa51-key
@@ -36,16 +36,31 @@ elif [ $1  = 'snapvm' ]; then
   echo "instance: $3"
   nova image-create $3 ${VM_NAMES[$2]}
 elif [ $1  = 'uvmi' ]; then
-  nova image-delete ${VM_NAMES[$2]}
-  nova image-create ${VM_NAMES[$2]} ${VM_NAMES[$2]}
+  if [ $2  = -1 ]; then
+    nova image-delete $VMNAME
+    nova image-create $VMNAME $VMNAME
+  else
+    nova image-delete ${VM_NAMES[$2]}
+    nova image-create ${VM_NAMES[$2]} ${VM_NAMES[$2]}
+  fi
 elif [ $1  = 'rmvmi' ]; then
   nova image-delete ${VM_NAMES[$2]}
 elif [ $1  = 'bvm' ]; then
-  nova boot --flavor $FLV \
-            --image ${VM_NAMES[$2]} \
-            --key_name $KEY ${VM_NAMES[$2]}
+  if [ $2 -eq -1 ]; then
+    nova boot --flavor $FLV \
+    --image $VMIMG \
+    --key_name $KEY $VMNAME
+  else
+    nova boot --flavor $FLV \
+              --image ${VM_NAMES[$2]} \
+              --key_name $KEY ${VM_NAMES[$2]}
+  fi
 elif [ $1  = 'eavm' ]; then
-  nova add-floating-ip ${VM_NAMES[$2]} ${VM_PUBIPS[$2]}
+  if [ $2 -eq -1 ]; then
+    nova add-floating-ip $VMNAME $VM_PUBIP
+  else
+    nova add-floating-ip ${VM_NAMES[$2]} ${VM_PUBIPS[$2]}
+  fi
   nova floating-ip-list
 elif [ $1  = 'rmvm' ]; then
   nova delete ${VM_NAMES[$2]}
@@ -56,8 +71,8 @@ elif [ $1  = 'scprsa' ]; then
 #cmds for vm bundle
 elif [ $1  = 'bvms' ]; then
   for i in `seq 0 5`;
-    echo "vm_id=$i::"
   do
+    echo "vm_id=$i::"
     echo "booting..."
     nova boot --flavor $FLV \
               --image ${VM_NAMES[$i]} \

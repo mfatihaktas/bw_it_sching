@@ -2,7 +2,7 @@ This directory is not under version control, so it makes a good place to
 put your own projects.
 
 a = 3 x N
-p_bw = p_proc = p_dur = N x max_numspaths
+p_proc = p_dur = N x max_numspaths
 r_bw = N x num_link
 r_proc = r_dur = N*max_parismlevel x num_itr
 r_stor = 1 x num_itr

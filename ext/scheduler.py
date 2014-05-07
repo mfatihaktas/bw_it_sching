@@ -2,7 +2,7 @@ import json,pprint,os,inspect,sys,logging,time
 from xmlparser import XMLParser
 from graphman import GraphMan
 from scheduling_optimization_new import SchingOptimizer
-from perf_plot import PerfPlotter
+#from perf_plot import PerfPlotter
 from control_comm_intf import ControlCommIntf
 from dtsuser_comm_intf import DTSUserCommIntf
 
@@ -86,7 +86,7 @@ class Scheduler(object):
     self.sid_res_dict = {}
     self.actual_res_dict = self.gm.give_actual_resource_dict()
     #for perf plotting
-    self.perf_plotter = PerfPlotter(self.actual_res_dict)
+    #self.perf_plotter = PerfPlotter(self.actual_res_dict)
     #for control_comm
     self.cci = ControlCommIntf()
     self.cci.reg_commpair(sctag = 'scher-acter',
