@@ -72,6 +72,7 @@ class RuleParser (object):
         new_jobinfo.set('proto', str(itjobrule['proto']))
         new_jobinfo.set('s_tp', str(itjobrule['session_tp']))
         new_jobinfo.set('datasize', str(itjobrule['datasize']))
+        new_jobinfo.set('bw', str(itjobrule['bw']))
         for itfunc,n in ji_dict['itfunc_dict'].items():
           new_itfunc = ET.SubElement(new_jobinfo, 'func')
           new_itfunc.set('n',str(n))
@@ -118,7 +119,8 @@ class RuleParser (object):
                                      'proto':int(jobinfo.get('proto')),
                                      's_tp':int(jobinfo.get('s_tp')),
                                      'data_to_ip':jobinfo.get('data_to_ip'),
-                                     'datasize':float(jobinfo.get('datasize')) }
+                                     'datasize':float(jobinfo.get('datasize')),
+                                     'bw':float(jobinfo.get('bw')) }
             walkinfo = itjob.find('walkinfo')
             itjob_dict['walkinfo'] = {'swdev_to_itr':walkinfo.get('swdev_to_node'),
                                       'itr_ip':walkinfo.get('node_ip'),

@@ -173,7 +173,7 @@ class Producer(object):
     #
     #for htb.init.sh - need to put filename=self.intf EVEN IF IT IS EMPTY.
     #(opt: DEFAULT=0 to make unclassified traffic performance as high as possible)
-    self.write_to_file(self.intf,'DEFAULT=0')
+    self.write_to_htbfile(self.intf,'DEFAULT=0')
   
   def clean_dir(self, dir_):
     for f in os.listdir(dir_):
@@ -185,7 +185,7 @@ class Producer(object):
       except Exception, e:
         logging.error('%s', e)
   
-  def write_to_file(self, filename, data):
+  def write_to_htbfile(self, filename, data):
     f = open( '%s/%s/%s' % (self.htbdir,self.intf,filename), 'w')
     f.write(data)
     f.close()
@@ -207,7 +207,7 @@ class Producer(object):
                                         rule = '*:%s' % p_tp_dst[p_id] )
                                         #rule = '%s:%s' % (self.cl_ip, p_tp_dst[p_id]) )
       filename = '%s-1:%s.%s' % (self.intf, (p_id+1)*11, p_tp_dst[p_id])
-      self.write_to_file(filename, data)
+      self.write_to_htbfile(filename, data)
     #
     self.run_htbinit('dconf')
     self.run_htbinit('conf')

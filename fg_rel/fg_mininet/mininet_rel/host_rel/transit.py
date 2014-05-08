@@ -48,8 +48,10 @@ class PipeServer(threading.Thread):
     self.logger = logging.getLogger('filepipeserver')
     #
     self.pipefileurl_q = Queue.Queue(0)
-    self.flagq_toitservhandler = Queue.Queue(1)
-    self.flagq_tosessionhandler = Queue.Queue(1)
+    self.flagq_toitsh = Queue.Queue(1)
+    self.flagq_fromitsh = Queue.Queue(1)
+    self.flagq_tosh = Queue.Queue(1)
+    self.flagq_fromsh = Queue.Queue(1)
     #
     self.sc_handler = None
     self.server_sock = None
@@ -69,7 +71,7 @@ class PipeServer(threading.Thread):
       else: #reitjob_rule
         self.itwork_dict = flag_in
         if self.sstarted: #need to inform itserv_handler thread
-          self.flagq_toitservhandler.put(self.itwork_dict)
+          self.flagq_toitsh.put(self.itwork_dict)
         #
         self.logger.debug('listen_transit:: NEW itwork_dict=%s', self.itwork_dict)
       #
@@ -107,7 +109,8 @@ class PipeServer(threading.Thread):
                                         itwork_dict = self.itwork_dict,
                                         stpdst = self.stpdst,
                                         to_addr = self.to_addr,
-                                        flagq = self.flagq_toitservhandler,
+                                        flagq_in = self.flagq_toitsh,
+                                        flagq_out = self.flagq_fromitsh,
                                         stokenq = self.stokenq,
                                         intereq_time = self.intereq_time,
                                         procq = procq )
@@ -117,19 +120,28 @@ class PipeServer(threading.Thread):
                                            itwork_dict = self.itwork_dict,
                                            to_addr = self.to_addr,
                                            stpdst = self.stpdst,
-                                           flagq = self.flagq_tosessionhandler,
+                                           flagq_in = self.flagq_tosh,
+                                           flagq_out = self.flagq_fromsh,
                                            procq = procq )
     self.sc_handler.start()
     #
     self.logger.debug('run:: server_addr=%s started.', self.server_addr)
-    #self.logger.debug('run:: done.')
+    #wait for session to end
+    popped_fromsh = self.flagq_fromsh.get(True, None)
+    popped_fromitsh = self.flagq_fromitsh.get(True, None)
+    if popped_fromsh == 'DONE' and popped_fromitsh == 'DONE':
+      self.sflagq_out.put('DONE')
+    else:
+      self.logger.error('Unexpected flag popped from sh=%s, itsh=%s', popped_fromsh, popped_fromitsh)
+    #
+    self.logger.debug('run:: done.')
   
   def shutdown(self):
     #
     self.server_sock.shutdown(socket.SHUT_RDWR)
     self.server_sock.close()
     #close sc_handler
-    self.flagq_tosessionhandler.put('STOP')
+    self.flagq_tosh.put('STOP')
     #close itserv_handler
     self.pipefileurl_q.put('EOF')
     #
@@ -137,14 +149,15 @@ class PipeServer(threading.Thread):
 
 class SessionClientHandler(threading.Thread):
   def __init__(self,(sclient_sock,sclient_addr), itwork_dict, to_addr, stpdst,
-               flagq, procq ):
+               flagq_in, flagq_out, procq ):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
     self.sclient_sock = sclient_sock
     self.sclient_addr = sclient_addr
     self.stpdst = stpdst
-    self.flagq = flagq
+    self.flagq_in = flagq_in
+    self.flagq_out = flagq_out
     self.procq = procq
     #
     self.logger = logging.getLogger('sessionclienthandler_%s' % stpdst)
@@ -168,7 +181,7 @@ class SessionClientHandler(threading.Thread):
     
     threading.Thread(target = self.init_rx).start()
     
-    popped = self.flagq.get(True, None)
+    popped = self.flagq_in.get(True, None)
     if popped == 'STOP':
       #brute force to end init_rx thread
       self.sclient_sock.close()
@@ -180,6 +193,7 @@ class SessionClientHandler(threading.Thread):
     #
     self.stoppedtorx_time = time.time()
     self.logger.debug('run:: done. \n\tin dur=%ssecs, at t=%s;', self.stoppedtorx_time-self.startedtorx_time, self.stoppedtorx_time)
+    self.flagq_out.put('DONE')
   
   def init_rx(self):
     while 1:
@@ -196,11 +210,11 @@ class SessionClientHandler(threading.Thread):
         sys.exit(2)
       elif return_ == -1: #EOF
         self.logger.info('init_rx:: EOF is rxed...')
-        self.flagq.put('EOF')
+        self.flagq_in.put('EOF')
         break
       elif return_ == -2: #datasize=0
         self.logger.info('init_rx:: datasize=0 is rxed...')
-        self.flagq.put('STOP')
+        self.flagq_in.put('STOP')
         break
       elif return_ == 1: #success
         self.s_active_last_time = time.time()
@@ -261,7 +275,7 @@ class SessionClientHandler(threading.Thread):
 
 class ItServHandler(threading.Thread):
   def __init__(self, nodename, itwork_dict, stpdst, to_addr,
-               flagq, stokenq, intereq_time, procq):
+               flagq_in, flagq_out, stokenq, intereq_time, procq):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
@@ -269,7 +283,8 @@ class ItServHandler(threading.Thread):
     self.itwork_dict = itwork_dict
     self.stpdst = stpdst
     self.to_addr = to_addr
-    self.flagq = flagq
+    self.flagq_in = flagq_in
+    self.flagq_out = flagq_out
     self.stokenq = stokenq
     self.intereq_time = intereq_time
     self.procq = procq
@@ -348,7 +363,7 @@ class ItServHandler(threading.Thread):
   
   def listen_pipeserver(self):
     while 1:
-      flag = self.flagq.get(True, None)
+      flag = self.flagq_in.get(True, None)
       self.logger.debug('listen_pipeserver:: popped flag=%s', flag)
       #flag can only be new itwork_dict
       self.itwork_dict = flag
@@ -485,7 +500,8 @@ class ItServHandler(threading.Thread):
     self.stoppedtohandle_time = time.time()
     self.logger.info('run:: done, dur=%ssecs, stoppedtohandle_time=%s, startedtohandle_time=%s', self.stoppedtohandle_time-self.startedtohandle_time, self.stoppedtohandle_time, self.startedtohandle_time)
     self.logger.debug('run:: totalrunround_dur=%s, jobremaining=\n%s', totalrunround_dur, pprint.pformat(self.jobremaining))
-  
+    self.flagq_out.put('DONE')
+    
   def proc(self, func, datasize, data):
     data_ = None
     datasize_ = None
@@ -588,12 +604,14 @@ def proc_time_model(datasize, func_n_dict, proc_cap):
   return proc_t
 
 class Transit(object):
-  def __init__(self, nodename, tl_ip, tl_port, dtsl_ip, dtsl_port, trans_type, logger):
+  def __init__(self, nodename, intf, htbdir, tl_ip, tl_port, dtsl_ip, dtsl_port, trans_type, logger):
     if not (trans_type == 'file' or trans_type == 'console'):
       self.logger.error('Unexpected trans_type=%s', trans_type)
     self.trans_type = trans_type
     #
     self.nodename = nodename
+    self.intf = intf
+    self.htbdir = htbdir
     self.tl_ip = tl_ip
     self.tl_port = tl_port
     self.dtsl_ip = dtsl_ip
@@ -616,8 +634,10 @@ class Transit(object):
     self.sflagq_frompipes_dict = {}
     self.stokenq_dict = {}
     self.sintereqtime_dict = {}
-    #
     self.stpdst_firstitwork_dict = {}
+    #
+    self.init_htbdir()
+    #
     self.logger.info('%s is ready...', self.nodename)
 
   ###  handle dts_comm  ###
@@ -636,6 +656,10 @@ class Transit(object):
     if not stpdst in self.sinfo_dict:
       self.logger.error('Recved reitjob_rule msg for a nonreged stpdst=%s', stpdst)
       return
+    #
+    #reinit htb
+    bw = float(data_['bw'])
+    self.init_htbconf(bw, stpdst)
     #
     datasize = self.stpdst_firstitwork_dict[stpdst]['datasize']
     
@@ -661,25 +685,15 @@ class Transit(object):
     self.sflagq_topipes_dict[stpdst].put(data_)
     self.logger.debug('rewelcome_s:: done for stpdst=%s', stpdst)
     
-    
-  def manage_stokenq(self, stpdst):
-    stokenq = self.stokenq_dict[stpdst]
-    while not self.stopflag:
-      try:
-        stokenq.put(CHUNKSIZE, False)
-      except Queue.Full:
-        pass
-      #self.logger.debug('manage_stokenq_%s:: sleeping for %ssecs', stpdst, self.sintereqtime_dict[stpdst])
-      time.sleep(self.sintereqtime_dict[stpdst])
-    #
-    self.logger.debug('manage_stokenq_%s:: stoppped by STOP flag!', stpdst)
-  
   def welcome_s(self, data_):
     #If new_s with same tpdst arrives, old_s is overwritten by new_s
     stpdst = int(data_['s_tp'])
     if stpdst in self.sinfo_dict:
       self.bye_s(stpdst)
     del data_['s_tp']
+    #init htb
+    bw = float(data_['bw'])
+    self.init_htbconf(bw, stpdst)
     #
     to_ip = data_['data_to_ip']
     del data_['data_to_ip']
@@ -738,6 +752,131 @@ class Transit(object):
       self.logger.error('Unexpected trans_type=%s', self.trans_type)
     #
     self.logger.info('welcome_s:: welcome stpdst=%s, s_info=\n%s', stpdst, pprint.pformat(self.sinfo_dict[stpdst]) )
+    threading.Thread(target = self.waitforsession_toend,
+                     kwargs = {'stpdst': stpdst} ).start()
+  
+  def waitforsession_toend(self, stpdst):
+    sflagq_frompipe = self.sflagq_frompipes_dict[stpdst]
+    popped = sflagq_frompipe.get(True, None)
+    if popped == 'DONE':
+      #clear htb for the session
+      self.delete_htbfile(stpdst)
+      self.run_htbinit('dconf')
+      self.run_htbinit('conf')
+      self.run_htbinit('show')
+    else:
+      self.logger.error('waitforsession_toend:: Unexpected popped=%s', popped)
+    #
+  
+  def manage_stokenq(self, stpdst):
+    stokenq = self.stokenq_dict[stpdst]
+    while not self.stopflag:
+      try:
+        stokenq.put(CHUNKSIZE, False)
+      except Queue.Full:
+        pass
+      #self.logger.debug('manage_stokenq_%s:: sleeping for %ssecs', stpdst, self.sintereqtime_dict[stpdst])
+      time.sleep(self.sintereqtime_dict[stpdst])
+    #
+    self.logger.debug('manage_stokenq_%s:: stoppped by STOP flag!', stpdst)
+
+  ###  htb rel  ###
+  def delete_htbfile(self, stpdst):
+    fname = '%s-1:%s.%s' % (self.intf, 11, stpdst)
+    furl = '%s/%s/%s' % (self.htbdir,self.intf,fname)
+    self.delete_file(furl)
+  
+  def delete_file(self, furl):
+    try:
+      if os.path.isfile(furl):
+        os.unlink(furl)
+        self.logger.debug('delete_file:: furl=%s is deleted', furl)
+      #
+    except Exception, e:
+      self.logger.error('delete_file:: %s', e)
+    #
+  
+  def init_htbdir(self):
+    dir_ = '%s/%s' % (self.htbdir, self.intf)
+    #
+    if not os.path.exists(dir_):
+      os.makedirs(dir_)
+      self.logger.debug('dir=%s is made', dir_)
+    else:
+      self.clean_dir(dir_)
+    #
+    #for htb.init.sh - need to put filename=self.intf EVEN IF IT IS EMPTY.
+    #(opt: DEFAULT=0 to make unclassified traffic performance as high as possible)
+    self.write_to_htbfile(self.intf,'DEFAULT=0')
+  
+  def clean_dir(self, dir_):
+    for f in os.listdir(dir_):
+      furl = os.path.join(dir_, f)
+      self.delete_file(furl)
+    #
+  
+  def write_to_htbfile(self, filename, data):
+    f = open( '%s/%s/%s' % (self.htbdir,self.intf,filename), 'w')
+    f.write(data)
+    f.close()
+    self.logger.debug('data=\n%s\nis written to filename=%s',data,filename)
+  
+  def clear_htbconf(self):
+    self.logger.info('clear_htbconf:: started;')
+    self.run_htbinit('dconf')
+    self.run_htbinit('show')
+    self.logger.info('clear_htbconf::done.')
+  
+  def init_htbconf(self, bw, stpdst):
+    self.logger.info('init_htbconf:: started;')
+    #
+    data = self.get_htbclass_confdata(rate = '%sMbit' % bw,
+                                      burst = '15k',
+                                      leaf = 'netem',
+                                      rule = '*:%s' % stpdst )
+                                      #rule = '%s:%s' % (self.cl_ip, stpdst[p_id]) )
+    filename = '%s-1:%s.%s' % (self.intf, 11, stpdst)
+    self.write_to_htbfile(filename, data)
+    #
+    #self.run_htbinit('dconf')
+    self.run_htbinit('conf')
+    self.run_htbinit('show')
+    #
+    self.logger.info('init_htbconf:: done.')
+  
+  def get_htbclass_confdata(self, rate, burst, leaf, rule):
+    #print 'rate=%s, rule=%s' % (rate, rule)
+    return 'RATE=%s\nBURST=%s\nLEAF=%s\nRULE=%s' % (rate,burst,leaf,rule)
+
+  def run_htbinit(self, command):
+    cli_o = None
+    if command == 'conf':
+      try:
+        cli_o = subprocess.check_output(['sudo','%s/%s' % (self.htbdir,'htb.init.sh'),
+                                         'start','invalidate',
+                                         self.intf, self.htbdir, 'not_add_root' ] )
+      except subprocess.CalledProcessError as e:
+        self.logger.error('###CONF_ERR=%s', e.output)
+    elif command == 'dconf':
+      try:
+        cli_o = subprocess.check_output(['sudo','%s/%s' % (self.htbdir,'htb.init.sh'),
+                                         'minstop','...',
+                                         self.intf, self.htbdir ] )
+      except subprocess.CalledProcessError as e:
+        self.logger.error('###DCONF_ERR=%s', e.output)
+    elif command == 'show':
+      try:
+        cli_o = subprocess.check_output(['sudo','%s/%s' % (self.htbdir,'run.sh'),'show','p'] )
+        #cli_o = subprocess.check_output(['sudo','%s/%s' % (self.htbdir,'htb.init.sh'),'stats'] )
+      except subprocess.CalledProcessError as e:
+        self.logger.error('###SHOW_ERR=%s', e.output)
+    else:
+      self.logger.error('unknown command=%s',command)
+      return
+    #
+    #self.logger.info('\n----------------------------------------------------------')
+    #self.logger.info('%s_output:\n%s',command,cli_o)
+  ###
   
   def bye_s(self, stpdst):
     self.sflagq_topipes_dict[stpdst].put('STOP')
@@ -772,7 +911,8 @@ class Transit(object):
             'itfunc_dict': {'fft': 1 },
             'uptoitfunc_dict': {},
             'proc': 50.0,
-            's_tp': 6000 }
+            's_tp': 6000,
+            'bw': 10 }
     self.welcome_s(data.copy())
     '''
     data_ = {'proto': 6,
@@ -792,7 +932,8 @@ class Transit(object):
             'itfunc_dict': {'fft': 1},
             'uptoitfunc_dict': {},
             'proc': 50.0,
-            's_tp': 6001 }
+            's_tp': 6001,
+            'bw': 10 }
     self.welcome_s(data.copy())
     
     data = {'proto': 6,
@@ -801,13 +942,14 @@ class Transit(object):
             'itfunc_dict': {'fft': 0.5},
             'uptoitfunc_dict': {},
             'proc': 50.0,
-            's_tp': 6002 }
+            's_tp': 6002,
+            'bw': 10 }
     self.welcome_s(data.copy())
     
 def main(argv):
-  nodename = intf = dtsl_ip = dtsl_port= dtst_port = logto = trans_type = None
+  nodename = intf = htbdir = dtsl_ip = dtsl_port= dtst_port = logto = trans_type = None
   try:
-    opts, args = getopt.getopt(argv,'',['nodename=','intf=','dtsl_ip=','dtsl_port=','dtst_port=','logto=','trans_type='])
+    opts, args = getopt.getopt(argv,'',['nodename=','intf=','htbdir=','dtsl_ip=','dtsl_port=','dtst_port=','logto=','trans_type='])
   except getopt.GetoptError:
     print 'transit.py --nodename=<> --intf=<> --dtsl_ip=<> --dtsl_port=<> --dtst_port=<> --logto=<> --trans_type=<>'
     sys.exit(2)
@@ -817,6 +959,8 @@ def main(argv):
       nodename = arg
     elif opt == '--intf':
       intf = arg
+    elif opt == '--htbdir':
+      htbdir = arg
     elif opt == '--dtsl_ip':
       dtsl_ip = arg
     elif opt == '--dtsl_port':
@@ -839,6 +983,8 @@ def main(argv):
   #
   tl_ip = get_addr(intf)
   tr = Transit(nodename = nodename,
+               intf = intf,
+               htbdir = htbdir,
                tl_ip = tl_ip,
                tl_port = dtst_port,
                dtsl_ip = dtsl_ip,

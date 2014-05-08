@@ -675,6 +675,7 @@ class SchingOptimizer:
       p_info_dict['p_proc'] = p_proc
       p_info_dict['p_dur'] = p_dur
       p_info_dict['datasize'] = float(ds)*float(ps_list[p_id])
+      p_info_dict['bw'] = self.p_bw[s_id, p_id].value
       p_info_dict['itfunc_dict'] = {func_list[i]:n for i,n in enumerate(n_list)}
       #
       

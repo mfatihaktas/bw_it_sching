@@ -9,7 +9,7 @@ DS=20
 
 C1D=1
 P1D=2
-P1_REQDICT='{"data_size":100,"slack_metric":100,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P1_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P1_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 
 C2D=1
@@ -63,13 +63,13 @@ elif [ $1  = 'c3' ]; then
   python consumer.py --intf=c3-eth0 --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
                      --proto=tcp --rx_type=kstardata --logto=file --nodename=c3
 elif [ $1  = 't' ]; then
-  python transit.py --nodename=t --intf=lo --dtsl_ip=127.0.0.1 --dtsl_port=7002 --dtst_port=7001 --logto=file --trans_type=file
+  python transit.py --nodename=t --intf=lo --htbdir=$MINHTBDIR --dtsl_ip=127.0.0.1 --dtsl_port=7002 --dtst_port=7001 --logto=file --trans_type=file
 elif [ $1  = 't11' ]; then
-  python transit.py --nodename=t11 --intf=eth0 --dtsl_ip=10.0.0.255 --dtsl_port=7001 --dtst_port=7001 --logto=file --trans_type=file
+  python transit.py --nodename=t11 --intf=t11-eth0 --htbdir=$MINHTBDIR --dtsl_ip=10.0.0.255 --dtsl_port=7001 --dtst_port=7001 --logto=file --trans_type=file
 elif [ $1  = 't21' ]; then
-	python transit.py --nodename=t21 --intf=eth0 --dtsl_ip=10.0.0.255 --dtsl_port=7001 --dtst_port=7001 --logto=file --trans_type=file
+	python transit.py --nodename=t21 --intf=t21-eth0 --htbdir=$MINHTBDIR --dtsl_ip=10.0.0.255 --dtsl_port=7001 --dtst_port=7001 --logto=file --trans_type=file
 elif [ $1  = 't31' ]; then
-  python transit.py --nodename=t31 --intf=eth0 --dtsl_ip=10.0.0.255 --dtsl_port=7001 --dtst_port=7001 --logto=file --trans_type=file
+  python transit.py --nodename=t31 --intf=t31-eth0 --htbdir=$MINHTBDIR --dtsl_ip=10.0.0.255 --dtsl_port=7001 --dtst_port=7001 --logto=file --trans_type=file
 elif [ $1  = 's' ]; then
   #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=$DS --proto=tcp --tx_type=file --file_url=ltx.dat --logto=console --kstardata_url=/media/portable_large/large_ecei_data.bp
   #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=$DS --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --kstardata_url=/home/ubuntu/large_ecei_data.bp

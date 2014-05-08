@@ -50,8 +50,8 @@ info_dict = {'acterl_addr':('127.0.0.1',7999), #192.168.56.1
 class Scheduler(object):
   event_chief = EventChief()
   def __init__(self, xml_net_num, sching_logto, data_over_tp):
-    logging.basicConfig(filename='logs/schinglog',filemode='w',level=logging.DEBUG)
-    #logging.basicConfig(level=logging.DEBUG)
+    #logging.basicConfig(filename='logs/schinglog',filemode='w',level=logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG)
     #
     if not (sching_logto == 'console' or sching_logto == 'file'):
       logging.error('Unexpected sching_logto=%s', sching_logto)
@@ -585,7 +585,8 @@ class Scheduler(object):
             'completeduptohere_job': uptoitr_func_dict.copy(),
             'session_tp': int(s_tp_dst),
             'consumer_ip': to_ip,
-            'datasize': pitwalkbundle_dict['p_info']['datasize'] }]
+            'datasize': pitwalkbundle_dict['p_info']['datasize'],
+            'bw': pitwalkbundle_dict['p_info']['bw'] }]
         else:
           itjob_rule_dict[tailsw['dpid']].append( [{
             'proto': 6,
@@ -596,7 +597,8 @@ class Scheduler(object):
             'completeduptohere_job': uptoitr_func_dict.copy(),
             'session_tp': int(s_tp_dst),
             'consumer_ip': to_ip,
-            'datasize': pitwalkbundle_dict['p_info']['datasize'] }] )
+            'datasize': pitwalkbundle_dict['p_info']['datasize'],
+            'bw': pitwalkbundle_dict['p_info']['bw'] }] )
         #
         #update__uptoitr_func_dict
         for ftag in assigned_job:

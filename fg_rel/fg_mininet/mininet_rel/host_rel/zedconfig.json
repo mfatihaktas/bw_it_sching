@@ -4,7 +4,7 @@
     ],
     "preferences": {
         "theme": "terminal",
-        "fontSize": 14,
+        "fontSize": 15,
         "tabSize": 2
     },
     "modes": {},
