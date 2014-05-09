@@ -3,6 +3,8 @@
 MFADEV='lo'
 MFADIR='/home/mehmet/Dropbox/sim_rel/net_config/mininet_rel/host_rel/tc_rel/htb_rel/lo_'
 #
+T11DEV='t11-eth0'
+T11DIR='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel/t11-eth0_'
 
 P1DEV='p1-eth0'
 P1DIR='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel/p1-eth0_'
@@ -34,6 +36,10 @@ elif [ $2  = 'm' ]; then
   DIR=$MFADIR
   DEV=$MFADEV
   OPT='add_root'
+elif [ $2  = 't11' ]; then
+  DIR=$T11DIR
+  DEV=$T11DEV
+  OPT='not_add_root'
 else
   echo "unexpected nodeid=$2"
   exit

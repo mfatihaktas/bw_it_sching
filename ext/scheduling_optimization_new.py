@@ -116,7 +116,8 @@ class SchingOptimizer:
     stage_t = 0 #self.p_dur.get((s_id,p_id))
     #
     #trans_t = tx_t + proc_t + stage_t
-    trans_t = cp.max(tx_t, proc_t)
+    #trans_t = cp.max(tx_t, proc_t)
+    trans_t = tx_t + proc_t
     
     return [tx_t, proc_t, stage_t, trans_t]
   

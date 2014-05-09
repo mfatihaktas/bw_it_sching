@@ -313,8 +313,10 @@ class ItServHandler(threading.Thread):
     self.jobtobedone_dict = None
     self.uptorecvsize_dict = {}
     self.jobremaining = {}
+    self.forwardq = Queue.Queue(0)
     
     self.init_itjobdicts()
+    
     
   
   def init_itjobdicts(self):
@@ -404,10 +406,52 @@ class ItServHandler(threading.Thread):
       return False
     #
     return True
-      
+  
+  def forward_thread(self):
+    self.logger.info('forward_thread:: inited')
+    while 1:
+      data = self.forwardq.get(True, None)
+      datasize = getsizeof(data)
+      self.forward_data(data = data, datasize = datasize)
+      if datasize == 3 and data == 'EOF':
+        self.logger.info('forward_thread:: forwarded EOF. done.')
+        break
+      elif datasize == 4 and data == 'STOP':
+        self.logger.info('forward_thread:: stopped with flag STOP! done.')
+        break
+      #
+    #
+    self.sock.close()
+    self.flagq_out.put('DONE')
+  
+  def forward_data(self, data, datasize):
+    try:
+      if not self.forwarding_started:
+        self.logger.info('forward_data:: itserv_sock is trying to connect to addr=%s', self.to_addr)
+        self.sock.connect(self.to_addr)
+        self.logger.info('forward_data:: itserv_sock is connected to addr=%s', self.to_addr)
+        self.forwarding_started = True
+      #
+      self.sock.sendall(data)
+      self.logger.debug('forward_data:: datasize=%s forwarded to_addr=%s', datasize, self.to_addr)
+    except socket.error, e:
+      if isinstance(e.args, tuple):
+        self.logger.error('forward_data:: errno is %d', e[0])
+        if e[0] == errno.EPIPE:
+          # remote peer disconnected
+          self.logger.error('forward_data:: Detected remote disconnect')
+        else:
+          # determine and handle different error
+          pass
+      else:
+        self.logger.error('forward_data:: socket error=%s', e)
+    #
+  
   def run(self):
     t = threading.Thread(target=self.listen_pipeserver)
     t.start()
+    #
+    threading.Thread(target = self.forward_thread).start()
     #
     threading.Thread(target=self.init_eceiproc).start()
     self.init_procsocks()
@@ -417,11 +461,15 @@ class ItServHandler(threading.Thread):
     runround_dur = 0
     totalrunround_dur = 0
     #
+    data = itfunc_list = None
     while not self.stopflag:
       runround_dur = time.time()-startrunround_time
       self.logger.warning('run:: runround_dur=%s\n', runround_dur)
       totalrunround_dur += runround_dur
       startrunround_time = time.time()
+      #
+      if (not data == None) and (not self.nodename[0] == 't'):
+        self.forwardq.put( self.addheader(data, itfunc_list) )
       #
       (data, datasize, uptofunc_list) = self.pop_from_pipe()
       datasize_t = copy.copy(datasize)
@@ -432,14 +480,13 @@ class ItServHandler(threading.Thread):
           pass
         elif datasize == -1: #EOF
           if not self.nodename[0] == 't':
-            self.forward_data(data = 'EOF',
-                              uptofunc_list = '[]',
-                              datasize = 3 )
+            self.forwardq.put('EOF')
           #
           self.logger.debug('run:: EOF is rxed and forwarded! Aborting...')
           self.stopflag = True
         elif datasize == -2: #STOP
           self.logger.debug('run:: STOP! Aborting...')
+          self.forwardq.put('STOP')
           self.stopflag = True
         elif datasize == -3: #fatal
           self.logger.error('run:: FATAL! Aborting...')
@@ -449,10 +496,7 @@ class ItServHandler(threading.Thread):
         #print 'itfunc_list=%s' % pprint.pformat(itfunc_list)
         self.logger.debug('run:: datasize=%s popped. uptofunc_list=%s', datasize, uptofunc_list)
         if len(itfunc_list) == 0:
-          if not self.nodename[0] == 't':
-            self.forward_data(data = data,
-                              uptofunc_list = uptofunc_list,
-                              datasize = datasize )
+          continue
         else:
           #wait for the proc turn
           stoken = self.stokenq.get(True, None)
@@ -480,12 +524,6 @@ class ItServHandler(threading.Thread):
               data = data_
               uptofunc_list.append(func)
           #
-          if not self.nodename[0] == 't':
-            datasize = getsizeof(data)
-            self.forward_data(data = data,
-                              uptofunc_list = uptofunc_list,
-                              datasize = datasize )
-          #
           self.served_size_B += datasize_t
           #self.test_file.write(data)
           procdur = time.time() - procstart_time
@@ -496,12 +534,19 @@ class ItServHandler(threading.Thread):
         #
     #
     self.test_file.close()
-    self.sock.close()
     self.stoppedtohandle_time = time.time()
     self.logger.info('run:: done, dur=%ssecs, stoppedtohandle_time=%s, startedtohandle_time=%s', self.stoppedtohandle_time-self.startedtohandle_time, self.stoppedtohandle_time, self.startedtohandle_time)
     self.logger.debug('run:: totalrunround_dur=%s, jobremaining=\n%s', totalrunround_dur, pprint.pformat(self.jobremaining))
-    self.flagq_out.put('DONE')
-    
+  
+  def addheader(self, data, itfunc_list):
+    #add itfunc_list as header
+    header = json.dumps(itfunc_list)
+    padding_length = CHUNKHSIZE - len(header)
+    header += ' '*padding_length
+    data = header+data
+    #
+    return data
+  
   def proc(self, func, datasize, data):
     data_ = None
     datasize_ = None
@@ -554,35 +599,6 @@ class ItServHandler(threading.Thread):
     
     return (chunk, chunksize-CHUNKHSIZE, uptofunc_list)
   
-  def forward_data(self, data, uptofunc_list, datasize):
-    try:
-      if not self.forwarding_started:
-        self.logger.info('forward_data:: itserv_sock is trying to connect to addr=%s', self.to_addr)
-        self.sock.connect(self.to_addr)
-        self.logger.info('forward_data:: itserv_sock is connected to addr=%s', self.to_addr)
-        self.forwarding_started = True
-      if not (datasize == 3 and data == 'EOF'):
-        #add uptofunc_list as header
-        header = json.dumps(uptofunc_list)
-        padding_length = CHUNKHSIZE - len(header)
-        header += ' '*padding_length
-        data = header+data
-      #
-      self.sock.sendall(data)
-      self.logger.info('forward_data:: datasize=%s forwarded to_addr=%s', datasize+CHUNKHSIZE, self.to_addr)
-    except socket.error, e:
-      if isinstance(e.args, tuple):
-        self.logger.error('errno is %d', e[0])
-        if e[0] == errno.EPIPE:
-          # remote peer disconnected
-          self.logger.error('forward_data:: Detected remote disconnect')
-        else:
-          # determine and handle different error
-          pass
-      else:
-        self.logger.error('socket error=%s', e)
-    #
-
 #############################  Class Transit  ##################################
 func_comp_dict = {'f0':0.5,
                   'f1':1,
@@ -675,10 +691,12 @@ class Transit(object):
     #
     proc_cap = float(data_['proc'])
     datasize_ = float(data_['datasize'])
-    nchunks = datasize_*(1024**2)/CHUNKSTRSIZE
+    func_n_dict = data_['itfunc_dict']
     modelproct = proc_time_model(datasize = datasize_,
-                                 func_n_dict = data_['itfunc_dict'],
+                                 func_n_dict = func_n_dict,
                                  proc_cap = proc_cap )
+    datasize_tobeproced = float(datasize_)*max([float(n) for func,n in func_n_dict.items()])
+    nchunks = datasize_tobeproced*(1024**2)/CHUNKSTRSIZE
     self.sintereqtime_dict[stpdst] = (modelproct/nchunks)*INTEREQTIME_CORRECTIONCONST
     self.logger.debug('rewelcome_s:: stpdst=%s, new intereq_time=%s', stpdst, self.sintereqtime_dict[stpdst])
     #
@@ -708,9 +726,11 @@ class Transit(object):
     #
     proc_cap = float(data_['proc'])
     del data_['proc']
+    func_n_dict = data_['itfunc_dict']
     modelproct = proc_time_model(datasize = datasize,
-                                 func_n_dict = data_['itfunc_dict'],
+                                 func_n_dict = func_n_dict,
                                  proc_cap = proc_cap )
+    datasize_tobeproced = float(datasize)*max([float(n) for func,n in func_n_dict.items()])
     #
     proto = int(data_['proto']) #6:TCP, 17:UDP
     del data_['proto']
@@ -722,7 +742,7 @@ class Transit(object):
     self.sflagq_frompipes_dict[stpdst] = sflagq_frompipes
     self.stokenq_dict[stpdst] = stokenq
     #
-    nchunks = datasize*(1024**2)/CHUNKSTRSIZE
+    nchunks = datasize_tobeproced*(1024**2)/CHUNKSTRSIZE
     intereq_time = (modelproct/nchunks)*INTEREQTIME_CORRECTIONCONST
     self.sintereqtime_dict[stpdst] = intereq_time
     self.logger.warning('welcome_s:: nchunks=%s, intereq_time=%s, nchunks*intereq_time=%s', nchunks, intereq_time, nchunks*intereq_time)
@@ -761,9 +781,10 @@ class Transit(object):
     if popped == 'DONE':
       #clear htb for the session
       self.delete_htbfile(stpdst)
-      self.run_htbinit('dconf')
+      #self.run_htbinit('dconf')
       self.run_htbinit('conf')
-      self.run_htbinit('show')
+      #self.run_htbinit('show')
+      pass
     else:
       self.logger.error('waitforsession_toend:: Unexpected popped=%s', popped)
     #
