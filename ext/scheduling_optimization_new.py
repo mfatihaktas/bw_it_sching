@@ -510,6 +510,7 @@ class SchingOptimizer:
       (bw, proc, dur) = (self.a.get((0,i)).value,
                          self.a.get((1,i)).value,
                          0 )#self.a.get((2,i)).value )
+      '''
       print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
       print 'self.s_n[i, :].value=%s' % self.s_n[i, :].value
       #print 'sn_list=%s' % [n.value for n in self.s_n[i, :]]
@@ -517,10 +518,9 @@ class SchingOptimizer:
       print 'trans_t=%s' % self.r_hard_vector.get((0,i)).value
       print 'tt=%s' % self.get_var_val('tt',(0,i))
       print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+      '''
       #
       sn_list = [(float(self.s_n[i, k].value)**2) for k in range(self.max_numitfuncs)]
-      #sn_list = [(float(n)**2) for n in (self.s_n[i, :].value)[0]]
-      #sn_list = [float(n.value)**2 for n in self.s_n[i, :]]
       #
       trans_t = self.r_hard_vector.get((0,i)).value
       tt = self.get_var_val('tt',(0,i))
@@ -909,8 +909,9 @@ class SchingOptimizer:
       p.solve(verbose=True, solver=cp.SCS, solver_specific_opts=opts)
       '''
       #'''
-      opts = {'maxiters': 5000}
-      p.solve(verbose=True, solver=cp.CVXOPT, solver_specific_opts=opts.items())
+      opts = {'maxiters': 500}
+      #p.solve(verbose=True, solver=cp.CVXOPT, solver_specific_opts=opts.items())
+      p.solve(solver=cp.CVXOPT, solver_specific_opts=opts.items())
       #'''
       #p.solve()
       print 'solved.took %s secs' % (time.time()-t_s)
@@ -930,12 +931,13 @@ class SchingOptimizer:
       self.logger.debug('r_proc2=\n%s', self.r_proc2.value)
       #self.logger.debug('r_dur2=\n%s', self.r_dur2.value)
       '''
-      
+      '''
       self.logger.debug('F0().value=%s', self.F0().value)
       self.logger.debug('F1().value=%s', self.F1().value)
       self.logger.debug('F().value=%s', self.F().value)
       #self.logger.debug('tt.value=%s', self.tt.value)
       self.logger.debug('||||||||||||||||||||||||||||||||||||')
+      '''
       if self.grab_sching_result():
         break
       #

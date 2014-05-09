@@ -4,7 +4,7 @@ MFADEV='lo'
 MFADIR='/home/mehmet/Dropbox/sim_rel/net_config/mininet_rel/host_rel/tc_rel/htb_rel/lo_'
 #
 T11DEV='t11-eth0'
-T11DIR='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel/t11-eth0_'
+T11DIR='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
 
 P1DEV='p1-eth0'
 P1DIR='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel/p1-eth0_'

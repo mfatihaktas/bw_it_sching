@@ -675,7 +675,7 @@ class Transit(object):
     #
     #reinit htb
     bw = float(data_['bw'])
-    self.init_htbconf(bw, stpdst)
+    self.reinit_htbconf(bw, stpdst)
     #
     datasize = self.stpdst_firstitwork_dict[stpdst]['datasize']
     
@@ -696,8 +696,9 @@ class Transit(object):
                                  func_n_dict = func_n_dict,
                                  proc_cap = proc_cap )
     datasize_tobeproced = float(datasize_)*max([float(n) for func,n in func_n_dict.items()])
+    modeltxt = datasize_tobeproced*8/bw
     nchunks = datasize_tobeproced*(1024**2)/CHUNKSTRSIZE
-    self.sintereqtime_dict[stpdst] = (modelproct/nchunks)*INTEREQTIME_CORRECTIONCONST
+    self.sintereqtime_dict[stpdst] = ((modelproct+modeltxt)/nchunks)*INTEREQTIME_CORRECTIONCONST
     self.logger.debug('rewelcome_s:: stpdst=%s, new intereq_time=%s', stpdst, self.sintereqtime_dict[stpdst])
     #
     self.sflagq_topipes_dict[stpdst].put(data_)
@@ -731,6 +732,7 @@ class Transit(object):
                                  func_n_dict = func_n_dict,
                                  proc_cap = proc_cap )
     datasize_tobeproced = float(datasize)*max([float(n) for func,n in func_n_dict.items()])
+    modeltxt = datasize_tobeproced*8/bw
     #
     proto = int(data_['proto']) #6:TCP, 17:UDP
     del data_['proto']
@@ -743,7 +745,7 @@ class Transit(object):
     self.stokenq_dict[stpdst] = stokenq
     #
     nchunks = datasize_tobeproced*(1024**2)/CHUNKSTRSIZE
-    intereq_time = (modelproct/nchunks)*INTEREQTIME_CORRECTIONCONST
+    intereq_time = ((modelproct+modeltxt)/nchunks)*INTEREQTIME_CORRECTIONCONST
     self.sintereqtime_dict[stpdst] = intereq_time
     self.logger.warning('welcome_s:: nchunks=%s, intereq_time=%s, nchunks*intereq_time=%s', nchunks, intereq_time, nchunks*intereq_time)
     threading.Thread(target = self.manage_stokenq,
@@ -780,11 +782,11 @@ class Transit(object):
     popped = sflagq_frompipe.get(True, None)
     if popped == 'DONE':
       #clear htb for the session
+      self.run_htbinit('dconf')
       self.delete_htbfile(stpdst)
-      #self.run_htbinit('dconf')
       self.run_htbinit('conf')
       #self.run_htbinit('show')
-      pass
+      self.logger.error('waitforsession_toend:: done for stpdst=%s', stpdst)
     else:
       self.logger.error('waitforsession_toend:: Unexpected popped=%s', popped)
     #
@@ -803,7 +805,7 @@ class Transit(object):
 
   ###  htb rel  ###
   def delete_htbfile(self, stpdst):
-    fname = '%s-1:%s.%s' % (self.intf, 11, stpdst)
+    fname = '%s-1:%s.%s' % (self.intf, 10+int(stpdst)-6000, stpdst)
     furl = '%s/%s/%s' % (self.htbdir,self.intf,fname)
     self.delete_file(furl)
   
@@ -848,20 +850,34 @@ class Transit(object):
     self.run_htbinit('show')
     self.logger.info('clear_htbconf::done.')
   
-  def init_htbconf(self, bw, stpdst):
-    self.logger.info('init_htbconf:: started;')
+  def reinit_htbconf(self, bw, stpdst):
+    self.logger.info('reinit_htbconf:: started;')
+    self.run_htbinit('dconf')
+    self.delete_htbfile(stpdst)
     #
     data = self.get_htbclass_confdata(rate = '%sMbit' % bw,
                                       burst = '15k',
                                       leaf = 'netem',
                                       rule = '*:%s' % stpdst )
-                                      #rule = '%s:%s' % (self.cl_ip, stpdst[p_id]) )
-    filename = '%s-1:%s.%s' % (self.intf, 11, stpdst)
+    filename = '%s-1:%s.%s' % (self.intf, 10+int(stpdst)-6000, stpdst)
     self.write_to_htbfile(filename, data)
     #
-    #self.run_htbinit('dconf')
     self.run_htbinit('conf')
-    self.run_htbinit('show')
+    #
+    self.logger.info('reinit_htbconf:: done.')
+  
+  def init_htbconf(self, bw, stpdst):
+    self.logger.info('init_htbconf:: started;')
+    self.run_htbinit('dconf')
+    #
+    data = self.get_htbclass_confdata(rate = '%sMbit' % bw,
+                                      burst = '15k',
+                                      leaf = 'netem',
+                                      rule = '*:%s' % stpdst )
+    filename = '%s-1:%s.%s' % (self.intf, 10+int(stpdst)-6000, stpdst)
+    self.write_to_htbfile(filename, data)
+    #
+    self.run_htbinit('conf')
     #
     self.logger.info('init_htbconf:: done.')
   
