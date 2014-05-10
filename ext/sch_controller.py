@@ -14,6 +14,8 @@ info_dict = {'scher_vip': '10.0.0.255',
   
 class SchController(object):
   def __init__(self):
+    #logging.basicConfig(filename='logs/schcontlog',filemode='w',level=logging.DEBUG)
+    #
     threading.Thread(target=self.waitforenter).start()
     #
     self.scheduler = Scheduler(xml_net_num = 1,
