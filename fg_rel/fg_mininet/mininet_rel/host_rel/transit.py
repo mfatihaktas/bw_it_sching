@@ -73,7 +73,7 @@ class PipeServer(threading.Thread):
         if self.sstarted: #need to inform itserv_handler thread
           self.flagq_toitsh.put(self.itwork_dict)
         #
-        self.logger.debug('listen_transit:: NEW itwork_dict=%s', self.itwork_dict)
+        #self.logger.debug('listen_transit:: NEW itwork_dict=%s', self.itwork_dict)
       #
     #
   
@@ -289,7 +289,7 @@ class ItServHandler(threading.Thread):
     self.intereq_time = intereq_time
     self.procq = procq
     #
-    self.logger = logging.getLogger('itservhandler_%s' % stpdst)
+    self.logger = logging.getLogger('itservhandler_%s' % self.stpdst)
     #
     self.startedtohandle_time = None
     self.served_size_B = 0
@@ -317,8 +317,6 @@ class ItServHandler(threading.Thread):
     
     self.init_itjobdicts()
     
-    
-  
   def init_itjobdicts(self):
     self.jobtobedone_dict = self.itwork_dict['jobtobedone']
     for ftag,datasize in self.jobtobedone_dict.items():
@@ -369,7 +367,10 @@ class ItServHandler(threading.Thread):
       self.logger.debug('listen_pipeserver:: popped flag=%s', flag)
       #flag can only be new itwork_dict
       self.itwork_dict = flag
-      self.reinit_itjobdicts()
+      #self.reinit_itjobdicts()
+      dict_ = {ftag:datasize-float(float(self.jobremaining[ftag])/(1024**2)) for ftag,datasize in self.jobtobedone_dict.items()}
+      self.logger.warning('>>> jobdone_dict=\n%s', pprint.pformat(dict_))
+      self.init_itjobdicts()
       
       self.logger.debug('listen_pipeserver:: NEW itwork_dict=%s\n', pprint.pformat(self.itwork_dict))
   
@@ -407,46 +408,6 @@ class ItServHandler(threading.Thread):
     #
     return True
   
-  def forward_thread(self):
-    self.logger.info('forward_thread:: inited')
-    while 1:
-      data = self.forwardq.get(True, None)
-      datasize = getsizeof(data)
-      self.forward_data(data = data, datasize = datasize)
-      if datasize == 3 and data == 'EOF':
-        self.logger.info('forward_thread:: forwarded EOF. done.')
-        break
-      elif datasize == 4 and data == 'STOP':
-        self.logger.info('forward_thread:: stopped with flag STOP! done.')
-        break
-      #
-    #
-    self.sock.close()
-    self.flagq_out.put('DONE')
-  
-  def forward_data(self, data, datasize):
-    try:
-      if not self.forwarding_started:
-        self.logger.info('forward_data:: itserv_sock is trying to connect to addr=%s', self.to_addr)
-        self.sock.connect(self.to_addr)
-        self.logger.info('forward_data:: itserv_sock is connected to addr=%s', self.to_addr)
-        self.forwarding_started = True
-      #
-      self.sock.sendall(data)
-      self.logger.debug('forward_data:: datasize=%s forwarded to_addr=%s', datasize, self.to_addr)
-    except socket.error, e:
-      if isinstance(e.args, tuple):
-        self.logger.error('forward_data:: errno is %d', e[0])
-        if e[0] == errno.EPIPE:
-          # remote peer disconnected
-          self.logger.error('forward_data:: Detected remote disconnect')
-        else:
-          # determine and handle different error
-          pass
-      else:
-        self.logger.error('forward_data:: socket error=%s', e)
-    #
-  
   def run(self):
     t = threading.Thread(target=self.listen_pipeserver)
     t.start()
@@ -455,6 +416,7 @@ class ItServHandler(threading.Thread):
     #
     threading.Thread(target=self.init_eceiproc).start()
     self.init_procsocks()
+    #
     self.startedtohandle_time = time.time()
     
     startrunround_time = time.time()
@@ -561,7 +523,7 @@ class ItServHandler(threading.Thread):
     while readsize < readsize_:
       readdata = sock.recv(readsize_)
       readsize += getsizeof(readdata)
-      #self.logger.debug('proc:: readsize=%s', readsize)
+      self.logger.debug('proc:: readsize=%s', readsize)
       data_ += readdata
     
     datasize_ = readsize
@@ -570,6 +532,46 @@ class ItServHandler(threading.Thread):
     self.logger.debug('proc:: %s run on datasize=%s, datasize_=%s', func, datasize, datasize_)
     #
     return [datasize_, data_]
+  
+  def forward_thread(self):
+    self.logger.info('forward_thread:: inited')
+    while 1:
+      data = self.forwardq.get(True, None)
+      datasize = getsizeof(data)
+      self.forward_data(data = data, datasize = datasize)
+      if datasize == 3 and data == 'EOF':
+        self.logger.info('forward_thread:: forwarded EOF. done. dur=%s', time.time()-self.startedtohandle_time)
+        break
+      elif datasize == 4 and data == 'STOP':
+        self.logger.info('forward_thread:: stopped with flag STOP! done.')
+        break
+      #
+    #
+    self.sock.close()
+    self.flagq_out.put('DONE')
+  
+  def forward_data(self, data, datasize):
+    try:
+      if not self.forwarding_started:
+        self.logger.info('forward_data:: itserv_sock is trying to connect to addr=%s', self.to_addr)
+        self.sock.connect(self.to_addr)
+        self.logger.info('forward_data:: itserv_sock is connected to addr=%s', self.to_addr)
+        self.forwarding_started = True
+      #
+      self.sock.sendall(data)
+      self.logger.debug('forward_data:: datasize=%s forwarded to_addr=%s', datasize, self.to_addr)
+    except socket.error, e:
+      if isinstance(e.args, tuple):
+        self.logger.error('forward_data:: errno is %d', e[0])
+        if e[0] == errno.EPIPE:
+          # remote peer disconnected
+          self.logger.error('forward_data:: Detected remote disconnect')
+        else:
+          # determine and handle different error
+          pass
+      else:
+        self.logger.error('forward_data:: socket error=%s', e)
+    #
   
   def pop_from_pipe(self):
     """ returns:
@@ -650,7 +652,7 @@ class Transit(object):
     self.sflagq_frompipes_dict = {}
     self.stokenq_dict = {}
     self.sintereqtime_dict = {}
-    self.stpdst_firstitwork_dict = {}
+    self.stpdst_itwork_dict = {}
     #
     self.init_htbdir()
     #
@@ -677,21 +679,15 @@ class Transit(object):
     bw = float(data_['bw'])
     self.reinit_htbconf(bw, stpdst)
     #
-    datasize = self.stpdst_firstitwork_dict[stpdst]['datasize']
-    
-    uptojobdone = {}
-    for ftag,n in data_['uptoitfunc_dict'].items():
-      uptojobdone[ftag] = datasize*float(n)
-    data_.update( {'uptojobdone': uptojobdone} )
-    
-    jobtobedone = {}
-    for ftag,n in data_['itfunc_dict'].items():
-      jobtobedone[ftag] = datasize*float(n)
-    data_.update( {'jobtobedone': jobtobedone} )
-    #
     proc_cap = float(data_['proc'])
     datasize_ = float(data_['datasize'])
     func_n_dict = data_['itfunc_dict']
+    
+    jobtobedone = {}
+    for ftag,n in func_n_dict.items():
+      jobtobedone[ftag] = datasize_*float(n)
+    data_.update( {'jobtobedone': jobtobedone} )
+    #
     modelproct = proc_time_model(datasize = datasize_,
                                  func_n_dict = func_n_dict,
                                  proc_cap = proc_cap )
@@ -751,8 +747,8 @@ class Transit(object):
     threading.Thread(target = self.manage_stokenq,
                      kwargs = {'stpdst':stpdst } ).start()
     #
-    self.stpdst_firstitwork_dict[stpdst] = data_
-    self.logger.debug('stpdst_firstitwork_dict=%s', pprint.pformat(self.stpdst_firstitwork_dict))
+    #self.stpdst_itwork_dict[stpdst] = data_
+    #self.logger.debug('stpdst_itwork_dict=%s', pprint.pformat(self.stpdst_itwork_dict))
     if self.trans_type == 'file':
       s_server_thread = PipeServer(nodename = self.nodename,
                                    server_addr = (self.tl_ip, stpdst),
@@ -786,7 +782,7 @@ class Transit(object):
       self.delete_htbfile(stpdst)
       self.run_htbinit('conf')
       #self.run_htbinit('show')
-      self.logger.error('waitforsession_toend:: done for stpdst=%s', stpdst)
+      self.logger.error('waitforsession_toend:: done for stpdst=%s, dur=%s', stpdst)
     else:
       self.logger.error('waitforsession_toend:: Unexpected popped=%s', popped)
     #

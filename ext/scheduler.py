@@ -367,9 +367,17 @@ class Scheduler(object):
     #'''
     for sch_req_id, sinfo in self.sessionsbeingserved_dict.items():
       if 'schedtime_list' in sinfo:
-        elapsed_time = 1.0*(time.time() - self.startedtime - sinfo['schedtime_list'][-1])
-        elapsed_datasize = sinfo['req_dict']['data_size']*elapsed_time/ #MB
-        #elapsed_datasize = sinfo['req_dict']['data_size'] - float(sinfo['bw']*elapsed_time)/8 #MB
+        elapsed_time = (time.time() - self.startedtime - sinfo['schedtime_list'][-1])
+        #elapsed_datasize = sinfo['req_dict']['data_size']*elapsed_time/ #MB
+        #elapsed_datasize = sinfo['req_dict']['data_size'] - float(sinfo['bw_list'][-1]*elapsed_time)/8 #MB
+        elapsed_datasize = None
+        tobeproceddata_transt = sinfo['tobeproceddata_transt_list'][-1]
+        tobeproceddatasize = sinfo['tobeproceddatasize_list'][-1]
+        if elapsed_time < tobeproceddata_transt:
+          elapsed_datasize = tobeproceddatasize*float(elapsed_time)/tobeproceddata_transt
+        else:
+          elapsed_datasize = tobeproceddatasize + sinfo['bw_list'][-1]*elapsed_time/8
+        #
         sinfo['req_dict']['data_size'] -= elapsed_datasize
         sinfo['req_dict']['slack_metric'] -= elapsed_time
       #
@@ -393,17 +401,18 @@ class Scheduler(object):
         sinfo['schedtime_list'] = []
         sinfo['slackmetric_list'] = []
         sinfo['bw_list'] = []
-        sinfo['proc_list'] = []
         sinfo['datasize_list'] = []
+        sinfo['tobeproceddatasize_list'] = []
+        sinfo['tobeproceddata_transt_list'] = []
       #
       sinfo['schedtime_list'].append(time.time()-self.startedtime)
       sinfo['slackmetric_list'].append(sinfo['req_dict']['slack_metric'])
       sinfo['bw_list'].append(salloc['bw'])
-      sinfo['proc_list'].append(salloc['proc'])
       sinfo['datasize_list'].append(sinfo['req_dict']['data_size'])
+      sinfo['tobeproceddatasize_list'].append(salloc['tobeproceddatasize'])
+      sinfo['tobeproceddata_transt_list'].append(salloc['tobeproceddata_transt'])
       
       sinfo['trans_time'] = salloc['trans_time']
-      sinfo['bw'] = salloc['bw'] #Mbps
     #'''
     #
     """

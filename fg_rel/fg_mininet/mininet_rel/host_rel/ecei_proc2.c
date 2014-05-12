@@ -311,7 +311,7 @@ void* init_chunkrw_sock(void* fi){
       perror("accept");
       exit(1);
   }
- // printf("init_chunkrw_socks:: done; func%d, connfd=%d.\n", i, connfd[i]);
+ // printf("init_chunkrw_sock:: done; func%d, connfd=%d.\n", i, connfd[i]);
 }
 
 char* read_chunk(char* func, int fi, int chunksize){

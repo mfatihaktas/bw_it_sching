@@ -59,8 +59,9 @@ class SchController(object):
       couplingdoneinfo['overall']['slackmetric_list'] = sessionpreserved['slackmetric_list']
       couplingdoneinfo['overall']['schedtime_list'] = sessionpreserved['schedtime_list']
       couplingdoneinfo['overall']['bw_list'] = sessionpreserved['bw_list']
-      couplingdoneinfo['overall']['proc_list'] = sessionpreserved['proc_list']
       couplingdoneinfo['overall']['datasize_list'] = sessionpreserved['datasize_list']
+      couplingdoneinfo['overall']['tobeproceddatasize_list'] = sessionpreserved['tobeproceddatasize_list']
+      couplingdoneinfo['overall']['tobeproceddata_transt_list'] = sessionpreserved['tobeproceddata_transt_list']
       
       couplingdur_relerr = 100*(coupling_dur - idealtrans_time)/idealtrans_time
       couplingdoneinfo['overall'].update({'idealtrans_time': idealtrans_time,

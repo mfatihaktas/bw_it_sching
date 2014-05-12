@@ -42,7 +42,7 @@ def run_tnodes(hosts):
   popens = {}
   for host in hosts:
     popens[host] = {}
-    popens[host]['eceiproc'] = host.popen('./run_hosts.sh ep2m')
+    #popens[host]['eceiproc'] = host.popen('./run_hosts.sh ep2m')
     popens[host]['t'] = host.popen('./run_hosts.sh %s' % host.name) #host.popen('./run_hosts.sh t')
     print '%s is ready' % host.name
   #
@@ -89,8 +89,8 @@ if __name__ == '__main__':
   #
   run_tnodes([t11])
   
-  #run_pcnodes([c1, p1, c2, p2])
-  run_pcnodes([c1, p1])
+  run_pcnodes([c1, p1, c2, p2])
+  #run_pcnodes([c1, p1])
   #run_pcnodes([c2, p2])
   #run_pcnodes([c1, c2, c3])
   #run_pcnodes([c1, p1, c2, p2, c3, p3])

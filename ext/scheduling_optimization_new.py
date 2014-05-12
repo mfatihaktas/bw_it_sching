@@ -541,6 +541,9 @@ class SchingOptimizer:
         #sp_durt.append(self.sp_dur.get((i,k)).value)
         sp_transt.append(self.sp_trans.get((i,k)).value)
       #
+      tobeproceddatasize = s_data_size*max(sn_list) #MB
+      tobeproceddata_transt = tobeproceddatasize*8/bw + sp_proct[0] #sec
+      #
       self.session_res_alloc_dict['s-wise'][i] = {
         'p_bw':p_bw, 'p_proc':p_proc, 'p_dur':p_dur,
         'bw':bw, 'proc':proc, 'dur':dur, 
@@ -560,7 +563,9 @@ class SchingOptimizer:
         'sp_txt':sp_txt,
         'sp_proct':sp_proct,
         'sp_durt':sp_durt,
-        'sp_transt':sp_transt }
+        'sp_transt':sp_transt,
+        'tobeproceddatasize': tobeproceddatasize,
+        'tobeproceddata_transt': tobeproceddata_transt }
     ###RES-WISE
     r_bw_in_row = self.r_bw.agg_to_row()
     r_proc2_in_row = self.r_proc2.agg_to_row()

@@ -87,6 +87,8 @@ elif [ $1  = 'r' ]; then
 elif [ $1  = 'glf' ]; then
 	dd if=/dev/urandom of=ltx.dat bs=1728 count=10000 #outputs bs x count Bs 
 elif [ $1  = 'k' ]; then
+  sudo rm fft6*
+  sudo rm upsampleplot6*
   sudo pkill -f transit
   sudo pkill -f producer
   sudo pkill -f consumer
