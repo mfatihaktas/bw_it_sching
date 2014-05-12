@@ -51,7 +51,7 @@ def run_tnodes(hosts):
 def run_pcnodes(hosts):
   popens = {}
   for host in hosts:
-    popens[host] = host.popen('./run_hosts.sh %s' % host.name)
+    popens[host] = host.popen('./run_hosts.sh %s > logs/%sout' % (host.name, host.name) )
     print '%s is ready' % host.name
   #
   print 'pcnodes are ready...'

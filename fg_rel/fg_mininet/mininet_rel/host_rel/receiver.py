@@ -145,7 +145,7 @@ class Receiver(threading.Thread):
     while 1:
       data = sc.recv(KSTAR_CHUNKSTRSIZE)
       datasize = len(data)
-      logging.info('init_rx:: lport=%s; rxed datasize=%sB', self.laddr[1], datasize)
+      logging.info('rx_kstardata:: lport=%s; rxed datasize=%sB', self.laddr[1], datasize)
       #
       if self.recvstart_time == 0:
         self.recvstart_time = time.time()

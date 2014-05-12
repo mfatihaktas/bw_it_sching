@@ -199,7 +199,7 @@ class SessionClientHandler(threading.Thread):
     while 1:
       data = self.sclient_sock.recv(CHUNKSTRSIZE)
       datasize = getsizeof(data)
-      self.logger.info('init_rx:: stpdst=%s; rxed datasize=%sB', self.stpdst, datasize)
+      self.logger.debug('init_rx:: stpdst=%s; rxed datasize=%sB', self.stpdst, datasize)
       #
       if self.startedtorx_time == None:
         self.startedtorx_time = time.time()
@@ -369,8 +369,12 @@ class ItServHandler(threading.Thread):
       self.itwork_dict = flag
       #self.reinit_itjobdicts()
       dict_ = {ftag:datasize-float(float(self.jobremaining[ftag])/(1024**2)) for ftag,datasize in self.jobtobedone_dict.items()}
-      self.logger.warning('>>> jobdone_dict=\n%s', pprint.pformat(dict_))
+      self.logger.debug('>>> jobdone_dict=\n%s', pprint.pformat(dict_))
       self.init_itjobdicts()
+      
+      #subprocess.call(['sudo','pkill','-f','stpdst=%s' % self.stpdst ])
+      #threading.Thread(target=self.init_eceiproc).start()
+      #self.init_procsocks()
       
       self.logger.debug('listen_pipeserver:: NEW itwork_dict=%s\n', pprint.pformat(self.itwork_dict))
   
@@ -426,7 +430,7 @@ class ItServHandler(threading.Thread):
     data = itfunc_list = None
     while not self.stopflag:
       runround_dur = time.time()-startrunround_time
-      self.logger.warning('run:: runround_dur=%s\n', runround_dur)
+      self.logger.debug('run:: runround_dur=%s\n', runround_dur)
       totalrunround_dur += runround_dur
       startrunround_time = time.time()
       #
@@ -676,8 +680,8 @@ class Transit(object):
       return
     #
     #reinit htb
-    bw = float(data_['bw'])
-    self.reinit_htbconf(bw, stpdst)
+    #bw = float(data_['bw'])
+    #self.reinit_htbconf(bw, stpdst)
     #
     proc_cap = float(data_['proc'])
     datasize_ = float(data_['datasize'])
@@ -743,7 +747,7 @@ class Transit(object):
     nchunks = datasize_tobeproced*(1024**2)/CHUNKSTRSIZE
     intereq_time = ((modelproct+modeltxt)/nchunks)*INTEREQTIME_CORRECTIONCONST
     self.sintereqtime_dict[stpdst] = intereq_time
-    self.logger.warning('welcome_s:: nchunks=%s, intereq_time=%s, nchunks*intereq_time=%s', nchunks, intereq_time, nchunks*intereq_time)
+    self.logger.debug('welcome_s:: nchunks=%s, intereq_time=%s, nchunks*intereq_time=%s', nchunks, intereq_time, nchunks*intereq_time)
     threading.Thread(target = self.manage_stokenq,
                      kwargs = {'stpdst':stpdst } ).start()
     #
@@ -782,7 +786,7 @@ class Transit(object):
       self.delete_htbfile(stpdst)
       self.run_htbinit('conf')
       #self.run_htbinit('show')
-      self.logger.error('waitforsession_toend:: done for stpdst=%s, dur=%s', stpdst)
+      self.logger.debug('waitforsession_toend:: done for stpdst=%s', stpdst)
     else:
       self.logger.error('waitforsession_toend:: Unexpected popped=%s', popped)
     #
@@ -1008,6 +1012,7 @@ def main(argv):
   if logto == 'file':
     fname = 'logs/%s.log' % nodename
     logging.basicConfig(filename=fname,filemode='w',level=logging.DEBUG)
+    #logging.basicConfig(filename=fname,filemode='w',level=logging.INFO)
   elif logto == 'console':
     logging.basicConfig(level=logging.DEBUG)
   else:
