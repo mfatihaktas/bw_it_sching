@@ -277,7 +277,7 @@ struct sockaddr_un cliaddr[numfs];
 socklen_t cliaddrlen[numfs];
 int listenfd[numfs];
 struct sockaddr_un servaddr[numfs];
-char sockpath[numfs][50] = {"fft", "upsample", "plot", "upsampleplot"};
+char sockpath[numfs][50] = {"/tmp/fft", "/tmp/upsample", "/tmp/plot", "/tmp/upsampleplot"};
 
 double totalfftelapsed_t = 0;
 double totalupsampleplotelapsed_t = 0;

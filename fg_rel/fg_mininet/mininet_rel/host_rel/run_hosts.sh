@@ -13,7 +13,7 @@ P1_REQDICT='{"data_size":20,"slack_metric":60,"func_list":["fft","upsampleplot"]
 P1_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 
 C2D=1
-P2D=12
+P2D=32
 P2_REQDICT='{"data_size":20,"slack_metric":60,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P2_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 
@@ -87,8 +87,8 @@ elif [ $1  = 'r' ]; then
 elif [ $1  = 'glf' ]; then
 	dd if=/dev/urandom of=ltx.dat bs=1728 count=10000 #outputs bs x count Bs 
 elif [ $1  = 'k' ]; then
-  sudo rm fft6*
-  sudo rm upsampleplot6*
+  sudo rm /tmp/fft6*
+  sudo rm /tmp/upsampleplot6*
   sudo pkill -f transit
   sudo pkill -f producer
   sudo pkill -f consumer
