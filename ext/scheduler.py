@@ -46,7 +46,7 @@ info_dict = {'acterl_addr':('127.0.0.1',7999), #192.168.56.1
              'scher_vip':'10.0.0.255',
              'base_sport':6000,
              'sching_port':7000 }
-  
+
 class Scheduler(object):
   event_chief = EventChief()
   def __init__(self, xml_net_num, sching_logto, data_over_tp):
@@ -376,7 +376,7 @@ class Scheduler(object):
         if elapsed_time < tobeproceddata_transt:
           elapsed_datasize = tobeproceddatasize*float(elapsed_time)/tobeproceddata_transt
         else:
-          elapsed_datasize = tobeproceddatasize + sinfo['bw_list'][-1]*elapsed_time/8
+          elapsed_datasize = tobeproceddatasize + (0.94*sinfo['bw_list'][-1])*elapsed_time/8
         #
         sinfo['req_dict']['data_size'] -= elapsed_datasize
         sinfo['req_dict']['slack_metric'] -= elapsed_time

@@ -278,6 +278,7 @@ socklen_t cliaddrlen[numfs];
 int listenfd[numfs];
 struct sockaddr_un servaddr[numfs];
 char sockpath[numfs][50] = {"/tmp/fft", "/tmp/upsample", "/tmp/plot", "/tmp/upsampleplot"};
+char funcname[numfs][50] = {"fft", "upsample", "plot", "upsampleplot"};
 
 double totalfftelapsed_t = 0;
 double totalupsampleplotelapsed_t = 0;
@@ -295,6 +296,9 @@ void* init_chunkrw_sock(void* fi){
   char complete_sockpath[50];
   strcpy(complete_sockpath, sockpath[i]);
   strcat(complete_sockpath, stpdst);
+  //strcat(complete_sockpath, (char*)"/");
+  //strcat(complete_sockpath, funcname[i]);
+  //strcat(complete_sockpath, stpdst);
   
   strcpy(servaddr[i].sun_path, complete_sockpath);
   unlink(servaddr[i].sun_path);

@@ -46,9 +46,11 @@ class SchController(object):
       
       coupling_dur = coupling_done['recvend_time'] - session_done['sendstart_time']
       onthefly_dur = session_done['sendstop_time'] - coupling_done['recvstart_time']
+      ptx_dur = session_done['sendstop_time'] - session_done['sendstart_time']
       
       couplingdoneinfo['overall'] = {'coupling_dur': coupling_dur,
                                      'onthefly_dur': onthefly_dur,
+                                     'ptx_dur': ptx_dur,
                                      'recvedsize': coupling_done['recvedsize'],
                                      'sentsize': session_done['sentsize'],
                                      'trans_time': sessionpreserved['trans_time'],
