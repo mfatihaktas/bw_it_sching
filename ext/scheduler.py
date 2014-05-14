@@ -376,7 +376,7 @@ class Scheduler(object):
         if elapsed_time < tobeproceddata_transt:
           elapsed_datasize = tobeproceddatasize*float(elapsed_time)/tobeproceddata_transt
         else:
-          elapsed_datasize = tobeproceddatasize + (0.94*sinfo['bw_list'][-1])*elapsed_time/8
+          elapsed_datasize = tobeproceddatasize + (0.9*sinfo['bw_list'][-1])*elapsed_time/8
         #
         sinfo['req_dict']['data_size'] -= elapsed_datasize
         sinfo['req_dict']['slack_metric'] -= elapsed_time
@@ -779,9 +779,9 @@ class Scheduler(object):
     num_session = 3
     #data_size (MB) slack_metric (ms)
     req_dict_list = [ {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':300, 'func_list':['fft'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':300, 'func_list':['fft'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                     ]
     app_pref_dict_list = [

@@ -94,15 +94,15 @@ void do_fft(double r, uint64_t len, size_t dimx, size_t dimy, double*** mat){ //
       /*
         for (size_t it = 0; it < len; it++)
         {
-       // printf("mat(%ld,%ld,%ld) %g %g\n", 
+      //  printf("mat(%ld,%ld,%ld) %g %g\n", 
         it, iy, ix, mat[it][iy][ix], vec[it]/(double)len);
         }
       */
       /*
-     // printf("vec=\n");
+    //  printf("vec=\n");
       for (size_t it = 0; it < len; it++)
       {
-       // printf("vec[%ld]=%g", it, vec[it]/(double)len);
+      //  printf("vec[%ld]=%g", it, vec[it]/(double)len);
       }
       */
       // Reconstruct from fft (note: scale)
@@ -219,27 +219,27 @@ void do_plot(const char *outdir, size_t len, size_t dimx, size_t dimy, double***
 
 /* MFA functions */
 void print_3dmat(const char* matname, uint64_t len, size_t dimx, size_t dimy, double*** mat){ //double mat[][dimy][dimx]
- // printf("print_3dmat:: matname=%s, len=%zd, dimx=%zd, dimy=%zd\n", matname, len, dimx, dimy);
+//  printf("print_3dmat:: matname=%s, len=%zd, dimx=%zd, dimy=%zd\n", matname, len, dimx, dimy);
   for (uint64_t t = 0; t < len; t++){
-   // printf("t=%lld\n", (long long)t);
+  //  printf("t=%lld\n", (long long)t);
     for (uint64_t i = 0; i < dimx; i++){
       for (uint64_t j = 0; j < dimy; j++){
-       // printf("%2.3f,", mat[t][i][j]);
+      //  printf("%2.3f,", mat[t][i][j]);
       }
-     // printf("\n");
+    //  printf("\n");
     }
-   // printf("\n");
+  //  printf("\n");
   }
 }
 
 void print_2dmat(const char* matname, size_t dimx, size_t dimy, double** mat){ //double mat[dimx][dimy]
- // printf("print_2dmat:: matname=%s, dimx=%zd, dimy=%zd\n", matname, dimx, dimy);
+//  printf("print_2dmat:: matname=%s, dimx=%zd, dimy=%zd\n", matname, dimx, dimy);
   for (size_t i = 0; i < dimx; i++){
-   // printf("row%zd:", i);
+  //  printf("row%zd:", i);
     for (size_t j = 0; j < dimy; j++){
-     // printf("%2.2f,", mat[i][j]);
+    //  printf("%2.2f,", mat[i][j]);
     }
-   // printf("\n");
+  //  printf("\n");
   }
 }
 
@@ -287,7 +287,7 @@ void* init_chunkrw_sock(void* fi){
   int i = atoi((char*)fi);
   //
   if ((listenfd[i] = socket(AF_UNIX,SOCK_STREAM,0)) == -1){
-   // printf("init_chunkrw_sock:: Error while creating socket; fi=%d, errno=%d\n",i,errno);
+  //  printf("init_chunkrw_sock:: Error while creating socket; fi=%d, errno=%d\n",i,errno);
       exit(0);
   }
   memset(&servaddr[i], 0, sizeof(struct sockaddr_un));
@@ -315,7 +315,7 @@ void* init_chunkrw_sock(void* fi){
       perror("accept");
       exit(1);
   }
- // printf("init_chunkrw_sock:: done; func%d, connfd=%d.\n", i, connfd[i]);
+//  printf("init_chunkrw_sock:: done; func%d, connfd=%d.\n", i, connfd[i]);
 }
 
 char* read_chunk(char* func, int fi, int chunksize){
@@ -327,13 +327,13 @@ char* read_chunk(char* func, int fi, int chunksize){
   while (readsize < chunksize){
     int readsize_ = recv(connfd[fi],temp,chunksize,0);
     if (readsize_ == 0){
-     // printf("read_chunk:: %s conn is closed at other side, readsize_=%d\n", func, readsize_);
+    //  printf("read_chunk:: %s conn is closed at other side, readsize_=%d\n", func, readsize_);
       close(connfd[fi]);
       return NULL;
     }
     else if (readsize_ == -1)
     {
-     // printf("read_chunk:: Error while reading socket; func=%s, errno=%d\n",func,errno);
+    //  printf("read_chunk:: Error while reading socket; func=%s, errno=%d\n",func,errno);
       exit(0);
     }
     //printf("read_chunk:: func=%s, partial_readsize=%d\n", func, readsize_);
@@ -344,14 +344,14 @@ char* read_chunk(char* func, int fi, int chunksize){
   chunk_wp = NULL;
   free(temp);
   
- // printf("read_chunk:: func=%s, readsize=%d\n", func, readsize);
+//  printf("read_chunk:: func=%s, readsize=%d\n", func, readsize);
   
   return chunk;
 }
 
 void write_chunk(char* func, int fi, int chunksize, char* chunk){
   send(connfd[fi],chunk,chunksize,0);
- // printf("write_chunk:: func=%s, wrotesize=%d\n", func, chunksize);
+//  printf("write_chunk:: func=%s, wrotesize=%d\n", func, chunksize);
   free(chunk);
 }
 
@@ -366,7 +366,7 @@ void write_chunk_tofile(char* outdir, char* fname, size_t chunksize, char* chunk
     return;
   }
   fwrite(chunk,1,chunksize,fp);
- // printf("write_chunk_tofile:: wrote to wholefname=%s, chunksize=%zd\n", wholefname, chunksize);
+//  printf("write_chunk_tofile:: wrote to wholefname=%s, chunksize=%zd\n", wholefname, chunksize);
   free(chunk);
 }
 
@@ -522,7 +522,7 @@ char* doplot_returnchunk(const char *outdir, size_t len, size_t dimx, size_t dim
     size_t readsize = fread(plotdata,1,plotsize,plotp);
     //printf("doplot_returnchunk:: readsize=%zd\n", readsize);
     if (feof(plotp)){
-     // printf("doplot_returnchunk:: reading; EOF reached\n");
+    //  printf("doplot_returnchunk:: reading; EOF reached\n");
     }
     else if (ferror(plotp)){
       perror("doplot_returnchunk:: reading; Error occured\n");
@@ -638,7 +638,7 @@ char* do_plotfor2dmat_returnchunk(const char *outdir, size_t dimx, size_t dimy, 
   size_t readsize = fread(chunk,1,plotsize,plotp);
   //printf("do_plotfor2dmat_returnchunk:: readsize=%zd\n", readsize);
   if (feof(plotp)){
-   // printf("do_plotfor2dmat_returnchunk:: reading; EOF reached\n");
+  //  printf("do_plotfor2dmat_returnchunk:: reading; EOF reached\n");
   }
   else if (ferror(plotp)){
     perror("do_plotfor2dmat_returnchunk:: reading; Error occured\n");
@@ -654,14 +654,16 @@ char* do_plotfor2dmat_returnchunk(const char *outdir, size_t dimx, size_t dimy, 
 /* Thread functions */
 int STOPFLAG = 0;
 void* run_fft(void* stpdst){
- // printf("run_fft:: started\n");
+//  printf("run_fft:: started\n");
   init_chunkrw_sock((void*)"0");
   //
   double ratio = 1.0E-6;
   while (!STOPFLAG){
+    //init_chunkrw_sock((void*)"0");
+    
     char* chunk = read_chunk((char*)"fft", 0, CHUNKSIZE);
     if (chunk == NULL){
-     // printf("run_fft:: chunk is returned NULL! Aborting...\n");
+    //  printf("run_fft:: chunk is returned NULL! Aborting...\n");
       return NULL;
     }
     struct timeval ts, te;
@@ -683,18 +685,20 @@ void* run_fft(void* stpdst){
     elapsed_t = elapsed_t/1000.0; //msec to sec
     
     totalfftelapsed_t += elapsed_t;
-   // printf("run_fft:: elapsed_t=%g\n", elapsed_t);
+    
+    //close(connfd[0]);
+  //  printf("run_fft:: elapsed_t=%g\n", elapsed_t);
   }
 }
 
 void* run_upsample(void* stpdst){
- // printf("run_upsample:: started\n");
+//  printf("run_upsample:: started\n");
   init_chunkrw_sock((void*)"1");
   //
   while (!STOPFLAG){
     char* chunk = read_chunk((char*)"upsample", 1, CHUNKSIZE);
     if (chunk == NULL){
-     // printf("run_upsample:: chunk is returned NULL! Aborting...\n");
+    //  printf("run_upsample:: chunk is returned NULL! Aborting...\n");
       return NULL;
     }
     //char* chunk = read_chunk(datafifo_basename, datafifo_id, CHUNKSIZE);
@@ -718,13 +722,13 @@ void* run_upsample(void* stpdst){
 }
 
 void* run_plot(void* stpdst){
- // printf("run_plot:: started\n");
+//  printf("run_plot:: started\n");
   init_chunkrw_sock((void*)"2");
   //
   while (!STOPFLAG){
     char* chunk = read_chunk((char*)"plot", 2, CHUNKSIZE64);
     if (chunk == NULL){
-     // printf("run_plot:: chunk is returned NULL! Aborting...\n");
+    //  printf("run_plot:: chunk is returned NULL! Aborting...\n");
       return NULL;
     }
     //printf("chunk=%s\n", chunk);
@@ -746,14 +750,16 @@ void* run_plot(void* stpdst){
 }
 
 void* run_upsampleplot(void* stpdst){
- // printf("run_upsampleplot:: started\n");
+//  printf("run_upsampleplot:: started\n");
   init_chunkrw_sock((void*)"3");
   //
   double totalelapsed_t = 0;
   while (!STOPFLAG){
+    //init_chunkrw_sock((void*)"3");
+    
     char* chunk = read_chunk((char*)"upsampleplot", 3, CHUNKSIZE);
     if (chunk == NULL){
-     // printf("run_upsampleplot:: chunk is returned NULL! Aborting...\n");
+    //  printf("run_upsampleplot:: chunk is returned NULL! Aborting...\n");
       return NULL;
     }
     struct timeval ts, te;
@@ -781,7 +787,9 @@ void* run_upsampleplot(void* stpdst){
     elapsed_t = elapsed_t/1000.0; //msec to sec
     
     totalupsampleplotelapsed_t += elapsed_t;
-   // printf("run_upsampleplot:: elapsed_t=%g\n", elapsed_t);
+  //  printf("run_upsampleplot:: elapsed_t=%g\n", elapsed_t);
+   
+    //close(connfd[3]);
   }
 }
 
@@ -806,13 +814,13 @@ int main (int argc, char** argv)
     
     switch (c){
       case 0:
-       // printf ("option %s", long_options[option_index].name);
+      //  printf ("option %s", long_options[option_index].name);
         if (optarg)
-         // printf (" with arg %s\n", optarg);
+        //  printf (" with arg %s\n", optarg);
           break;
       case 's':
         stpdst = optarg;
-       // printf ("option -s with value `%s'\n", optarg);
+      //  printf ("option -s with value `%s'\n", optarg);
         break;
       case '?':
         /* getopt_long already printed an error message. */
@@ -824,17 +832,17 @@ int main (int argc, char** argv)
   
   pthread_t fft_thread, upsampleplot_thread;
   if ((pthread_create( &fft_thread, NULL, &run_fft, (void*)stpdst ) != 0) ||
-      (pthread_create( &fft_thread, NULL, &run_upsampleplot, (void*)stpdst ) != 0)){
+      (pthread_create( &upsampleplot_thread, NULL, &run_upsampleplot, (void*)stpdst ) != 0)){
     perror("Error with pthread_create");
   }
   pthread_join(fft_thread, NULL);
   pthread_join(upsampleplot_thread, NULL);
   
- // printf("totalfftelapsed_t=%g\n", totalfftelapsed_t);
- // printf("totalupsampleplotelapsed_t=%g\n", totalupsampleplotelapsed_t);
+//  printf("totalfftelapsed_t=%g\n", totalfftelapsed_t);
+//  printf("totalupsampleplotelapsed_t=%g\n", totalupsampleplotelapsed_t);
   /*
   if (strcmp(loc, (const char*)"mfa") == 0){
-   // printf("Enter\n");
+  //  printf("Enter\n");
     scanf("...");
   }
   else{

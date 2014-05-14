@@ -9,7 +9,7 @@ import __builtin__
 #
 from expr_matrix import Expr as expr
 
-BWREGCONST = 0.94
+BWREGCONST = 0.9 #0.94
 SLACKFEASIBILITYCONST = 1
 
 class SchingOptimizer:
@@ -444,6 +444,7 @@ class SchingOptimizer:
     for i in range(self.max_numitfuncs-1):
       s_n_consts += [self.s_n[:,i] >= self.s_n[:,i+1]]
     #
+    
     return [self.p_bw >= 0] + \
            [self.r_proc >= 0] + \
            [self.tt >= 0] + \
@@ -461,6 +462,16 @@ class SchingOptimizer:
     return consts
     '''
     return [cp.vstack(*self.a.get_row(1)) <= cp.vstack(*self.a.get_row(0))]
+  
+  def s_n_sparsity_constraint(self):
+    sparsity_list = []
+    for s_id in range(self.N):
+      funclist_len = len(self.sessions_beingserved_dict[s_id]['req_dict']['func_list'])
+      for k in range(funclist_len, self.max_numitfuncs):
+        sparsity_list.append(self.s_n[s_id, k])
+      #
+    #
+    return [cp.vstack(*sparsity_list) == 0]
   
   def res_cap_constraint(self):
     # resource capacity constraints
@@ -509,7 +520,7 @@ class SchingOptimizer:
                                       s_app_pref_dict['x_p'])
       (bw, proc, dur) = (self.a.get((0,i)).value,
                          self.a.get((1,i)).value,
-                         0 )#self.a.get((2,i)).value )
+                         0 ) #self.a.get((2,i)).value )
       '''
       print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
       print 'self.s_n[i, :].value=%s' % self.s_n[i, :].value
@@ -520,7 +531,7 @@ class SchingOptimizer:
       print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
       '''
       #
-      sn_list = [(float(self.s_n[i, k].value)**2) for k in range(self.max_numitfuncs)]
+      sn_list = [(float(self.s_n[i, k].value)**2) for k in range(len(s_req_dict['func_list']))]
       #
       trans_t = self.r_hard_vector.get((0,i)).value
       tt = self.get_var_val('tt',(0,i))
@@ -641,7 +652,7 @@ class SchingOptimizer:
     
     psinfo_dict = self.sid_res_dict[s_id]['ps_info']
     
-    n_list = [(float(self.s_n[s_id, k].value)**2) for k in range(self.max_numitfuncs)]
+    n_list = [(float(self.s_n[s_id, k].value)**2) for k in range(len(req_dict['func_list']))]
     #n_list = [float(n)**2 for n in (self.s_n[s_id, :])[0] ]
     
     pitwalk_dict, pwalk_dict = {}, {}
@@ -874,21 +885,21 @@ class SchingOptimizer:
       
       self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
       self.logger.debug('constraint0=\n%s', self.constraint0())
-      self.logger.debug('new_constraint0=\n%s', self.new_constraint0())
       self.logger.debug('self.tt_epigraph_form_constraint()=\n%s', self.tt_epigraph_form_constraint())
       self.logger.debug('res_cap_constraint=\n%s', self.res_cap_constraint())
       self.logger.debug('p_bwprocdur_sparsity_constraint=\n%s', self.p_bwprocdur_sparsity_constraint())
       self.logger.debug('r_bwprocdur_sparsity_constraint=\n%s', self.r_bwprocdur_sparsity_constraint())
+      self.logger.debug('s_n_sparsity_constraint=\n%s', self.s_n_sparsity_constraint())
       self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
       '''
       
       p = cp.Problem(cp.Minimize(self.F()),
                      self.constraint0() + \
-                     self.new_constraint0() + \
                      self.tt_epigraph_form_constraint() + \
                      self.res_cap_constraint() + \
                      self.r_bwprocdur_sparsity_constraint()  + \
-                     self.p_bwprocdur_sparsity_constraint() )
+                     self.p_bwprocdur_sparsity_constraint() + \
+                     self.s_n_sparsity_constraint() )
       #print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
       #p.show()
       #print 'p.variables:\n', p.variables

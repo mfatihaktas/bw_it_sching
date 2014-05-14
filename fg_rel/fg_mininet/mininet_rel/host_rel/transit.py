@@ -28,7 +28,7 @@ CHUNKHSIZE = 50 #B
 CHUNKSIZE = 24*8*9*10 #B
 CHUNKSTRSIZE = CHUNKSIZE+CHUNKHSIZE
 
-BWREGCONST = 0.94
+BWREGCONST = 0.9
 
 class PipeServer(threading.Thread):
   def __init__(self, nodename, server_addr, itwork_dict, to_addr, sflagq_in, sflagq_out, stokenq, intereq_time):
@@ -349,6 +349,7 @@ class ItServHandler(threading.Thread):
     #
   
   def init_procsocks(self):
+    self.logger.info('init_procsocks:: inited')
     for func in self.procsock_dict:
       while 1:
         try:
@@ -373,10 +374,6 @@ class ItServHandler(threading.Thread):
       dict_ = {ftag:datasize-float(float(self.jobremaining[ftag])/(1024**2)) for ftag,datasize in self.jobtobedone_dict.items()}
       self.logger.info('>>> jobdone_dict=\n%s', pprint.pformat(dict_))
       self.init_itjobdicts()
-      
-      #subprocess.call(['sudo','pkill','-f','stpdst=%s' % self.stpdst ])
-      #threading.Thread(target=self.init_eceiproc).start()
-      #self.init_procsocks()
       
       self.logger.debug('listen_pipeserver:: NEW itwork_dict=%s\n', pprint.pformat(self.itwork_dict))
   
@@ -418,8 +415,8 @@ class ItServHandler(threading.Thread):
     #
     threading.Thread(target = self.forward_thread).start()
     #
-    threading.Thread(target=self.init_eceiproc).start()
-    self.init_procsocks()
+    #threading.Thread(target=self.init_eceiproc).start()
+    #self.init_procsocks()
     #
     self.startedtohandle_time = time.time()
     
@@ -495,12 +492,14 @@ class ItServHandler(threading.Thread):
           
           for func in itfunc_list:
             if self.canfunc_berun(func, uptofunc_list):
+              '''
               [datasize_, data_] = self.proc(func = func,
                                              datasize = datasize,
                                              data = data )
+              '''
               self.jobremaining[func] -= datasize
-              datasize = datasize_
-              data = data_
+              #datasize = datasize_
+              #data = data_
               uptofunc_list.append(func)
           #
           self.served_size_B += datasize_t
@@ -511,9 +510,9 @@ class ItServHandler(threading.Thread):
             self.logger.debug('run:: !!! procdur > intereq_time !!!')
           #
           if (not self.nodename[0] == 't'):
-            #self.forward_data(data = self.addheader(data, itfunc_list),
+            #self.forward_data(data = self.addheader(data, uptofunc_list),
             #                  datasize = getsizeof(data) )
-            self.forwardq.put( self.addheader(data, itfunc_list) )
+            self.forwardq.put( self.addheader(data, uptofunc_list) )
           #
         #
     #
@@ -704,7 +703,7 @@ class Transit(object):
     #
     #reinit htb
     bw = float(data_['bw'])
-    #self.reinit_htbconf(bw, stpdst)
+    self.reinit_htbconf(bw, stpdst)
     #
     proc_cap = float(data_['proc'])
     datasize_ = float(data_['datasize'])
@@ -737,7 +736,7 @@ class Transit(object):
     del data_['s_tp']
     #init htb
     bw = float(data_['bw'])
-    #self.init_htbconf(bw, stpdst)
+    self.init_htbconf(bw, stpdst)
     #
     to_ip = data_['data_to_ip']
     del data_['data_to_ip']
