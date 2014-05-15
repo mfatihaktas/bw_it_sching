@@ -30,8 +30,8 @@ class MyTopo(Topo):
     t11 = self.addHost( 't11', ip='10.0.0.11' )
     t21 = self.addHost( 't21', ip='10.0.0.21' )
     #
-    wide_linkopts = dict(bw=1000, delay='0ms', loss=0, max_queue_size=1000000, use_htb=True)
-    dsa_linkopts = dict(bw=1000, delay='0ms', loss=0, max_queue_size=1000000, use_htb=True)
+    wide_linkopts = dict(bw=11, delay='0ms', loss=0, max_queue_size=1000000, use_htb=True)
+    dsa_linkopts = dict(bw=11, delay='0ms', loss=0, max_queue_size=1000000, use_htb=True)
     #
     self.addLink( s1, t11, **dsa_linkopts )
     self.addLink( s1, s2, **wide_linkopts )
@@ -117,10 +117,9 @@ if __name__ == '__main__':
   
   #run_pcnodes([c1, p1, c2, p2])
   #run_pcnodes([c1, p1])
-  #run_pcnodes([c2, p2])
   #run_pcnodes([c1, c2, c3])
   run_pcnodes([c1, p1, c2, p2, c3, p3])
-  #run_pcnodes([c3, p3])
+  #run_pcnodes([c1, p1, c2, p2, c3, p3, c4, p4, c5, p5, c6, p6])
   #
   CLI( net )
   net.stop()

@@ -29,6 +29,7 @@ CHUNKSIZE = 24*8*9*10 #B
 CHUNKSTRSIZE = CHUNKSIZE+CHUNKHSIZE
 
 BWREGCONST = 0.9
+INTEREQTIME_REGCONST = 0.99
 
 class PipeServer(threading.Thread):
   def __init__(self, nodename, server_addr, itwork_dict, to_addr, sflagq_in, sflagq_out, stokenq, intereq_time):
@@ -523,7 +524,7 @@ class ItServHandler(threading.Thread):
     #
     self.stoppedtohandle_time = time.time()
     self.logger.info('run:: done, dur=%ssecs, stoppedtohandle_time=%s, startedtohandle_time=%s', self.stoppedtohandle_time-self.startedtohandle_time, self.stoppedtohandle_time, self.startedtohandle_time)
-    self.logger.info('run:: totalrunround_dur=%s, served_size_B=%s, jobremaining=\n%s', totalrunround_dur, self.served_size_B, pprint.pformat(self.jobremaining))
+    self.logger.info('run:: totalrunround_dur=%s, served_size_B=%s(MB), jobremaining=\n%s', totalrunround_dur, float(self.served_size_B)/(1024**2), pprint.pformat(self.jobremaining))
     self.logger.info('run:: totalexcessrunround_dur=%s', totalexcessrunround_dur)
   
   def addheader(self, data, itfunc_list):
@@ -722,7 +723,7 @@ class Transit(object):
     nchunks = datasize_tobeproced*(1024**2)/CHUNKSTRSIZE
     modeltranst = modelproct+modeltxt
     
-    self.sintereqtime_dict[stpdst] = float(float(modeltranst)/nchunks)
+    self.sintereqtime_dict[stpdst] = INTEREQTIME_REGCONST*float(float(modeltranst)/nchunks)
     self.logger.debug('rewelcome_s:: stpdst=%s, datasize_tobeproced=%s, intereq_time=%s, modeltranst=%s, modelproct=%s, modeltxt=%s', stpdst, datasize_tobeproced, self.sintereqtime_dict[stpdst], modeltranst, modelproct, modeltxt)
     #
     self.sflagq_topipes_dict[stpdst].put(data_)
@@ -771,7 +772,7 @@ class Transit(object):
     nchunks = float(datasize_tobeproced*(1024**2))/CHUNKSTRSIZE
     modeltranst = modelproct+modeltxt
     
-    intereq_time = float(float(modeltranst)/nchunks)
+    intereq_time = INTEREQTIME_REGCONST*float(float(modeltranst)/nchunks)
     self.sintereqtime_dict[stpdst] = intereq_time
     
     self.logger.debug('welcome_s:: datasize_tobeproced=%s, nchunks=%s, intereq_time=%s, modeltranst=%s, modelproct=%s, modeltxt=%s', datasize_tobeproced, nchunks, intereq_time, modeltranst, modelproct, modeltxt)
@@ -808,9 +809,9 @@ class Transit(object):
     popped = sflagq_frompipe.get(True, None)
     if popped == 'DONE':
       #clear htb for the session
-      #self.run_htbinit('dconf')
-      #self.delete_htbfile(stpdst)
-      #self.run_htbinit('conf')
+      self.run_htbinit('dconf')
+      self.delete_htbfile(stpdst)
+      self.run_htbinit('conf')
       #self.run_htbinit('show')
       self.logger.info('waitforsession_toend:: done for stpdst=%s', stpdst)
     else:

@@ -5,6 +5,7 @@ import pox.lib.packet as pkt
 from pox.openflow.of_json import *
 #from pox.lib.util import dpid_to_str
 from scheduler import Scheduler #, EventChief
+from exp_plot import ExpPlotter
 import pprint,logging,signal,threading
 log = core.getLogger()
 
@@ -15,6 +16,7 @@ info_dict = {'scher_vip': '10.0.0.255',
 class SchController(object):
   def __init__(self):
     #logging.basicConfig(filename='logs/schcontlog',filemode='w',level=logging.DEBUG)
+    self.exp_plotter = ExpPlotter()
     #
     threading.Thread(target=self.waitforenter).start()
     #
@@ -65,9 +67,11 @@ class SchController(object):
       couplingdoneinfo['overall']['tobeproceddatasize_list'] = sessionpreserved['tobeproceddatasize_list']
       couplingdoneinfo['overall']['tobeproceddata_transt_list'] = sessionpreserved['tobeproceddata_transt_list']
       
-      couplingdur_relerr = 100*(coupling_dur - idealtrans_time)/idealtrans_time
+      couplingdur_relerr = 100*float(coupling_dur - idealtrans_time)/idealtrans_time
+      sching_overhead = 100*float(session_done['schingrr_time'])/coupling_dur
       couplingdoneinfo['overall'].update({'idealtrans_time': idealtrans_time,
-                                          'couplingdur_relerr': couplingdur_relerr })
+                                          'couplingdur_relerr': couplingdur_relerr,
+                                          'sching_overhead': sching_overhead })
       #
       couplingdoneinfo['overall']['recvedpercentwithfunc_dict'] = \
         {func:100*float(size)/coupling_done['recvedsize'] for func,size in coupling_done['recvedsizewithfunc_dict'].items()}
@@ -78,55 +82,18 @@ class SchController(object):
     f = open(furl, 'w')
     f.write(pprint.pformat(couplingdoneinfo_dict))
     f.close()
-    # 2
-    pfurl = '/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat'
-    pf = open(pfurl, 'w')
     
-    for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items():
-      infostr = str(sch_req_id) + ' ' + \
-                str(float(couplingdoneinfo['overall']['recvedsize'])/(1024**2)) + ' ' + \
-                str(couplingdoneinfo['overall']['idealtrans_time']) + ' ' + \
-                str(couplingdoneinfo['overall']['coupling_dur']) + ' ' + \
-                str(couplingdoneinfo['overall']['couplingdur_relerr']) + ' '
-      for func,size in couplingdoneinfo['coupling_done']['recvedsizewithfunc_dict'].items():
-        infostr += str(float(size)/(1024**2)) + ' ' + str(couplingdoneinfo['overall']['recvedpercentwithfunc_dict'][func]) + ' '
-      #
-      infostr += '\n'
-      pf.write(infostr)
-    #
-    pf.close()
-    # 3
-    '''
-    pipe = subprocess.Popen(['gnuplot'], stdin=subprocess.PIPE)
-    pipe.stdin.write('set title Coupling data size for each session \n')
-    pipe.stdin.write('set output "/home/ubuntu/pox/ext/logs/recvedsize_sid.png"\n')
-    #pipe.stdin.write('set xrange [0:10]; set yrange [-2:2]\n')
-    pipe.stdin.write('unset xticks\n')
-    pipe.stdin.write('set style data histogram\n')
-    pipe.stdin.write('set style histogram rowstacked\n')
-    pipe.stdin.write('set style fill solid border -1\n')
-    pipe.stdin.write('set boxwidth 0.75\n')
-    pipe.stdin.write('plot "couplingdoneinfo.dat" using xtic(1):2 title "Col2", "" using 6 title "Col6", "" using 8 title "Col8"\n')
+    self.exp_plotter.write_expdatafs(couplingdoneinfo_dict = couplingdoneinfo_dict,
+                                     outfurl='/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat' )
+    self.exp_plotter.plot_sizerel(datafurl = '/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat', 
+                                  outfurl = '/home/ubuntu/pox/ext/logs/sizerel.png',
+                                  nums = len(couplingdoneinfo_dict),
+                                  yrange = 1.1*max([couplingdoneinfo['overall']['recvedsize'] for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()]) )
+    self.exp_plotter.plot_timerel(datafurl = '/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat',
+                                  outfurl = '/home/ubuntu/pox/ext/logs/timerel.png',
+                                  nums = len(couplingdoneinfo_dict),
+                                  yrange = 1.1*max([couplingdoneinfo['overall']['coupling_dur'] for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()]) )
     
-    pipe = subprocess.Popen(['gnuplot'], shell = True, stdin=subprocess.PIPE)
-    pipe.stdin.write("set term png enhanced font '/usr/share/fonts/liberation/LiberationSans-Regular.ttf' 12\n")
-    pipe.stdin.write('set output "recvedsize_sid.png"\n')
-    pipe.stdin.write('set title "Coupling data size for each session" \n')
-    #pipe.stdin.write('set auto x\n')
-    pipe.stdin.write('set xrange [-1:5] \n')
-    pipe.stdin.write('set yrange [0:110] \n')
-    #pipe.stdin.write('set boxwidth 0.6 absolute\n')
-    pipe.stdin.write('set grid\n')
-    pipe.stdin.write('set boxwidth 0.2 absolute\n')
-    pipe.stdin.write('set key inside right top vertical Right noreverse noenhanced autotitles nobox\n')
-    #pipe.stdin.write('set style data histogram\n')
-    #pipe.stdin.write('set style fill solid 1.00 border -1\n')
-    pipe.stdin.write('set style fill solid border -1\n')
-    #pipe.stdin.write('set xtics rotate out\n')
-    pipe.stdin.write('plot "deneme.dat" using 2:xtic(1) w boxes lc rgb "#9FAFDF" title "rxed size" \n')
-    '''
-    
-  
   #########################  _handle_*** methods  #######################
   def _handle_SendMsgToUser(self, event):
     #print '_handle_SendMsgToUser::'
