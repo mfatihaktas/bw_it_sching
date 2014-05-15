@@ -10,7 +10,7 @@ DS=20
 
 C1D=1
 P1D=2
-P1_REQDICT='{"data_size":20,"slack_metric":30,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P1_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P1_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 P1_CLIP=10.0.1.0
 
@@ -95,8 +95,7 @@ elif [ $1  = 'k' ]; then
   sudo pkill -f transit
   sudo pkill -f producer
   sudo pkill -f consumer
-  sudo pkill -f eceiproc
-  sudo pkill python
+  #sudo pkill -f eceiproc
 elif [ $1  = 'den' ]; then
   g++ deneme.c -o deneme
   ./deneme

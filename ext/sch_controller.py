@@ -88,7 +88,7 @@ class SchController(object):
     self.exp_plotter.plot_sizerel(datafurl = '/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat', 
                                   outfurl = '/home/ubuntu/pox/ext/logs/sizerel.png',
                                   nums = len(couplingdoneinfo_dict),
-                                  yrange = 1.1*max([couplingdoneinfo['overall']['recvedsize'] for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()]) )
+                                  yrange = 1.1*max([couplingdoneinfo['overall']['recvedsize']/(1024**2) for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()]) )
     self.exp_plotter.plot_timerel(datafurl = '/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat',
                                   outfurl = '/home/ubuntu/pox/ext/logs/timerel.png',
                                   nums = len(couplingdoneinfo_dict),

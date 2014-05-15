@@ -9,7 +9,7 @@ import __builtin__
 #
 from expr_matrix import Expr as expr
 
-BWREGCONST = 0.9 #0.94
+BWREGCONST = 1 #0.9 #0.94
 SLACKFEASIBILITYCONST = 1
 
 class SchingOptimizer:
@@ -413,7 +413,7 @@ class SchingOptimizer:
         self.sp_proc.set_((s_id,p_id), l_[1])
         #self.sp_dur.set_((s_id,p_id), l_[2])
         self.sp_trans.set_((s_id,p_id), l_[3])
-    #log
+    #
     self.logger.debug('fill__sp_txprocdurtrans_matrices::')
     self.logger.debug('self.sp_tx=\n%s', self.sp_tx)
     self.logger.debug('self.sp_proc=\n%s', self.sp_proc)
@@ -427,7 +427,7 @@ class SchingOptimizer:
       s_st = self.sessions_beingserved_dict[s_id]['req_dict']['slack_metric']
       self.s_pen_vector.set_((0,s_id), self.P(s_id, cp.square(self.tt[0,s_id]-s_st)) )
       self.s_util_vector.set_((0,s_id), self.U(s_id, self.r_soft_vector.get((0,s_id)) ) )
-    #log
+    #
     self.logger.debug('fill__r_hardsoft__s_penutil_vectors::')
     self.logger.debug('self.r_hard_vector=\n%s', self.r_hard_vector)
     self.logger.debug('self.r_soft_vector=\n%s', self.r_soft_vector)
