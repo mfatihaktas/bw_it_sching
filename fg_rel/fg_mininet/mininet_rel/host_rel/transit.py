@@ -32,7 +32,7 @@ BWREGCONST = 0.9
 INTEREQTIME_REGCONST = 0.99
 
 class PipeServer(threading.Thread):
-  def __init__(self, nodename, server_addr, itwork_dict, to_addr, sflagq_in, sflagq_out, stokenq, intereq_time):
+  def __init__(self, nodename, server_addr, itwork_dict, to_addr, sflagq_in, sflagq_out, sproctokenq, stxtokenq, intereq_time):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
@@ -43,7 +43,8 @@ class PipeServer(threading.Thread):
     self.to_addr = to_addr
     self.sflagq_in = sflagq_in
     self.sflagq_out = sflagq_out
-    self.stokenq = stokenq
+    self.sproctokenq = sproctokenq
+    self.stxtokenq = stxtokenq
     self.intereq_time = intereq_time
     #
     self.logger = logging.getLogger('filepipeserver')
@@ -112,7 +113,8 @@ class PipeServer(threading.Thread):
                                         to_addr = self.to_addr,
                                         flagq_in = self.flagq_toitsh,
                                         flagq_out = self.flagq_fromitsh,
-                                        stokenq = self.stokenq,
+                                        sproctokenq = self.sproctokenq,
+                                        stxtokenq = self.stxtokenq,
                                         intereq_time = self.intereq_time,
                                         procq = procq )
     self.itserv_handler.start()
@@ -276,7 +278,7 @@ class SessionClientHandler(threading.Thread):
 
 class ItServHandler(threading.Thread):
   def __init__(self, nodename, itwork_dict, stpdst, to_addr,
-               flagq_in, flagq_out, stokenq, intereq_time, procq):
+               flagq_in, flagq_out, sproctokenq, stxtokenq, intereq_time, procq):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
@@ -286,7 +288,8 @@ class ItServHandler(threading.Thread):
     self.to_addr = to_addr
     self.flagq_in = flagq_in
     self.flagq_out = flagq_out
-    self.stokenq = stokenq
+    self.sproctokenq = sproctokenq
+    self.stxtokenq = stxtokenq
     self.intereq_time = intereq_time
     self.procq = procq
     #
@@ -476,7 +479,7 @@ class ItServHandler(threading.Thread):
           #
         else:
           #wait for the proc turn
-          stoken = self.stokenq.get(True, None)
+          stoken = self.sproctokenq.get(True, None)
           if stoken == CHUNKSIZE:
             pass
           elif stoken == -1:
@@ -578,6 +581,18 @@ class ItServHandler(threading.Thread):
     self.flagq_out.put('DONE')
   
   def forward_data(self, data, datasize):
+    #wait for the tx turn
+    stoken = self.stxtokenq.get(True, None)
+    if stoken == CHUNKSIZE:
+      pass
+    elif stoken == -1:
+      self.stopflag = True
+      continue
+    else:
+      self.logger.error('run:: Unexpected stoken=%s', stoken)
+      self.stopflag = True
+      continue
+    #
     try:
       if not self.forwarding_started:
         self.logger.info('forward_data:: itserv_sock is trying to connect to addr=%s', self.to_addr)
@@ -677,8 +692,11 @@ class Transit(object):
     self.stopflag = False
     self.sflagq_topipes_dict = {}
     self.sflagq_frompipes_dict = {}
-    self.stokenq_dict = {}
-    self.sintereqtime_dict = {}
+    self.stxtokenq_dict = {}
+    self.sproctokenq_dict = {}
+    
+    self.stpdst_procintereqtime_dict = {}
+    self.stpdst_txintereqtime_dict = {}
     self.stpdst_itwork_dict = {}
     #
     self.init_htbdir()
@@ -702,32 +720,31 @@ class Transit(object):
       self.logger.error('Recved reitjob_rule msg for a nonreged stpdst=%s', stpdst)
       return
     #
-    #reinit htb
-    bw = float(data_['bw'])
-    self.reinit_htbconf(bw, stpdst)
-    #
     proc_cap = float(data_['proc'])
     datasize_ = float(data_['datasize'])
     func_n_dict = data_['itfunc_dict']
-    
+    #
+    bw = float(data_['bw'])
+    modeltxt = float(datasize*8)/(bw*BWREGCONST)
+    nchunks = float(datasize*(1024**2))/CHUNKSTRSIZE
+    self.stpdst_txintereqtime_dict[stpdst] = INTEREQTIME_REGCONST*float(float(modeltxt)/nchunks)
+    #self.reinit_htbconf(bw, stpdst)
+    #
     jobtobedone = {}
     for ftag,n in func_n_dict.items():
       jobtobedone[ftag] = datasize_*float(n)
     data_.update( {'jobtobedone': jobtobedone} )
     #
-    modelproct = proc_time_model(datasize = datasize_,
+    tobeproced_modelproct = proc_time_model(datasize = datasize_,
                                  func_n_dict = func_n_dict,
                                  proc_cap = proc_cap )
-    datasize_tobeproced = float(datasize_)*max([float(n) for func,n in func_n_dict.items()])
-    modeltxt = datasize_tobeproced*8/(bw*BWREGCONST)
-    nchunks = datasize_tobeproced*(1024**2)/CHUNKSTRSIZE
-    modeltranst = modelproct+modeltxt
-    
-    self.sintereqtime_dict[stpdst] = INTEREQTIME_REGCONST*float(float(modeltranst)/nchunks)
-    self.logger.debug('rewelcome_s:: stpdst=%s, datasize_tobeproced=%s, intereq_time=%s, modeltranst=%s, modelproct=%s, modeltxt=%s', stpdst, datasize_tobeproced, self.sintereqtime_dict[stpdst], modeltranst, modelproct, modeltxt)
+    tobeproced_datasize = float(datasize_)*max([float(n) for func,n in func_n_dict.items()])
+    nchunkstobeproced = tobeproced_datasize*(1024**2)/CHUNKSTRSIZE
+    tobeproceddata_modeltranst = tobeproced_modelproct+tobeproceddata_modeltxt
+    self.stpdst_procintereqtime_dict[stpdst] = INTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
     #
     self.sflagq_topipes_dict[stpdst].put(data_)
-    self.logger.debug('rewelcome_s:: done for stpdst=%s', stpdst)
+    self.logger.debug('rewelcome_s:: done for stpdst=%s;\n\ttobeproced_datasize=%s, tobeproceddata_modeltranst=%s, tobeproced_modelproct=%s, tobeproceddata_modeltxt=%s', stpdst, tobeproced_datasize, tobeproceddata_modeltranst, tobeproced_modelproct, tobeproceddata_modeltxt)
     
   def welcome_s(self, data_):
     #If new_s with same tpdst arrives, old_s is overwritten by new_s
@@ -735,49 +752,51 @@ class Transit(object):
     if stpdst in self.sinfo_dict:
       self.bye_s(stpdst)
     del data_['s_tp']
-    #init htb
-    bw = float(data_['bw'])
-    self.init_htbconf(bw, stpdst)
     #
     to_ip = data_['data_to_ip']
     del data_['data_to_ip']
-    
+    proc_cap = float(data_['proc'])
+    del data_['proc']
+    func_n_dict = data_['itfunc_dict']
+    proto = int(data_['proto']) #6:TCP, 17:UDP
+    del data_['proto']
     to_addr = (to_ip, stpdst) #goes into s_info_dict
     datasize = float(data_['datasize'])
+    #
+    bw = float(data_['bw'])
+    modeltxt = float(datasize*8)/(bw*BWREGCONST)
+    nchunks = float(datasize*(1024**2))/CHUNKSTRSIZE
+    self.stpdst_txintereqtime_dict[stpdst] = INTEREQTIME_REGCONST*float(float(modeltxt)/nchunks)
+    threading.Thread(target = self.manage_stxtokenq,
+                     kwargs = {'stpdst':stpdst } ).start()
+    #self.init_htbconf(bw, stpdst)
     #
     jobtobedone = {}
     for ftag,n in data_['itfunc_dict'].items():
       jobtobedone[ftag] = datasize*float(n)
     data_.update( {'jobtobedone': jobtobedone} )
     #
-    proc_cap = float(data_['proc'])
-    del data_['proc']
-    func_n_dict = data_['itfunc_dict']
-    modelproct = proc_time_model(datasize = datasize,
-                                 func_n_dict = func_n_dict,
-                                 proc_cap = proc_cap )
-    datasize_tobeproced = float(datasize)*max([float(n) for func,n in func_n_dict.items()])
-    modeltxt = datasize_tobeproced*8/(bw*BWREGCONST)
-    #
-    proto = int(data_['proto']) #6:TCP, 17:UDP
-    del data_['proto']
-    #
     sflagq_topipes = Queue.Queue(0)
     sflagq_frompipes = Queue.Queue(0)
-    stokenq = Queue.Queue(1)
+    sproctokenq = Queue.Queue(1)
+    stxtokenq = Queue.Queue(1)
     self.sflagq_topipes_dict[stpdst] = sflagq_topipes
     self.sflagq_frompipes_dict[stpdst] = sflagq_frompipes
-    self.stokenq_dict[stpdst] = stokenq
+    self.sproctokenq_dict[stpdst] = sproctokenq
+    self.stxtokenq_dict[stpdst] = stxtokenq
     #
-    nchunks = float(datasize_tobeproced*(1024**2))/CHUNKSTRSIZE
-    modeltranst = modelproct+modeltxt
+    tobeproced_modelproct = proc_time_model(datasize = datasize,
+                                 func_n_dict = func_n_dict,
+                                 proc_cap = proc_cap )
+    tobeproced_datasize = float(datasize)*max([float(n) for func,n in func_n_dict.items()])
+    tobeproceddata_modeltxt = float(tobeproced_datasize*8)/(bw*BWREGCONST)
+    nchunkstobeproced = float(tobeproced_datasize*(1024**2))/CHUNKSTRSIZE
+    tobeproceddata_modeltranst = tobeproced_modelproct+tobeproceddata_modeltxt
     
-    intereq_time = INTEREQTIME_REGCONST*float(float(modeltranst)/nchunks)
-    self.sintereqtime_dict[stpdst] = intereq_time
-    
-    self.logger.debug('welcome_s:: datasize_tobeproced=%s, nchunks=%s, intereq_time=%s, modeltranst=%s, modelproct=%s, modeltxt=%s', datasize_tobeproced, nchunks, intereq_time, modeltranst, modelproct, modeltxt)
-    threading.Thread(target = self.manage_stokenq,
+    self.stpdst_procintereqtime_dict[stpdst] = INTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
+    threading.Thread(target = self.manage_sproctokenq,
                      kwargs = {'stpdst':stpdst } ).start()
+    self.logger.debug('welcome_s:: tobeproced_datasize=%s, nchunkstobeproced=%s, tobeproceddata_modeltranst=%s, tobeproced_modelproct=%s, tobeproceddata_modeltxt=%s', tobeproced_datasize, nchunkstobeproced, tobeproceddata_modeltranst, tobeproced_modelproct, tobeproceddata_modeltxt)
     #
     #self.stpdst_itwork_dict[stpdst] = data_
     #self.logger.debug('stpdst_itwork_dict=%s', pprint.pformat(self.stpdst_itwork_dict))
@@ -788,12 +807,12 @@ class Transit(object):
                                    to_addr = to_addr,
                                    sflagq_in = sflagq_topipes,
                                    sflagq_out = sflagq_frompipes,
-                                   stokenq = stokenq,
+                                   sproctokenq = sproctokenq,
                                    intereq_time = intereq_time )
       self.sinfo_dict[stpdst] = {'itjobrule':data_,
                                  'to_addr': to_addr,
                                  's_server_thread': s_server_thread,
-                                 'modelproct': modelproct,
+                                 'tobeproced_modelproct': tobeproced_modelproct,
                                  'proc': proc_cap }
       s_server_thread.start()
       self.N += 1
@@ -809,26 +828,40 @@ class Transit(object):
     popped = sflagq_frompipe.get(True, None)
     if popped == 'DONE':
       #clear htb for the session
-      self.run_htbinit('dconf')
-      self.delete_htbfile(stpdst)
-      self.run_htbinit('conf')
+      #self.run_htbinit('dconf')
+      #self.delete_htbfile(stpdst)
+      #self.run_htbinit('conf')
       #self.run_htbinit('show')
+      self.sproctokenq.put(-1, True)
+      self.stxtokenq.put(-1, True)
       self.logger.info('waitforsession_toend:: done for stpdst=%s', stpdst)
     else:
       self.logger.error('waitforsession_toend:: Unexpected popped=%s', popped)
     #
   
-  def manage_stokenq(self, stpdst):
-    stokenq = self.stokenq_dict[stpdst]
+  def manage_stxtokenq(self, stpdst):
+    stxtokenq = self.stxtokenq_dict[stpdst]
     while not self.stopflag:
       try:
-        stokenq.put(CHUNKSIZE, False)
+        stxtokenq.put(CHUNKSIZE, False)
       except Queue.Full:
         pass
-      #self.logger.debug('manage_stokenq_%s:: sleeping for %ssecs', stpdst, self.sintereqtime_dict[stpdst])
-      time.sleep(self.sintereqtime_dict[stpdst])
+      #self.logger.debug('manage_stxtokenq_%s:: sleeping for %ssecs', stpdst, self.stpdst_procintereqtime_dict[stpdst])
+      time.sleep(self.stpdst_procintereqtime_dict[stpdst])
     #
-    self.logger.debug('manage_stokenq_%s:: stoppped by STOP flag!', stpdst)
+    self.logger.debug('manage_stxtokenq_%s:: stoppped by STOP flag!', stpdst)
+  
+  def manage_sproctokenq(self, stpdst):
+    sproctokenq = self.sproctokenq_dict[stpdst]
+    while not self.stopflag:
+      try:
+        sproctokenq.put(CHUNKSIZE, False)
+      except Queue.Full:
+        pass
+      #self.logger.debug('manage_sproctokenq_%s:: sleeping for %ssecs', stpdst, self.stpdst_procintereqtime_dict[stpdst])
+      time.sleep(self.stpdst_procintereqtime_dict[stpdst])
+    #
+    self.logger.debug('manage_sproctokenq_%s:: stoppped by STOP flag!', stpdst)
 
   ###  htb rel  ###
   def delete_htbfile(self, stpdst):
