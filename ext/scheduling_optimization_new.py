@@ -471,7 +471,10 @@ class SchingOptimizer:
         sparsity_list.append(self.s_n[s_id, k])
       #
     #
-    return [cp.vstack(*sparsity_list) == 0]
+    if len(sparsity_list) == 0:
+      return []
+    else:
+      return [cp.vstack(*sparsity_list) == 0]
   
   def res_cap_constraint(self):
     # resource capacity constraints
