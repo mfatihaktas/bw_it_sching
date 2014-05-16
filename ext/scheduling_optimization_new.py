@@ -9,7 +9,8 @@ import __builtin__
 #
 from expr_matrix import Expr as expr
 
-BWREGCONST = 1 #0.9 #0.94
+BWREGCONST = 1 #0.9 #0.95
+BWREGCONST_INGRAB = 1 #0.9 #0.95
 SLACKFEASIBILITYCONST = 1
 
 class SchingOptimizer:
@@ -556,7 +557,7 @@ class SchingOptimizer:
         sp_transt.append(self.sp_trans.get((i,k)).value)
       #
       tobeproceddatasize = s_data_size*max(sn_list) #MB
-      tobeproceddata_transt = tobeproceddatasize*8/bw + sp_proct[0] #sec
+      tobeproceddata_transt = tobeproceddatasize*8/(BWREGCONST_INGRAB*bw) + sp_proct[0] #sec
       #
       self.session_res_alloc_dict['s-wise'][i] = {
         'p_bw':p_bw, 'p_proc':p_proc, 'p_dur':p_dur,
@@ -671,7 +672,7 @@ class SchingOptimizer:
         s_id_ = s_id + p_id*self.N
         it_proc = float(self.r_proc[s_id_,t_id].value)
         #it_dur = float(self.r_dur[s_id_,t_id].value)
-        if it_proc > 1:
+        if it_proc > 0: #Caused problem since session can directly go to c!
           p_proc += it_proc
           t_id_ = t_id + self.ll_index + 1
           it_tag = self.actual_res_dict['id_info_map'][t_id_]['tag']

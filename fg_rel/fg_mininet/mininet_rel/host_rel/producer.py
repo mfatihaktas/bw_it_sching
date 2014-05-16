@@ -15,6 +15,8 @@ def get_addr(lintf):
   intf_eth0_ip = intf_eth0_ip[intf_eth0_ip.index('inet') + 1].split('/')[0]
   return intf_eth0_ip
 
+BWREGCONST=1.1
+
 class Producer(object):
   def __init__(self, intf, pl_port, dtsl_ip, dtsl_port, cl_ip, proto,tx_type, file_url, kstardata_url,
                req_dict,app_pref_dict, htbdir, logto):
@@ -201,7 +203,7 @@ class Producer(object):
     logging.info('init_htbconf:: started;')
     #
     for p_id in range(0, parism_l):
-      data = self.get_htbclass_confdata(rate = str(p_bw[p_id])+'Mbit',
+      data = self.get_htbclass_confdata(rate = str(BWREGCONST*p_bw[p_id])+'Mbit',
                                         burst = '15k',
                                         leaf = 'netem',
                                         rule = '*:%s' % p_tp_dst[p_id] )

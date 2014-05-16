@@ -94,6 +94,10 @@ class SchController(object):
                                   nums = len(couplingdoneinfo_dict),
                                   yrange = 1.1*max([couplingdoneinfo['overall']['coupling_dur'] for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()]) )
     
+    self.exp_plotter.plot_overheadrel(datafurl = '/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat',
+                                      outfurl = '/home/ubuntu/pox/ext/logs/overheadrel.png',
+                                      nums = len(couplingdoneinfo_dict),
+                                      yrange = 1.1*max([couplingdoneinfo['session_done']['schingrr_time'] for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()]) )
   #########################  _handle_*** methods  #######################
   def _handle_SendMsgToUser(self, event):
     #print '_handle_SendMsgToUser::'

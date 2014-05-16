@@ -47,7 +47,8 @@ info_dict = {'acterl_addr':('127.0.0.1',7999), #192.168.56.1
              'base_sport':6000,
              'sching_port':7000 }
 
-BWREGCONST = 1
+BWREGCONST = 1 #0.95
+ELAPSEDDSREGCONST = 1 #0.95
 
 class Scheduler(object):
   event_chief = EventChief()
@@ -103,6 +104,9 @@ class Scheduler(object):
     
     self.couplinginfo_dict = {}
     self.startedtime = time.time()
+    #
+    self.sid_schregid_dict = {}
+    
   
   def recv_from_user(self, userinfo_dict, msg):
     user_ip = userinfo_dict['user_ip']
@@ -335,7 +339,7 @@ class Scheduler(object):
                'net_edge_list': p_net_edge_list,
                'itres_list': p_itres_list
               }  }  )
-  
+  '''
   def update_sid_schregid_dict(self):
     self.sid_schregid_dict = {}
     #
@@ -343,12 +347,15 @@ class Scheduler(object):
     for k in self.sessionsbeingserved_dict:
       self.sid_schregid_dict[i] = k
       i += 1
-  
-  def give_incintkeyform(self, indict):
+  '''
+  def give_incintkeyform(self, flag, indict):
     outdict = {}
     i = 0
     for k in indict:
       outdict[i] = indict[k]
+      if flag:
+        self.sid_schregid_dict[i]=k
+      #
       i += 1
     #
     return outdict
@@ -376,7 +383,7 @@ class Scheduler(object):
         tobeproceddata_transt = sinfo['tobeproceddata_transt_list'][-1]
         tobeproceddatasize = sinfo['tobeproceddatasize_list'][-1]
         if elapsed_time < tobeproceddata_transt:
-          elapsed_datasize = float(tobeproceddatasize*float(elapsed_time))/tobeproceddata_transt
+          elapsed_datasize = ELAPSEDDSREGCONST*float(tobeproceddatasize*float(elapsed_time))/tobeproceddata_transt
         else:
           elapsed_datasize = tobeproceddatasize + float(BWREGCONST*(sinfo['bw_list'][-1])*elapsed_time)/8
         #
@@ -387,10 +394,12 @@ class Scheduler(object):
     #'''
     logging.info('do_sching:: sching_id=%s started;', sching_id)
     self.update_sid_res_dict()
-    self.update_sid_schregid_dict()
-    sching_opter = SchingOptimizer(self.give_incintkeyform(self.sessionsbeingserved_dict),
+    #self.update_sid_schregid_dict()
+    sching_opter = SchingOptimizer(self.give_incintkeyform(flag=True,
+                                                           indict=self.sessionsbeingserved_dict),
                                    self.actual_res_dict,
-                                   self.give_incintkeyform(self.sid_res_dict) )
+                                   self.give_incintkeyform(flag=False,
+                                                           indict=self.sid_res_dict) )
     sching_opter.solve()
     #
     self.alloc_dict = sching_opter.get_sching_result()
@@ -769,8 +778,12 @@ class Scheduler(object):
     print '***'
   
   def test(self):
-    userinfo_list = [ {'user_ip':'10.0.0.2','user_mac':'00:00:00:01:00:02','gw_dpid':1,'gw_conn_port':1},
-                      {'user_ip':'10.0.0.1','user_mac':'00:00:00:01:00:01','gw_dpid':2,'gw_conn_port':3} ]
+    userinfo_list = [ {'user_ip':'10.0.2.0','user_mac':'00:00:00:01:02:00','gw_dpid':1,'gw_conn_port':3},
+                      {'user_ip':'10.0.2.1','user_mac':'00:00:00:01:02:01','gw_dpid':1,'gw_conn_port':4},
+                      {'user_ip':'10.0.2.2','user_mac':'00:00:00:01:02:02','gw_dpid':1,'gw_conn_port':5},
+                      {'user_ip':'10.0.1.0','user_mac':'00:00:00:01:01:00','gw_dpid':2,'gw_conn_port':3},
+                      {'user_ip':'10.0.1.1','user_mac':'00:00:00:01:01:00','gw_dpid':2,'gw_conn_port':4},
+                      {'user_ip':'10.0.1.2','user_mac':'00:00:00:01:00:01','gw_dpid':2,'gw_conn_port':5} ]
     #
     for userinfo in userinfo_list:
       self.welcome_user(user_ip = userinfo['user_ip'],
@@ -778,9 +791,9 @@ class Scheduler(object):
                         gw_dpid = userinfo['gw_dpid'],
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
-    num_session = 3
+    num_session = 1
     #data_size (MB) slack_metric (ms)
-    req_dict_list = [ {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+    req_dict_list = [ {'data_size':100, 'slack_metric':5, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft'], 'parism_level':1, 'par_share':[1]},
@@ -794,10 +807,12 @@ class Scheduler(object):
                           {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
                          ]
     p_c_ip_list_list = [
-                        ['10.0.0.2','10.0.0.1'],
+                        ['10.0.2.0','10.0.1.0'],
+                        ['10.0.2.1','10.0.1.1'],
+                        ['10.0.2.2','10.0.1.2']
                        ]
     for i in range(0, num_session):
-      self.welcome_session(p_c_ip_list = p_c_ip_list_list[0],
+      self.welcome_session(p_c_ip_list = p_c_ip_list_list[int(i%3)],
                            req_dict = req_dict_list[int(i%5)],
                            app_pref_dict = app_pref_dict_list[int(i%5)] )
     self.do_sching()

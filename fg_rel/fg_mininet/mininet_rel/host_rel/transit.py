@@ -28,8 +28,9 @@ CHUNKHSIZE = 50 #B
 CHUNKSIZE = 24*8*9*10 #B
 CHUNKSTRSIZE = CHUNKSIZE+CHUNKHSIZE
 
-BWREGCONST = 1 #0.9
-INTEREQTIME_REGCONST = 0.99
+BWREGCONST = 1 #0.95 #0.9
+TXINTEREQTIME_REGCONST = 0.9 #1
+PROCINTEREQTIME_REGCONST = 1 #0.99
 
 class PipeServer(threading.Thread):
   def __init__(self, nodename, server_addr, itwork_dict, to_addr, sflagq_in, sflagq_out, sproctokenq, stxtokenq, procintereq_time):
@@ -726,7 +727,8 @@ class Transit(object):
     bw = float(data_['bw'])
     modeltxt = float(datasize_*8)/(bw*BWREGCONST)
     nchunks = float(datasize_*(1024**2))/CHUNKSTRSIZE
-    self.stpdst_txintereqtime_dict[stpdst] = INTEREQTIME_REGCONST*float(float(modeltxt)/nchunks)
+    self.stpdst_txintereqtime_dict[stpdst] = TXINTEREQTIME_REGCONST*float(float(modeltxt)/nchunks)
+    self.logger.debug('rewelcome_s:: datasize_=%s, modeltxt=%s', datasize_, modeltxt)
     #self.reinit_htbconf(bw, stpdst)
     #
     jobtobedone = {}
@@ -741,7 +743,7 @@ class Transit(object):
     tobeproceddata_modeltxt = float(tobeproced_datasize*8)/(bw*BWREGCONST)
     tobeproceddata_modeltranst = tobeproced_modelproct+tobeproceddata_modeltxt
     nchunkstobeproced = tobeproced_datasize*(1024**2)/CHUNKSTRSIZE
-    self.stpdst_procintereqtime_dict[stpdst] = INTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
+    self.stpdst_procintereqtime_dict[stpdst] = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
     #
     self.sflagq_topipes_dict[stpdst].put(data_)
     self.logger.debug('rewelcome_s:: done for stpdst=%s;\n\ttobeproced_datasize=%s, tobeproceddata_modeltranst=%s, tobeproced_modelproct=%s, tobeproceddata_modeltxt=%s', stpdst, tobeproced_datasize, tobeproceddata_modeltranst, tobeproced_modelproct, tobeproceddata_modeltxt)
@@ -766,12 +768,13 @@ class Transit(object):
     bw = float(data_['bw'])
     modeltxt = float(datasize*8)/(bw*BWREGCONST)
     nchunks = float(datasize*(1024**2))/CHUNKSTRSIZE
-    self.stpdst_txintereqtime_dict[stpdst] = INTEREQTIME_REGCONST*float(float(modeltxt)/nchunks)
+    self.stpdst_txintereqtime_dict[stpdst] = TXINTEREQTIME_REGCONST*float(float(modeltxt)/nchunks)
     
     stxtokenq = Queue.Queue(1)
     self.stxtokenq_dict[stpdst] = stxtokenq
     threading.Thread(target = self.manage_stxtokenq,
                      kwargs = {'stpdst':stpdst } ).start()
+    self.logger.debug('welcome_s:: datasize=%s, modeltxt=%s', datasize, modeltxt)
     #self.init_htbconf(bw, stpdst)
     #
     jobtobedone = {}
@@ -794,10 +797,11 @@ class Transit(object):
     nchunkstobeproced = float(tobeproced_datasize*(1024**2))/CHUNKSTRSIZE
     tobeproceddata_modeltranst = tobeproced_modelproct+tobeproceddata_modeltxt
     
-    self.stpdst_procintereqtime_dict[stpdst] = INTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
+    self.stpdst_procintereqtime_dict[stpdst] = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
     threading.Thread(target = self.manage_sproctokenq,
                      kwargs = {'stpdst':stpdst } ).start()
-    self.logger.debug('welcome_s:: tobeproced_datasize=%s, nchunkstobeproced=%s, tobeproceddata_modeltranst=%s, tobeproced_modelproct=%s, tobeproceddata_modeltxt=%s', tobeproced_datasize, nchunkstobeproced, tobeproceddata_modeltranst, tobeproced_modelproct, tobeproceddata_modeltxt)
+    self.logger.debug('welcome_s:: tobeproced_datasize=%s, tobeproceddata_modeltranst=%s, tobeproced_modelproct=%s, tobeproceddata_modeltxt=%s', tobeproced_datasize, tobeproceddata_modeltranst, tobeproced_modelproct, tobeproceddata_modeltxt)
+    self.logger.debug('welcome_s::\n stpdst_txintereqtime_dict=%s,\n stpdst_procintereqtime_dict=%s', pprint.pformat(self.stpdst_txintereqtime_dict), pprint.pformat(self.stpdst_procintereqtime_dict))
     #
     #self.stpdst_itwork_dict[stpdst] = data_
     #self.logger.debug('stpdst_itwork_dict=%s', pprint.pformat(self.stpdst_itwork_dict))
@@ -1011,7 +1015,7 @@ class Transit(object):
             'uptoitfunc_dict': {},
             'proc': 50.0,
             's_tp': 6000,
-            'bw': 10 }
+            'bw': 3 }
     self.welcome_s(data.copy())
     '''
     data_ = {'proto': 6,
@@ -1026,23 +1030,23 @@ class Transit(object):
     '''
     
     data = {'proto': 6,
-            'data_to_ip': u'10.0.0.1',
+            'data_to_ip': u'10.0.1.1',
             'datasize': datasize,
             'itfunc_dict': {'fft': 1},
             'uptoitfunc_dict': {},
             'proc': 50.0,
             's_tp': 6001,
-            'bw': 10 }
+            'bw': 3 }
     self.welcome_s(data.copy())
     
     data = {'proto': 6,
-            'data_to_ip': u'10.0.0.1',
+            'data_to_ip': u'10.0.1.2',
             'datasize': datasize,
             'itfunc_dict': {'fft': 0.5},
             'uptoitfunc_dict': {},
             'proc': 50.0,
             's_tp': 6002,
-            'bw': 10 }
+            'bw': 3 }
     self.welcome_s(data.copy())
     
 def main(argv):
@@ -1092,7 +1096,7 @@ def main(argv):
                trans_type = trans_type,
                logger = logger )
   #
-  if nodename == 't':
+  if nodename == 't': # or nodename == 't11':
     tr.test()
     raw_input('Enter\n')
     tr.shutdown()

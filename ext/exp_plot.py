@@ -83,7 +83,6 @@ class ExpPlotter(object):
                      ', "" using 4 w points lc rgb "#696969" title "coupling time"' + \
                      ', "" using 5 axes x1y2 w points lc rgb "#7F7F7F" title "relative err"\n' )
     #
-  '''
   def plot_overheadrel(self, datafurl, outfurl, nums, yrange):
     #10: joinrr_time 11: schingrr_time 12: sching_overhead
     pipe = subprocess.Popen(['gnuplot'], shell = True, stdin=subprocess.PIPE)
@@ -107,9 +106,9 @@ class ExpPlotter(object):
     pipe.stdin.write('set style fill solid border -1\n')
     pipe.stdin.write('set style fill pattern border\n')
     pipe.stdin.write('set samples 11\n')
-    pipe.stdin.write('plot "%s" using 12:xtic(1) w points lc rgb "#000000" title "time"' % datafurl + \
+    pipe.stdin.write('plot "%s" using 11:xtic(1) w points lc rgb "#000000" title "time"' % datafurl + \
                      ', "" using 12 axes x1y2 w points lc rgb "#7F7F7F" title "overhead"\n' )
-  '''
+    #
 def main():
   pass
 
