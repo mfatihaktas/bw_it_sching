@@ -28,13 +28,13 @@ P1_CLIP=10.0.1.0
 
 C2D=1
 P2D=7
-P2_REQDICT='{"data_size":10,"slack_metric":15,"func_list":["fft"],"parism_level":1,"par_share":[1]}'
+P2_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft"],"parism_level":1,"par_share":[1]}'
 P2_APPPREFDICT='{"m_p":0.1,"m_u":0.1,"x_p":0,"x_u":0}'
 P2_CLIP=10.0.1.1
 
 C3D=1
 P3D=12
-P3_REQDICT='{"data_size":10,"slack_metric":15,"func_list":["fft"],"parism_level":1,"par_share":[1]}'
+P3_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft"],"parism_level":1,"par_share":[1]}'
 P3_APPPREFDICT='{"m_p":10,"m_u":10,"x_p":0,"x_u":0}'
 P3_CLIP=10.0.1.2
 
@@ -65,25 +65,25 @@ P7_CLIP=10.0.1.6
 C8D=1
 P8D=130
 P8_REQDICT='{"data_size":80,"slack_metric":150,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
-P8_APPPREFDICT='{"m_p":10,"m_u":10,"x_p":0,"x_u":0}'
+P8_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 P8_CLIP=10.0.1.7
 
 C9D=1
 P9D=235
-P9_REQDICT='{"data_size":20,"slack_metric":50,"func_list":["fft"],"parism_level":1,"par_share":[1]}'
-P9_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
+P9_REQDICT='{"data_size":20,"slack_metric":100,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P9_APPPREFDICT='{"m_p":0.1,"m_u":0.1,"x_p":0,"x_u":0}'
 P9_CLIP=10.0.1.8
 
 C10D=1
 P10D=240
-P10_REQDICT='{"data_size":20,"slack_metric":50,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
-P10_APPPREFDICT='{"m_p":0.1,"m_u":0.1,"x_p":0,"x_u":0}'
+P10_REQDICT='{"data_size":20,"slack_metric":100,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P10_APPPREFDICT='{"m_p":10,"m_u":10,"x_p":0,"x_u":0}'
 P10_CLIP=10.0.1.9
 
 C11D=1
 P11D=245
 P11_REQDICT='{"data_size":20,"slack_metric":50,"func_list":["fft"],"parism_level":1,"par_share":[1]}'
-P11_APPPREFDICT='{"m_p":10,"m_u":10,"x_p":0,"x_u":0}'
+P11_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 P11_CLIP=10.0.1.10
 
 MINHTBDIR='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
