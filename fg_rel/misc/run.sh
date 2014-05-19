@@ -5,7 +5,7 @@ echo "1="$1 "2="$2
 
 KEYDIR=~/.ssh/mininet-key #mfa51-key
 KEY=mininet-key #mfa51-key
-FLV=m1.medium
+FLV=m1.xlarge #m1.medium
 
 VMNAME=mfa51-001
 VMUSERNAME=ubuntu
@@ -48,8 +48,8 @@ elif [ $1  = 'rmvmi' ]; then
 elif [ $1  = 'bvm' ]; then
   if [ $2 -eq -1 ]; then
     nova boot --flavor $FLV \
-    --image $VMIMG \
-    --key_name $KEY $VMNAME
+              --image $VMIMG \
+              --key_name $KEY $VMNAME
   else
     nova boot --flavor $FLV \
               --image ${VM_NAMES[$2]} \
@@ -63,7 +63,11 @@ elif [ $1  = 'eavm' ]; then
   fi
   nova floating-ip-list
 elif [ $1  = 'rmvm' ]; then
-  nova delete ${VM_NAMES[$2]}
+  if [ $2 -eq -1 ]; then
+    nova delete $VMNAME
+  else  
+    nova delete ${VM_NAMES[$2]}
+  fi
 elif [ $1  = 'sshvm' ]; then
   ssh -v -l ${VM_USRNAMES[$2]} -i $KEYDIR ${VM_PIVIPS[$2]}
 elif [ $1  = 'scprsa' ]; then

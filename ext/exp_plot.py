@@ -10,6 +10,7 @@ class ExpPlotter(object):
     6:recvedsizewithf1  7:recvedpercwithf1  8:recvedsizewithf2  9:recvedpercwithf2
     10: joinrr_time 11: schingrr_time 12: sching_overhead
     '''
+    maxnumitfuncs = 2
     outf = open(outfurl, 'w')
     
     for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items():
@@ -18,14 +19,17 @@ class ExpPlotter(object):
                 str(float(couplingdoneinfo['overall']['recvedsize'])/(1024**2)) + ' ' + \
                 str(couplingdoneinfo['overall']['idealtrans_time']) + ' ' + \
                 str(couplingdoneinfo['overall']['coupling_dur']) + ' ' + \
-                str(couplingdoneinfo['overall']['couplingdur_relerr']) + ' '
+                str(abs(couplingdoneinfo['overall']['couplingdur_relerr'])) + ' '
       #6:9
       for func,size in couplingdoneinfo['coupling_done']['recvedsizewithfunc_dict'].items():
         infostr += str(float(size)/(1024**2)) + ' ' + str(couplingdoneinfo['overall']['recvedpercentwithfunc_dict'][func]) + ' '
+      
+      for i in range(maxnumitfuncs-len(couplingdoneinfo['coupling_done']['recvedsizewithfunc_dict'])):
+        infostr += '0' + ' ' + '0' + ' '
       #10:
-      infostr += str(couplingdoneinfo['session_done']['joinrr_time']) + ' ' +\
-                 str(couplingdoneinfo['session_done']['schingrr_time']) + ' ' +\
-                 str(couplingdoneinfo['overall']['sching_overhead']) + ' '
+      infostr += str(abs(couplingdoneinfo['session_done']['joinrr_time'])) + ' ' +\
+                 str(abs(couplingdoneinfo['session_done']['schingrr_time'])) + ' ' +\
+                 str(abs(couplingdoneinfo['overall']['sching_overhead'])) + ' '
       #
       infostr += '\n'
       outf.write(infostr)
@@ -37,7 +41,7 @@ class ExpPlotter(object):
     pipe.stdin.write("set term png enhanced font '/usr/share/fonts/liberation/LiberationSans-Regular.ttf' 12\n")
     pipe.stdin.write('set output "%s"\n' % outfurl)
     #pipe.stdin.write('set title "Coupling data size for each session" \n')
-    pipe.stdin.write('set xlabel "Session number"\n')
+    pipe.stdin.write('set xlabel "Session Id"\n')
     pipe.stdin.write('set ylabel "Datasize (MB)"\n')
     #pipe.stdin.write('set auto x\n')
     pipe.stdin.write('set xrange [-1:%s] \n' % (int(nums)+1) )
@@ -62,7 +66,7 @@ class ExpPlotter(object):
     pipe.stdin.write("set term png enhanced font '/usr/share/fonts/liberation/LiberationSans-Regular.ttf' 12\n")
     pipe.stdin.write('set output "%s"\n' % outfurl)
     #pipe.stdin.write('set title "Coupling time for each session" \n')
-    pipe.stdin.write('set xlabel "Session number"\n')
+    pipe.stdin.write('set xlabel "Session Id"\n')
     pipe.stdin.write('set ylabel "Time (sec)"\n')
     pipe.stdin.write('set y2label "Relative Error"\n')
     
@@ -89,8 +93,8 @@ class ExpPlotter(object):
     pipe.stdin.write("set term png enhanced font '/usr/share/fonts/liberation/LiberationSans-Regular.ttf' 12\n")
     pipe.stdin.write('set output "%s"\n' % outfurl)
     #pipe.stdin.write('set title "" \n')
-    pipe.stdin.write('set xlabel "Session number"\n')
-    pipe.stdin.write('set ylabel "Scheduling Request-Reply Time (sec)"\n')
+    pipe.stdin.write('set xlabel "Session Id"\n')
+    pipe.stdin.write('set ylabel "Time (sec)"\n')
     pipe.stdin.write('set y2label "Overhead"\n')
     
     pipe.stdin.write('set xrange [-1:%s] \n' % (int(nums)+1) )
@@ -106,9 +110,9 @@ class ExpPlotter(object):
     pipe.stdin.write('set style fill solid border -1\n')
     pipe.stdin.write('set style fill pattern border\n')
     pipe.stdin.write('set samples 11\n')
-    pipe.stdin.write('plot "%s" using 11:xtic(1) w points lc rgb "#000000" title "time"' % datafurl + \
+    pipe.stdin.write('plot "%s" using 11:xtic(1) w points lc rgb "#000000" title "schingrr"' % datafurl + \
+                     ', "" using 10 w points lc rgb "#696969" title "joinrr"' + \
                      ', "" using 12 axes x1y2 w points lc rgb "#7F7F7F" title "overhead"\n' )
-    #
 def main():
   pass
 

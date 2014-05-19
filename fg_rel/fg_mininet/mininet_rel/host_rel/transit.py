@@ -29,8 +29,8 @@ CHUNKSIZE = 24*8*9*10 #B
 CHUNKSTRSIZE = CHUNKSIZE+CHUNKHSIZE
 
 BWREGCONST = 1 #0.95 #0.9
-TXINTEREQTIME_REGCONST = 0.9 #1
-PROCINTEREQTIME_REGCONST = 1 #0.99
+TXINTEREQTIME_REGCONST = 0.98 #1
+PROCINTEREQTIME_REGCONST = 0.98
 
 class PipeServer(threading.Thread):
   def __init__(self, nodename, server_addr, itwork_dict, to_addr, sflagq_in, sflagq_out, sproctokenq, stxtokenq, procintereq_time):
