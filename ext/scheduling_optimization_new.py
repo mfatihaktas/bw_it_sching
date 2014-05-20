@@ -11,7 +11,7 @@ from expr_matrix import Expr as expr
 
 BWREGCONST = 1 #0.9 #0.95
 BWREGCONST_INGRAB = 1 #0.9 #0.95
-SLACKFEASIBILITYCONST = 1
+SLACKFEASIBILITYCONST = 0.9 #1
 
 class SchingOptimizer:
   def __init__(self, sessions_beingserved_dict, actual_res_dict, sid_res_dict):
@@ -572,6 +572,7 @@ class SchingOptimizer:
         'x_p': s_x_p,
         'sn_list': sn_list,
         'slack-tt': abs(s_slack-tt),
+        'tt-transt': abs(tt-trans_t),
         'parism_level': s_parism_level,
         'itwalkinfo_dict': s_itwalkinfo_dict,
         'pwalk_dict': s_pwalk_dict,

@@ -30,7 +30,7 @@ class ExpPlotter(object):
       infostr += str(abs(couplingdoneinfo['session_done']['joinrr_time'])) + ' ' +\
                  str(abs(couplingdoneinfo['session_done']['schingrr_time'])) + ' ' +\
                  str(abs(couplingdoneinfo['overall']['sching_overhead'])) + ' '
-      #
+      # 
       infostr += '\n'
       outf.write(infostr)
     #
@@ -57,8 +57,8 @@ class ExpPlotter(object):
     pipe.stdin.write('set samples 11\n')
     #pipe.stdin.write('set xtics rotate out\n')
     pipe.stdin.write('plot "%s" using 2:xtic(1) w boxes fs pattern 1 lc rgb "#000000" title "total size"' % datafurl + \
-                     ', "" using 6 w boxes fs pattern 2 lc rgb "#696969" title "fft"' + \
-                     ', "" using 8 w boxes fs pattern 3 lc rgb "#7F7F7F" title "upsample-plot"\n' )
+                   ', "" using 6 w boxes fs pattern 2 lc rgb "#696969" title "fft"' + \
+                   ', "" using 8 w boxes fs pattern 3 lc rgb "#7F7F7F" title "upsample-plot"\n' )
     #
   
   def plot_timerel(self, datafurl, outfurl, nums, yrange):
@@ -83,9 +83,9 @@ class ExpPlotter(object):
     pipe.stdin.write('set style fill solid border -1\n')
     pipe.stdin.write('set style fill pattern border\n')
     pipe.stdin.write('set samples 11\n')
-    pipe.stdin.write('plot "%s" using 3:xtic(1) w points lc rgb "#000000" title "slack time"' % datafurl + \
-                     ', "" using 4 w points lc rgb "#696969" title "coupling time"' + \
-                     ', "" using 5 axes x1y2 w points lc rgb "#7F7F7F" title "relative err"\n' )
+  pipe.stdin.write('plot "%s" using 3:xtic(1) w points linewidth 2 lc rgb "#000000" title "slack time"' % datafurl + \
+                   ', "" using 4 w points linewidth 2 lc rgb "#696969" title "coupling time"' + \
+                   ', "" using 5 axes x1y2 w points pointsize 2 lc rgb "#7F7F7F" title "rel-err"\n' )
     #
   def plot_overheadrel(self, datafurl, outfurl, nums, yrange):
     #10: joinrr_time 11: schingrr_time 12: sching_overhead
@@ -110,9 +110,10 @@ class ExpPlotter(object):
     pipe.stdin.write('set style fill solid border -1\n')
     pipe.stdin.write('set style fill pattern border\n')
     pipe.stdin.write('set samples 11\n')
-    pipe.stdin.write('plot "%s" using 11:xtic(1) w points lc rgb "#000000" title "schingrr"' % datafurl + \
-                     ', "" using 10 w points lc rgb "#696969" title "joinrr"' + \
-                     ', "" using 12 axes x1y2 w points lc rgb "#7F7F7F" title "overhead"\n' )
+    pipe.stdin.write('plot "%s" using 11:xtic(1) w points linewidth 2 lc rgb "#000000" title "sching rtt"' % datafurl + \
+                     ', "" using 10 w points linewidth 2 lc rgb "#696969" title "join rtt"' + \
+                     ', "" using 12 axes x1y2 w points pointsize 2 lc rgb "#7F7F7F" title "overhead"' + \
+                     ', 1 w l lw 1 lc rgb "#000000" title "rtt" \n' )
 def main():
   pass
 

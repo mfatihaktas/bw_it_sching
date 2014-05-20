@@ -22,19 +22,19 @@ CR3_LPORT=6002
 
 C1D=1
 P1D=2
-P1_REQDICT='{"data_size":100,"slack_metric":400,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P1_REQDICT='{"data_size":100,"slack_metric":100,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P1_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 P1_CLIP=10.0.1.0
 
 C2D=1
 P2D=7
-P2_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft"],"parism_level":1,"par_share":[1]}'
+P2_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P2_APPPREFDICT='{"m_p":0.1,"m_u":0.1,"x_p":0,"x_u":0}'
 P2_CLIP=10.0.1.1
 
 C3D=1
 P3D=12
-P3_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft"],"parism_level":1,"par_share":[1]}'
+P3_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P3_APPPREFDICT='{"m_p":10,"m_u":10,"x_p":0,"x_u":0}'
 P3_CLIP=10.0.1.2
 
@@ -46,7 +46,7 @@ P4_CLIP=10.0.1.3
 
 C5D=1
 P5D=100
-P5_REQDICT='{"data_size":40,"slack_metric":120,"func_list":["fft"],"parism_level":1,"par_share":[1]}'
+P5_REQDICT='{"data_size":40,"slack_metric":120,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P5_APPPREFDICT='{"m_p":0.1,"m_u":0.1,"x_p":0,"x_u":0}'
 P5_CLIP=10.0.1.4
 
@@ -82,7 +82,7 @@ P10_CLIP=10.0.1.9
 
 C11D=1
 P11D=245
-P11_REQDICT='{"data_size":20,"slack_metric":50,"func_list":["fft"],"parism_level":1,"par_share":[1]}'
+P11_REQDICT='{"data_size":20,"slack_metric":50,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P11_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 P11_CLIP=10.0.1.10
 

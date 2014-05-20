@@ -791,11 +791,11 @@ class Scheduler(object):
                         gw_dpid = userinfo['gw_dpid'],
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
-    num_session = 1
+    num_session = 3
     #data_size (MB) slack_metric (ms)
-    req_dict_list = [ {'data_size':100, 'slack_metric':5, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300, 'func_list':['fft'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+    req_dict_list = [ {'data_size':94.4, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':8, 'slack_metric':25, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':10, 'slack_metric':30, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                     ]
