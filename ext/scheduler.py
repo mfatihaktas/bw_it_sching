@@ -54,7 +54,7 @@ class Scheduler(object):
   event_chief = EventChief()
   def __init__(self, xml_net_num, sching_logto, data_over_tp):
     #logging.basicConfig(filename='logs/schinglog',filemode='w',level=logging.DEBUG)
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.WARNING)
     #
     if not (sching_logto == 'console' or sching_logto == 'file'):
       logging.error('Unexpected sching_logto=%s', sching_logto)
@@ -66,7 +66,7 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    net_xml_file_url = "net_xmls/net_1p_singletr.xml"
+    net_xml_file_url = "net_xmls/grenet_1p_singletr.xml" #"net_xmls/net_1p_singletr.xml"
     if not is_scheduler_run:
       net_xml_file_url = "ext/" + net_xml_file_url
     
@@ -777,7 +777,16 @@ class Scheduler(object):
                                  _send_callback = self._handle_sendtouser )
     print '***'
   
-  def test(self):
+  def run_sching(self):
+    self.update_sid_res_dict()
+    sching_opter = SchingOptimizer(self.give_incintkeyform(flag=True,
+                                                           indict=self.sessionsbeingserved_dict),
+                                   self.actual_res_dict,
+                                   self.give_incintkeyform(flag=False,
+                                                           indict=self.sid_res_dict) )
+    sching_opter.solve()
+  
+  def test(self, num_session):
     userinfo_list = [ {'user_ip':'10.0.2.0','user_mac':'00:00:00:01:02:00','gw_dpid':1,'gw_conn_port':3},
                       {'user_ip':'10.0.2.1','user_mac':'00:00:00:01:02:01','gw_dpid':1,'gw_conn_port':4},
                       {'user_ip':'10.0.2.2','user_mac':'00:00:00:01:02:02','gw_dpid':1,'gw_conn_port':5},
@@ -791,7 +800,6 @@ class Scheduler(object):
                         gw_dpid = userinfo['gw_dpid'],
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
-    num_session = 3
     #data_size (MB) slack_metric (ms)
     req_dict_list = [ {'data_size':94.4, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':8, 'slack_metric':25, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
@@ -809,14 +817,29 @@ class Scheduler(object):
     p_c_ip_list_list = [
                         ['10.0.2.0','10.0.1.0'],
                         ['10.0.2.1','10.0.1.1'],
-                        ['10.0.2.2','10.0.1.2']
+                        ['10.0.2.2','10.0.1.2']"net_xmls/net_1p_singletr.xml"
                        ]
-    for i in range(0, num_session):
+    '''
+    for i in range(num_session):
       self.welcome_session(p_c_ip_list = p_c_ip_list_list[int(i%3)],
                            req_dict = req_dict_list[int(i%5)],
                            app_pref_dict = app_pref_dict_list[int(i%5)] )
-    self.do_sching()
-  
+    #
+    #self.run_sching()
+    '''
+    expschingtime_data = ''
+    for i in range(num_session):
+      self.welcome_session(p_c_ip_list = p_c_ip_list_list[int(i%3)],
+                           req_dict = req_dict_list[int(i%5)],
+                           app_pref_dict = app_pref_dict_list[int(i%5)] )
+      schingstart_time = time.time()
+      self.run_sching()
+      schingdur = time.time() - schingstart_time
+      expschingtime_data += str(i+1) + ' ' + str(schingdur) + '\n'
+    #
+    print 'expschingtime_data=\n%s' % expschingtime_data
+    #
+    
 is_scheduler_run = False
 def main():
   global is_scheduler_run
@@ -824,7 +847,8 @@ def main():
   sch = Scheduler(xml_net_num = 1,
                   sching_logto = 'console',
                   data_over_tp = 'tcp')
-  sch.test()
+  
+  sch.test(num_session = 30)
   #
   raw_input('Enter')
   

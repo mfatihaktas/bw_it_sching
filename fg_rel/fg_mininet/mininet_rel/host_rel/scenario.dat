@@ -1,7 +1,7 @@
 #low m_p and x_p: Loose
 #high m_p and x_p: Tight
 #num time datasize slackmetric funclistlen  m_p  m_u  x_p  x_u 
-1    2     100      100         2            1    1    0    0
+1    2     100      400         2            1    1    0    0
 2    7     10       30          2            0.1  0.1  0    0
 3    12    10       30          2            10   10   0    0
 4    20    100      200         2            1    1    0    0

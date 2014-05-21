@@ -771,7 +771,7 @@ class SchingOptimizer:
       slack = s_req_dict['slack_metric']
       #
       if slack < min_tt:
-        self.logger.warning('S%s\'s slack_metric is not feasible!\nChanged from:%sms to:%sms', s_id, slack, min_tt)
+        self.logger.debug('S%s\'s slack_metric is not feasible!\nChanged from:%sms to:%sms', s_id, slack, min_tt)
         self.sessions_beingserved_dict[s_id]['req_dict']['slack_metric'] = min_tt
   
   def get_sching_result(self):
@@ -797,7 +797,7 @@ class SchingOptimizer:
       s_parism_level = self.sessions_beingserved_dict[s_id]['req_dict']['parism_level']
       numspaths = len(self.sid_res_dict[s_id]['ps_info'])
       if s_parism_level > numspaths:
-        self.logger.warning('S%s; Not enough numspaths:%s to provide parism_level:%s!\nparism_level is changed to numspaths', s_id, numspaths, s_parism_level)
+        self.logger.debug('S%s; Not enough numspaths:%s to provide parism_level:%s!\nparism_level is changed to numspaths', s_id, numspaths, s_parism_level)
         self.sessions_beingserved_dict[s_id]['req_dict']['parism_level'] = numspaths
   
   def add_sessionpathlinks_with_ids(self):

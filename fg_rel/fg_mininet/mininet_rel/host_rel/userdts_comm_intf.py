@@ -52,6 +52,7 @@ class UserDTSCommIntf(object):
       return 1 #success
     else:
       #self.logger.error('relsend_to_dts:: could not send seq_num=%s !', self.seq_num-1 )
+      self.timeout_timer.cancel()
       return 0 #failed
   
   def handle_timeout(self):

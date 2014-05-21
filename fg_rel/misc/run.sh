@@ -5,7 +5,7 @@ echo "1="$1 "2="$2
 
 KEYDIR=~/.ssh/mininet-key #mfa51-key
 KEY=mininet-key #mfa51-key
-FLV=m1.xlarge #m1.medium
+FLV=m1.medium #m1.xlarge
 
 VMNAME=mfa51-001
 VMUSERNAME=ubuntu
