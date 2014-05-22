@@ -16,7 +16,7 @@ def get_addr(lintf):
   return intf_eth0_ip
 
 BWREGCONST=1.1
-
+CHUNKSTRSIZE=24*8*9*10+50
 class Producer(object):
   def __init__(self, intf, pl_port, dtsl_ip, dtsl_port, cl_ip, proto,tx_type, file_url, kstardata_url,
                req_dict,app_pref_dict, htbdir, logto):
@@ -54,6 +54,11 @@ class Producer(object):
     self.joinreplyrecved_time = 0
     self.schingreqsent_time = 0
     self.schingreplyrecved_time = 0
+    #
+    self.stpdst_txintereqtime_dict = {}
+    self.stxtokenq_dict = {}
+    self.sdone_dict = {}
+    self.stopflag = False
     
   ########################  _handle_***  ########################
   def welcome_s(self, sch_req_id, data_):
@@ -67,7 +72,19 @@ class Producer(object):
     p_bw = data_['p_bw']
     p_tp_dst = data_['p_tp_dst']
     #
-    self.init_htbconf(pl, p_bw, p_tp_dst)
+    #assume pl is always 1
+    stpdst = int(p_tp_dst[0])
+    bw = float(p_bw[0])
+    modeltxt = float(datasize*8)/(bw*BWREGCONST)
+    nchunks = float(datasize*(1024**2))/CHUNKSTRSIZE
+    self.stpdst_txintereqtime_dict[stpdst] = float(float(modeltxt)/nchunks)
+    
+    stxtokenq = Queue.Queue(1)
+    self.stxtokenq_dict[stpdst] = stxtokenq
+    self.sdone_dict[stpdst] = False
+    threading.Thread(target = self.manage_stxtokenq,
+                     kwargs = {'stpdst':stpdst } ).start()
+    #self.init_htbconf(pl, p_bw, p_tp_dst)
     
     self.qtosender_list = [Queue.Queue(0) for i in range(pl)]
     self.qfromsender_list = [Queue.Queue(0) for i in range(pl)]
@@ -77,6 +94,7 @@ class Producer(object):
       
       sender = Sender(in_queue = self.qtosender_list[i],
                       out_queue = self.qfromsender_list[i],
+                      txtokenq = stxtokenq,
                       dst_addr = to_addr,
                       proto = self.proto,
                       datasize = ds,
@@ -89,7 +107,20 @@ class Producer(object):
     #
     self.sinfo_dict[sch_req_id] = {'qfromsender_list': self.qfromsender_list,
                                    'qtosender_list': self.qtosender_list,
-                                   'pl': pl }
+                                   'pl': pl,
+                                   'stpdst': stpdst }
+  
+  def manage_stxtokenq(self, stpdst):
+    stxtokenq = self.stxtokenq_dict[stpdst]
+    while not self.sdone_dict[stpdst]:
+      try:
+        stxtokenq.put(CHUNKSTRSIZE, False)
+      except Queue.Full:
+        pass
+      #self.logger.debug('manage_stxtokenq_%s:: sleeping for %ssecs', stpdst, self.stpdst_procintereqtime_dict[stpdst])
+      time.sleep(self.stpdst_txintereqtime_dict[stpdst])
+    #
+    self.logger.debug('manage_stxtokenq_%s:: stoppped by STOP flag!', stpdst)
   
   def waitfor_sessiontoend(self, sch_req_id):
     sinfo_dict = {'sch_req_id': sch_req_id,
@@ -106,6 +137,8 @@ class Producer(object):
       sinfo_dict['sendstop_time'] = max(sinfo_dict['sendstop_time'], popped['sendstop_time'])
       sinfo_dict['sentsize'] += popped['sentsize']
     #
+    self.sdone_dict[sinfo['stpdst']] = True
+    self.sinfo_dict[sch_req_id]['sdone'] = True
     sinfo_dict['joinrr_time'] = self.joinreqsent_time - self.joinreplyrecved_time
     sinfo_dict['schingrr_time'] = self.schingreplyrecved_time - self.schingreqsent_time
     
@@ -149,7 +182,13 @@ class Producer(object):
       p_bw = data_['p_bw']
       p_tp_dst = data_['p_tp_dst']
       #
-      self.init_htbconf(pl, p_bw, p_tp_dst)
+      #assume pl is always 1
+      stpdst = int(p_tp_dst[0])
+      bw = float(p_bw[0])
+      modeltxt = float(datasize*8)/(bw*BWREGCONST)
+      nchunks = float(datasize*(1024**2))/CHUNKSTRSIZE
+      self.stpdst_txintereqtime_dict[stpdst] = float(float(modeltxt)/nchunks)
+      #self.init_htbconf(pl, p_bw, p_tp_dst)
       
     elif type_ == 'join_reply':
       if self.state != 0:
@@ -330,10 +369,10 @@ def main(argv):
         print 'unknown proto=%s' % arg
         sys.exit(2)
     elif opt == '--tx_type':
-      if arg == 'file' or arg == 'dummy' or arg == 'kstardata':
+      if arg == 'file' or arg == 'dummy' or arg == 'kstardata' or arg == 'kstardata2':
         tx_type = arg
       else:
-        print 'unknown rx_type=%s' % arg
+        print 'unknown tx_type=%s' % arg
         sys.exit(2)
     elif opt == '--file_url':
       file_url = arg

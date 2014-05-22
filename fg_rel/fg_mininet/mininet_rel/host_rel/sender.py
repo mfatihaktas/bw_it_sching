@@ -4,13 +4,15 @@ import sys,socket,json,getopt,struct,time,errno,logging,threading
 
 CHUNKHSIZE = 50
 TXCHUNK_SIZE = 24*8*9*10 #1024 #4096
+CHUNKSTRSIZE=TXCHUNK_SIZE+CHUNKHSIZE
 #IMGSIZE = 24*8*9
 
 class Sender(threading.Thread):
-  def __init__(self, dst_addr, proto, datasize, tx_type, file_url, logto, kstardata_url, in_queue=None, out_queue=None):
+  def __init__(self, dst_addr, proto, datasize, tx_type, file_url, logto, kstardata_url, txtokenq=None, in_queue=None, out_queue=None):
     threading.Thread.__init__(self)
     self.setDaemon(True)
     #
+    self.txtokenq = txtokenq
     self.in_queue = in_queue
     self.out_queue = out_queue
     #
@@ -31,7 +33,7 @@ class Sender(threading.Thread):
       sys.exit(0)
     self.proto = proto
     #
-    if not (tx_type == 'dummy' or tx_type == 'file' or tx_type == 'kstardata'):
+    if not (tx_type == 'dummy' or tx_type == 'file' or tx_type == 'kstardata' or tx_type == 'kstardata2'):
       logging.error('Unexpected tx_type=%s', tx_type)
       sys.exit(0)
     self.tx_type = tx_type
@@ -79,13 +81,76 @@ class Sender(threading.Thread):
       self.file_send()
     elif self.tx_type == 'kstardata':
       self.kstardata_send()
+    elif self.tx_type == 'kstardata2':
+      self.kstardata2_send()
     #
     if self.out_queue != None:
       sendinfo_dict = {'sendstart_time': self.sendstart_time,
                        'sendstop_time': self.sendstop_time,
                        'sentsize': self.sentsize }
       self.out_queue.put(sendinfo_dict)
-  
+
+  def kstardata2_send(self):
+    if self.proto != 'tcp':
+      logging.info('kstardata2_send:: unexpected proto=%s', self.proto)
+      return
+    #
+    self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #
+    logging.info('kstardata2_send:: trying to connect to %s ...', self.dst_addr )
+    self.sock.connect(self.dst_addr)
+    logging.info('kstardata2_send:: connected to %s ...', self.dst_addr )
+    #
+    self.sendstart_time = time.time()
+    logging.info('kstardata2_send:: started at time=%s', self.sendstart_time )
+    f=open(self.kstardata_url, "r")
+    
+    ds_tobesent_B = self.datasize*(1024**2)
+    #
+    len_ = 0
+    l = f.read(TXCHUNK_SIZE)
+    while (l and len_ < ds_tobesent_B):
+      c_len_ = len(l)
+      len_ += c_len_
+      #add uptofunc_list padding
+      uptofunc_list = []
+      header = json.dumps(uptofunc_list)
+      padding_length = CHUNKHSIZE - len(header)
+      header += ' '*padding_length
+      l = header+l
+      #wait for tx turn
+      stoken = self.txtokenq.get(True, None)
+      if stoken == CHUNKSTRSIZE:
+        pass
+      elif stoken == -1:
+        self.logger.error('kstardata2_send:: interrupted with txtoken=-1.')
+        return
+      else:
+        self.logger.error('kstardata2_send:: Unexpected stoken=%s', stoken)
+        return
+      #
+      try:
+        self.sock.sendall(l)
+      except socket.error, e:
+        if isinstance(e.args, tuple):
+          logging.error('errno is %d', e[0])
+          if e[0] == errno.EPIPE:
+            logging.error('Detected remote disconnect')
+          else:
+            pass
+        else:
+          logging.error('socket error=%s', e)
+      #
+      l = f.read(TXCHUNK_SIZE)
+    #
+    self.sock.sendall('EOF')
+    logging.info('kstardata_send:: EOF is txed.')
+    #
+    self.sendstop_time = time.time()
+    self.sentsize = len_
+    send_dur = self.sendstop_time - self.sendstart_time
+    logging.info('kstardata_send:: sent to %s; size=%sB, dur=%ssec', self.dst_addr,len_,send_dur)
+    
   def kstardata_send(self):
     if self.proto != 'tcp':
       logging.info('kstardata_send:: unexpected proto=%s', self.proto)
@@ -291,7 +356,7 @@ def main(argv):
     elif opt == '--datasize':
       datasize = int(arg)
     elif opt == '--tx_type':
-      if arg == 'file' or arg == 'dummy' or arg == 'kstardata':
+      if arg == 'file' or arg == 'dummy' or arg == 'kstardata' or arg == 'kstardata2':
         tx_type = arg
       else:
         print 'unknown rx_type=%s' % arg

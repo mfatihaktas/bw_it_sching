@@ -50,7 +50,7 @@ if __name__ == '__main__':
   #s3.cmd('sudo ovs-ofctl add-flow s3 "in_port=1 ip idle_timeout=0 actions=output:2"')
   #s3.cmd('sudo ovs-ofctl add-flow s3 "in_port=2 ip idle_timeout=0 actions=output:1"')
   #
-  #run_tnodes([t11])
+  run_tnodes([t11])
   #
   CLI( net )
   net.stop()
