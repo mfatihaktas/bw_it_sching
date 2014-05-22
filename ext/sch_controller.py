@@ -7,7 +7,7 @@ from pox.openflow.of_json import *
 from scheduler import Scheduler #, EventChief
 from exp_plot import ExpPlotter
 import pprint,logging,signal,threading
-log = core.getLogger()
+#log = core.getLogger()
 
 info_dict = {'scher_vip': '10.0.0.255',
              'scher_vmac': '00:00:00:00:00:00',
@@ -125,15 +125,17 @@ class SchController(object):
     src_ip = (ip_packet.srcip).toStr()
     src_mac = (eth_packet.src).toStr()
     #
-    print '_handle_PacketIn:: rxed via sw_dpid=%s from user_ip=%s' % (conn.dpid,src_ip)
+    print '_handle_PacketIn:: rxed via sw_dpid=%s sw_port=%s from user_ip=%s' % (conn.dpid, event.port, src_ip)
     #handle_recv - assume only dts users know about udp_dts_port, no pre-checking
     userinfo_dict = {'user_ip': src_ip,
                      'user_mac': src_mac,
                      'gw_dpid': conn.dpid,
                      'gw_conn_port': event.port}
     msg = (ip_packet.payload).payload
-    #pprint.pprint(userinfo_dict)
-    self.scheduler.recv_from_user(userinfo_dict, msg)
+    #self.scheduler.recv_from_user(userinfo_dict, msg)
+    threading.Thread(target = self.scheduler.recv_from_user,
+                     kwargs = {'userinfo_dict': userinfo_dict,
+                               'msg': msg} ).start()
   
   def _handle_ConnectionUp(self, event):
     print "_handle_ConnectionUp:: %s" % (event.connection)

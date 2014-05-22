@@ -1,0 +1,5 @@
+# class for outgoing :6001 traffic
+RATE=20Mbit
+BURST=15k
+RULE=*:6001
+LEAF=netem

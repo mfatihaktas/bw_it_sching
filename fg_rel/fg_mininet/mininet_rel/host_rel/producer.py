@@ -196,7 +196,7 @@ class Producer(object):
   def clear_htbconf(self):
     logging.info('clear_htbconf:: started;')
     self.run_htbinit('dconf')
-    self.run_htbinit('show')
+    #self.run_htbinit('show')
     logging.info('clear_htbconf::done.')
   
   def init_htbconf(self, parism_l, p_bw, p_tp_dst):
@@ -213,7 +213,7 @@ class Producer(object):
     #
     self.run_htbinit('dconf')
     self.run_htbinit('conf')
-    self.run_htbinit('show')
+    #self.run_htbinit('show')
     #
     logging.info('init_htbconf:: done.')
   
@@ -227,14 +227,15 @@ class Producer(object):
       try:
         cli_o = subprocess.check_output(['sudo','%s/%s' % (self.htbdir,'htb.init.sh'),
                                          'start','invalidate',
-                                         self.intf, self.htbdir, 'not_add_root' ] )
+                                         self.intf, self.htbdir, 'add_root' ] )
       except subprocess.CalledProcessError as e:
         logging.error('###CONF_ERR=%s', e.output)
     elif command == 'dconf':
       try:
-        cli_o = subprocess.check_output(['sudo','%s/%s' % (self.htbdir,'htb.init.sh'),
-                                         'minstop','...',
-                                         self.intf, self.htbdir ] )
+        #cli_o = subprocess.check_output(['sudo','%s/%s' % (self.htbdir,'htb.init.sh'),
+        #                                 'minstop','...',
+        #                                 self.intf, self.htbdir ] )
+        cli_o = subprocess.check_output(['sudo','tc','qdisc','del','dev',self.intf,'root' ] )
       except subprocess.CalledProcessError as e:
         logging.error('###DCONF_ERR=%s', e.output)
     elif command == 'show':

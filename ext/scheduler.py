@@ -100,7 +100,7 @@ class Scheduler(object):
                           c_addr = info_dict['acterl_addr'] )
     self.dtsuser_intf = DTSUserCommIntf()
     #
-    self.exp()
+    #self.exp()
     
     self.couplinginfo_dict = {}
     self.startedtime = time.time()
@@ -157,21 +157,31 @@ class Scheduler(object):
                        'parism_level':s_pl,
                        'p_bw':s_alloc_info['p_bw'][0:s_pl],
                        'p_tp_dst':s_info['tp_dst_list'][0:s_pl] } }
-        self.dtsuser_intf.send_to_user(user_ip = p_ip,
-                                       msg = msg )
+        if self.dtsuser_intf.relsend_to_user(user_ip = p_ip,
+                                             msg = msg ) == 0:
+          print 'Couldnt send msg=%s, \nuserinfo_dict=%s' % (pprint.pformat(msg), pprint.pformat(userinfo_dict))
+        else:
+          print 'sent msg=%s' % pprint.pformat(msg)
         #to consumer
         if type_ == 'sp_sching_reply': #no need to resend for resching
           msg = {'type':type_touser,
                  'data':{'sch_req_id': sch_req_id,
                          'parism_level':s_pl,
                          'p_tp_dst':s_info['tp_dst_list'][0:s_pl] } }
-          self.dtsuser_intf.send_to_user(user_ip = c_ip,
-                                         msg = msg )
+          if self.dtsuser_intf.relsend_to_user(user_ip = c_ip,
+                                               msg = msg ) == 0:
+            print 'Couldnt send msg=%s, \nuserinfo_dict=%s' % (pprint.pformat(msg), pprint.pformat(userinfo_dict))
+          else:
+            print 'sent msg=%s' % pprint.pformat(msg)
       else:
         logging.error('_handle_recvfromacter:: Unexpected reply=%s', reply)
-        self.dtsuser_intf.send_to_user(user_ip = p_ip,
-                                       msg = {'type':'sching_reply',
-                                              'data':'sorry' } )
+        msg = {'type':'sching_reply',
+               'data':'sorry' }
+        if self.dtsuser_intf.relsend_to_user(user_ip = p_ip,
+                                             msg = msg ) == 0:
+          print 'Couldnt send msg=%s, \nuserinfo_dict=%s' % (pprint.pformat(msg), pprint.pformat(userinfo_dict))
+        else:
+          print 'sent msg=%s' % pprint.pformat(msg)
       #
     #
 
@@ -188,13 +198,21 @@ class Scheduler(object):
                            user_mac = userinfo_dict['user_mac'],
                            gw_dpid = userinfo_dict['gw_dpid'],
                            gw_conn_port = userinfo_dict['gw_conn_port'] ):
-        self.dtsuser_intf.send_to_user(user_ip = user_ip,
-                                          msg = {'type':'join_reply',
-                                                 'data':'welcome' } )
+        msg = {'type':'join_reply',
+               'data':'welcome' }
+        if self.dtsuser_intf.relsend_to_user(user_ip = user_ip,
+                                             msg = msg ) == 0:
+          print 'Couldnt send msg=%s, \nuserinfo_dict=%s' % (pprint.pformat(msg), pprint.pformat(userinfo_dict))
+        else:
+          print 'sent msg=%s' % pprint.pformat(msg)
       else:
-        self.dtsuser_intf.send_to_user(user_ip = user_ip,
-                                          msg = {'type':'join_reply',
-                                                 'data':'sorry' } )
+        msg = {'type':'join_reply',
+               'data':'sorry' }
+        if self.dtsuser_intf.relsend_to_user(user_ip = user_ip,
+                                             msg = msg ) == 0:
+          print 'Couldnt send msg=%s, \nuserinfo_dict=%s' % (pprint.pformat(msg), pprint.pformat(userinfo_dict))
+        else:
+          print 'sent msg=%s' % pprint.pformat(msg)
     elif type_ == 'sching_req':
       sch_req_id = self.welcome_session(p_c_ip_list = [user_ip, data_['c_ip']],
                                         req_dict = data_['req_dict'],
@@ -203,9 +221,13 @@ class Scheduler(object):
         #TODO: for now ...
         self.do_sching()
       else:
-        self.dtsuser_intf.send_to_user(user_ip = user_ip,
-                                          msg = {'type':'sching_reply',
-                                                 'data':'sorry' } )
+        msg = {'type':'sching_reply',
+               'data':'sorry' }
+        if self.dtsuser_intf.relsend_to_user(user_ip = user_ip,
+                                             msg = msg ) == 0:
+          print 'Couldnt send msg=%s, \nuserinfo_dict=%s' % (pprint.pformat(msg), pprint.pformat(userinfo_dict))
+        else:
+          print 'sent msg=%s' % pprint.pformat(msg)
     elif type_ == 'session_done':
       sch_req_id = int(data_['sch_req_id'])
       del data_['sch_req_id']
@@ -256,7 +278,7 @@ class Scheduler(object):
     self.users_beingserved_dict.update({user_ip:{'gw_dpid':gw_dpid,
                                                  'gw_conn_port':gw_conn_port,
                                                  'mac': user_mac } })
-    print 'welcome user; ip=%s, mac=%s, gw_dpid=%s, gw_conn_port=%s' % (user_ip,user_mac,gw_dpid,gw_conn_port)
+    print 'welcome user:: ip=%s, mac=%s, gw_dpid=%s, gw_conn_port=%s' % (user_ip,user_mac,gw_dpid,gw_conn_port)
     return True
   
   #not used now, for future
@@ -817,7 +839,7 @@ class Scheduler(object):
     p_c_ip_list_list = [
                         ['10.0.2.0','10.0.1.0'],
                         ['10.0.2.1','10.0.1.1'],
-                        ['10.0.2.2','10.0.1.2']"net_xmls/net_1p_singletr.xml"
+                        ['10.0.2.2','10.0.1.2']
                        ]
     '''
     for i in range(num_session):

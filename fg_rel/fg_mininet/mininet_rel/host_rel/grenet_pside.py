@@ -25,8 +25,20 @@ class MyTopo(Topo):
         
     s1 = self.addSwitch( 's1' )
     #
-    wide_linkopts = dict(bw=1000, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
+    #wide_linkopts = dict(bw=1000, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
     #
+    self.addLink( p1, s1 )
+    self.addLink( p2, s1 )
+    self.addLink( p3, s1 )
+    self.addLink( p4, s1 )
+    self.addLink( p5, s1 )
+    self.addLink( p6, s1 )
+    self.addLink( p7, s1 )
+    self.addLink( p8, s1 )
+    self.addLink( p9, s1 )
+    self.addLink( p10, s1 )
+    self.addLink( p11, s1 )
+    '''
     self.addLink( p1, s1, **wide_linkopts )
     self.addLink( p2, s1, **wide_linkopts )
     self.addLink( p3, s1, **wide_linkopts )
@@ -38,6 +50,7 @@ class MyTopo(Topo):
     self.addLink( p9, s1, **wide_linkopts )
     self.addLink( p10, s1, **wide_linkopts )
     self.addLink( p11, s1, **wide_linkopts )
+    '''
     
 def run_pcnodes(hosts):
   popens = {}

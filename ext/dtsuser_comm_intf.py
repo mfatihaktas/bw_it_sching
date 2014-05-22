@@ -8,11 +8,12 @@ RX_SIZE = 1024
 class DTSUserCommIntf(object):
   def __init__(self):
     logging.basicConfig(level=logging.DEBUG)
+    self.logger = logging.getLogger('dtsusercomm')
     #
     self.timeout = 5
     self.usersinfo_dict = {}
     #
-    logging.info('dtsuser_comm_inft:: inited.')
+    self.logger.info('dtsuser_comm_inft:: inited.')
   
   def reg_user(self, user_ip, userinfo_dict, _recv_callback, _send_callback):
     if not user_ip in self.usersinfo_dict:
@@ -24,7 +25,7 @@ class DTSUserCommIntf(object):
                                       'msg_tobeacked': None,
                                       'timeout_timer': None,
                                       'helper_queue': Queue.Queue(maxsize=1) }
-      logging.info('reg_user:: new user reged userinfo_dict=\n%s', pprint.pformat(userinfo_dict) )
+      self.logger.info('reg_user:: new user reged userinfo_dict=\n%s', pprint.pformat(userinfo_dict) )
     #
   
   def relsend_to_user(self, user_ip, msg):
@@ -34,16 +35,17 @@ class DTSUserCommIntf(object):
     userinfo_dict = self.usersinfo_dict[user_ip]
     news = userinfo_dict['helper_queue'].get(block=True, timeout=None)
     if news == 'success':
-      logging.info('relsend_to_user:: completed sending seq_num=%s to user_ip=%s', userinfo_dict['seq_num'],user_ip)
+      self.logger.info('relsend_to_user:: completed sending seq_num=%s to user_ip=%s', userinfo_dict['seq_num'],user_ip)
       return 1 #success
     else:
-      logging.error('relsend_to_user:: could not send seq_num=%s to user_ip=%s', userinfo_dict['seq_num'],user_ip)
+      self.logger.error('relsend_to_user:: could not send seq_num=%s to user_ip=%s', userinfo_dict['seq_num'],user_ip)
+      userinfo_dict['timeout_timer'].cancel()
       return 0 #failed
   
   def send_to_user(self, user_ip, msg):
     msg_ = self.check_msg('send', msg)
     if msg_ == None:
-      logging.error('send_to_user:: msg is not proto-good')
+      self.logger.error('send_to_user:: msg is not proto-good')
       return
     #
     [type_, data_] = msg_
@@ -57,7 +59,7 @@ class DTSUserCommIntf(object):
                                     msg_str =  json.dumps(msg_tobeacked) )
     userinfo_dict['msg_tobeacked'] = msg_tobeacked
     userinfo_dict['state'] = 1
-    logging.debug('send_to_user:: sent to user_ip=%s, type=%s, seq_num=%s', user_ip, type_, userinfo_dict['seq_num'])
+    self.logger.debug('send_to_user:: sent to user_ip=%s, type=%s, seq_num=%s', user_ip, type_, userinfo_dict['seq_num'])
     #
     timeout_timer = threading.Timer(interval = self.timeout,
                                     function = self.handle_timeout,
@@ -70,7 +72,7 @@ class DTSUserCommIntf(object):
     seq_num = userinfo_dict['seq_num']
     msg_tobeacked = userinfo_dict['msg_tobeacked']
     #
-    logging.debug('handle_timeout:: timeout for user_ip=%s; resend seq_num=%s', user_ip, seq_num)
+    self.logger.debug('handle_timeout:: timeout for user_ip=%s; resend seq_num=%s', user_ip, seq_num)
     self.send_to_user(user_ip = user_ip,
                       msg = msg_tobeacked)
   
@@ -81,10 +83,10 @@ class DTSUserCommIntf(object):
     print '***'
     msg_ = self.check_msg('recv', json.loads(msg))
     if msg_ == None:
-      logging.error('pass_to_dts:: msg is not proto-good')
+      self.logger.error('pass_to_dts:: msg is not proto-good')
       return
     #
-    logging.debug('pass_to_dts:: dts recved from user_ip=%s', user_ip)
+    self.logger.debug('pass_to_dts:: dts recved from user_ip=%s', user_ip)
     #
     self.handle_rxfromuser(user_ip, msg_)
     
@@ -93,7 +95,7 @@ class DTSUserCommIntf(object):
     seq_num = userinfo_dict['seq_num']
     timeout_timer = userinfo_dict['timeout_timer']
     state = userinfo_dict['state']
-    #helper_queue = userinfo_dict['helper_queue']
+    helper_queue = userinfo_dict['helper_queue']
     #
     [type_, data_, seq_num_] = msg_
     #print '***handle_rxfromuser::'
@@ -106,21 +108,21 @@ class DTSUserCommIntf(object):
         timeout_timer.cancel()
         userinfo_dict['seq_num'] += 1
         userinfo_dict['state'] = 0
-        logging.debug('handle_rxfromuser:: for user_ip=%s, ack rxed for seq_num=%s', user_ip, seq_num)
-        #helper_queue.put('success')
+        self.logger.debug('handle_rxfromuser:: for user_ip=%s, ack rxed for seq_num=%s', user_ip, seq_num)
+        helper_queue.put('success')
       else:
-        logging.error('handle_rxfromdts:: for user_ip=%s, ack with seq_num_=%s rxed when expected seq_num=%s', user_ip, seq_num_, seq_num)
-        #helper_queue.put('failed')
+        self.logger.error('handle_rxfromdts:: for user_ip=%s, ack with seq_num_=%s rxed when expected seq_num=%s', user_ip, seq_num_, seq_num)
+        helper_queue.put('failed')
     else:
       if state == 0:
         self.ack_user(user_ip, seq_num_)
         userinfo_dict['_recv_callback'](userinfo_dict = userinfo_dict['userinfo_dict'],
                                         msg_ = [type_, data_])
       else:
-        logging.error('handle_rxfromuser:: for user_ip=%s, nonack is rxed when state=%s', user_ip, state)
-        #helper_queue.put('failed')
+        self.logger.error('handle_rxfromuser:: for user_ip=%s, nonack is rxed when state=%s', user_ip, state)
+        helper_queue.put('failed')
     #
-    #logging.debug('handle_rxfromuser:: method returns.')
+    #self.logger.debug('handle_rxfromuser:: method returns.')
   
   def ack_user(self, user_ip, seq_num):
     msg_ack = json.dumps({'type': 'ack',
@@ -130,11 +132,11 @@ class DTSUserCommIntf(object):
     userinfo_dict = self.usersinfo_dict[user_ip]
     userinfo_dict['_send_callback'](userinfo_dict = userinfo_dict['userinfo_dict'],
                                     msg_str =  msg_ack )
-    logging.debug('ack_user:: for user_ip=%s, acked seq_num=%s', user_ip,seq_num)
+    self.logger.debug('ack_user:: for user_ip=%s, acked seq_num=%s', user_ip,seq_num)
     
   def check_msg(self, acttype, msg):
     if not (acttype == 'send' or acttype == 'recv'):
-      logging.error('Unexpected acttype')
+      self.logger.error('Unexpected acttype')
       return None
     #
     try:
@@ -166,4 +168,4 @@ class DTSUserCommIntf(object):
         timeout_timer.cancel()
       helper_queue.put('failed')
     #
-    logging.info('dtsuser_comm_inft:: closed.')
+    self.logger.info('dtsuser_comm_inft:: closed.')

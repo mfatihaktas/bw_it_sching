@@ -14,9 +14,10 @@ class MyTopo(Topo):
     s3 = self.addSwitch( 's3' )
     t11 = self.addHost( 't11', ip='10.0.0.11' )
     #
-    dsa_linkopts = dict(bw=1000, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
+    #dsa_linkopts = dict(bw=1000, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
     #
-    self.addLink( s3, t11, **dsa_linkopts )
+    self.addLink( s3, t11 )
+    #self.addLink( s3, t11, **dsa_linkopts )
     
 def run_tnodes(hosts):
   popens = {}
