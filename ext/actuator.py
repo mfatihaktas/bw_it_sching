@@ -122,11 +122,27 @@ class Actuator (object):
       print '_handle_PacketIn:: doesnt have ip_payload; eth_packet=%s' % eth_packet
       return
     #
-    itr_ip = (ip_packet.srcip).toStr()
-    print '_handle_PacketIn:: rxed via sw_dpid=%s from itr_ip=%s' % (event.connection.dpid,itr_ip)
+    srcip = (ip_packet.srcip).toStr()
+    dstip = (ip_packet.dstip).toStr()
+    protocol = ip_packet.protocol
+    print '_handle_PacketIn:: rxed from sw_dpid=%s; srcip=%s, dstip=%s, protocol=%s' % (event.connection.dpid,srcip,dstip,protocol)
+    if protocol == 1: #icmp
+      print 'rxed icmp_packet=%s' % ip_packet.payload
+      self.send_ofmod_forward(_called_from = 'packet_in',
+                              conn = event.connection,
+                              nw_src = srcip,
+                              nw_dst = dstip,
+                              nw_proto = protocol,
+                              tp_src = '-1',
+                              tp_dst = '-1',
+                              fport = of.OFPP_ALL,
+                              duration = [0,0],
+                              buffer_id = event.ofp.buffer_id )
+      print 'icmp rule is inserted!'
+      return
     #
     msg = (ip_packet.payload).payload
-    self.dtsitr_intf.pass_to_dts(itr_ip = itr_ip,
+    self.dtsitr_intf.pass_to_dts(itr_ip = srcip,
                                  msg =  msg )
     
   def _handle_ConnectionUp(self, event):
@@ -323,7 +339,7 @@ class Actuator (object):
     print 'wcs: src_ip=%s, dst_ip=%s, nw_proto=%s, tp_src=%s, tp_dst=%s\n' % (nw_src,nw_dst,nw_proto,tp_src,tp_dst)
   
   def send_ofmod_forward(self, _called_from, conn, nw_src, nw_dst, nw_proto, tp_src,
-                         tp_dst, fport, duration):
+                         tp_dst, fport, duration, buffer_id = None):
     msg = of.ofp_flow_mod()
     #msg.match = of.ofp_match.from_packet(packet)
     msg.priority = 0x7000
@@ -340,7 +356,7 @@ class Actuator (object):
     msg.hard_timeout = duration[1]
     #print "event.ofp.buffer_id: ", event.ofp.buffer_id
     if _called_from == 'packet_in':
-      msg.buffer_id = event.ofp.buffer_id
+      msg.buffer_id = buffer_id
     msg.actions.append(of.ofp_action_output(port = fport))
     conn.send(msg)
     print '\nsend_ofmod_forward to sw_dpid=%s' % conn.dpid

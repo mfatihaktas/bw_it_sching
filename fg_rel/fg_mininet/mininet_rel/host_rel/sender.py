@@ -92,6 +92,11 @@ class Sender(threading.Thread):
       return
     #
     self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #IP_MTU_DISCOVER   = 10
+    #IP_PMTUDISC_DONT  =  0  # Never send DF frames.
+    #self.sock.setsockopt(socket.SOL_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DONT)
+    #self.sock.setsockopt(socket.SOL_IP, socket.TCP_MAXSEG, 1)
+    #
     logging.info('kstardata_send:: trying to connect to %s ...', self.dst_addr )
     self.sock.connect(self.dst_addr)
     logging.info('kstardata_send:: connected to %s ...', self.dst_addr )
