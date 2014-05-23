@@ -55,7 +55,7 @@ class Scheduler(object):
   def __init__(self, xml_net_num, sching_logto, data_over_tp):
     #logging.basicConfig(filename='logs/schinglog',filemode='w',level=logging.DEBUG)
     #logging.basicConfig(level=logging.WARNING)
-    #logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG)
     #
     if not (sching_logto == 'console' or sching_logto == 'file'):
       logging.error('Unexpected sching_logto=%s', sching_logto)
@@ -410,8 +410,8 @@ class Scheduler(object):
         else:
           elapsed_datasize = tobeproceddatasize + float(BWREGCONST*(sinfo['bw_list'][-1])*elapsed_time)/8
         #
+        sinfo['req_dict']['slack_metric'] = sinfo['slackmetric_list'][-1] - elapsed_time
         sinfo['req_dict']['data_size'] -= elapsed_datasize
-        sinfo['req_dict']['slack_metric'] -= elapsed_time
       #
     #
     #'''
@@ -824,16 +824,16 @@ class Scheduler(object):
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
     #data_size (MB) slack_metric (ms)
-    req_dict_list = [ {'data_size':10, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':10, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':10, 'slack_metric':30, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+    req_dict_list = [ {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                     ]
     app_pref_dict_list = [
+                          {'m_p': 0.5,'m_u': 0.5,'x_p': 0,'x_u': 0},
                           {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
-                          {'m_p': 0.1,'m_u': 0.1,'x_p': 0,'x_u': 0},
-                          {'m_p': 10,'m_u': 10,'x_p': 0,'x_u': 0},
+                          {'m_p': 2,'m_u': 2,'x_p': 0,'x_u': 0},
                           {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
                           {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
                          ]
@@ -872,7 +872,7 @@ def main():
                   sching_logto = 'console',
                   data_over_tp = 'tcp')
   
-  sch.test(num_session = 1)
+  sch.test(num_session = 3)
   #
   raw_input('Enter')
   

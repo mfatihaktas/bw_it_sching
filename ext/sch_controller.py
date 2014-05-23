@@ -68,6 +68,9 @@ class SchController(object):
       couplingdoneinfo['overall']['tobeproceddata_transt_list'] = sessionpreserved['tobeproceddata_transt_list']
       
       couplingdur_relerr = 100*float(coupling_dur - idealtrans_time)/idealtrans_time
+      
+      session_done['joinrr_time'] += 1
+      session_done['schingrr_time'] += 1
       sching_overhead = 100*float(session_done['schingrr_time'])/coupling_dur
       couplingdoneinfo['overall'].update({'idealtrans_time': idealtrans_time,
                                           'couplingdur_relerr': couplingdur_relerr,
