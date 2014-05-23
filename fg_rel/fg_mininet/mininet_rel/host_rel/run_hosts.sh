@@ -22,19 +22,19 @@ CR3_LPORT=6002
 
 C1D=1
 P1D=2
-P1_REQDICT='{"data_size":100,"slack_metric":400,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
-P1_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
+P1_REQDICT='{"data_size":100,"slack_metric":300,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P1_APPPREFDICT='{"m_p":0.1,"m_u":0.1,"x_p":0,"x_u":0}'
 P1_CLIP=10.0.1.0
 
 C2D=1
 P2D=7
-P2_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
-P2_APPPREFDICT='{"m_p":0.1,"m_u":0.1,"x_p":0,"x_u":0}'
+P2_REQDICT='{"data_size":100,"slack_metric":300,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P2_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 P2_CLIP=10.0.1.1
 
 C3D=1
 P3D=12
-P3_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P3_REQDICT='{"data_size":100,"slack_metric":300,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P3_APPPREFDICT='{"m_p":10,"m_u":10,"x_p":0,"x_u":0}'
 P3_CLIP=10.0.1.2
 
@@ -107,6 +107,9 @@ elif [ ${sel:0:1}  = 'p' ]; then
   reqdictvar='P'$i'_REQDICT'
   appprefvar='P'$i'_APPPREFDICT'
   clipvar='P'$i'_CLIP'
+  #python producer.py --intf=$sel'-eth0' --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=${!clipvar} \
+  #                   --proto=tcp --tx_type=kstardata2 --file_url=ltx1.dat --kstardata_url=ltx.dat --logto=file --nodename=$sel \
+  #                   --req_dict=${!reqdictvar} --app_pref_dict=${!appprefvar} --htbdir=$MINHTBDIR
   python producer.py --intf=$sel'-eth0' --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=${!clipvar} \
                      --proto=tcp --tx_type=kstardata2 --file_url=ltx1.dat --kstardata_url=/home/ubuntu/large_ecei_data.bp --logto=file --nodename=$sel \
                      --req_dict=${!reqdictvar} --app_pref_dict=${!appprefvar} --htbdir=$MINHTBDIR
@@ -134,7 +137,7 @@ elif [ ${sel:0:1}  = 's' ]; then
 elif [ $1  = 'r' ]; then
   python receiver.py --lintf=lo --lport=6000 --proto=tcp --rx_type=kstardata --file_url=/home/mehmet/Desktop/rx.dat --logto=console
 elif [ $1  = 'glf' ]; then
-	dd if=/dev/urandom of=ltx.dat bs=1728 count=10000 #outputs bs x count Bs 
+	dd if=/dev/urandom of=lltx.dat bs=1024 count=1000000000 #outputs bs x count Bs 
 elif [ $1  = 'k' ]; then
   #sudo rm -r /tmp/fft6*; mkdir /tmp/fft6000; mkdir /tmp/fft6001
   #sudo rm -r /tmp/upsampleplot6*; mkdir /tmp/upsampleplot6000; mkdir /tmp/upsampleplot6001

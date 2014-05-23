@@ -11,7 +11,7 @@ from expr_matrix import Expr as expr
 
 BWREGCONST = 1 #0.9 #0.95
 BWREGCONST_INGRAB = 1 #0.9 #0.95
-SLACKFEASIBILITYCONST = 0.9 #1
+SLACKFEASIBILITYCONST = 1
 
 class SchingOptimizer:
   def __init__(self, sessions_beingserved_dict, actual_res_dict, sid_res_dict):
@@ -771,7 +771,7 @@ class SchingOptimizer:
       slack = s_req_dict['slack_metric']
       #
       if slack < min_tt:
-        self.logger.debug('S%s\'s slack_metric is not feasible!\nChanged from:%sms to:%sms', s_id, slack, min_tt)
+        self.logger.warning('S%s\'s slack_metric is not feasible!\nChanged from:%sms to:%sms', s_id, slack, min_tt)
         self.sessions_beingserved_dict[s_id]['req_dict']['slack_metric'] = min_tt
   
   def get_sching_result(self):
@@ -887,6 +887,7 @@ class SchingOptimizer:
       self.logger.debug('F()=%s', self.F())
       self.logger.debug('F().is_convex()=%s', self.F().is_convex())
       self.logger.debug('------------------------------')
+      '''
       
       self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
       self.logger.debug('constraint0=\n%s', self.constraint0())
@@ -896,7 +897,6 @@ class SchingOptimizer:
       self.logger.debug('r_bwprocdur_sparsity_constraint=\n%s', self.r_bwprocdur_sparsity_constraint())
       self.logger.debug('s_n_sparsity_constraint=\n%s', self.s_n_sparsity_constraint())
       self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-      '''
       
       p = cp.Problem(cp.Minimize(self.F()),
                      self.constraint0() + \

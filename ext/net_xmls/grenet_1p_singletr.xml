@@ -14,7 +14,7 @@ Caps:
       <s1  type="sw" dpid="1" />
       <s2  type="sw" dpid="2" />
       <s3  type="sw" dpid="3" />
-      <t11 type="t" ip="10.0.0.11" mac="00:00:00:00:01:01" proc_cap="100" stor_cap="200"/>
+      <t11 type="t" ip="10.0.0.11" mac="00:00:00:00:01:01" proc_cap="100" stor_cap="100"/>
     </nodes>
     <edges>
       <!-- SW...SW-->

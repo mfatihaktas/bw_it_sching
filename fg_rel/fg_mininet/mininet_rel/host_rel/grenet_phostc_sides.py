@@ -41,9 +41,38 @@ class MyTopo(Topo):
     
     t11 = self.addHost( 't11', ip='10.0.0.11' )
     #
-    wide_linkopts = dict(bw=11, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
-    dsa_linkopts = dict(bw=11, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
+    #wide_linkopts = dict(bw=11, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
+    #dsa_linkopts = dict(bw=11, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
     #
+    self.addLink( s2, c1 )
+    self.addLink( s2, c2 )
+    self.addLink( s2, c3 )
+    self.addLink( s2, c4 )
+    self.addLink( s2, c5 )
+    self.addLink( s2, c6 )
+    self.addLink( s2, c7 )
+    self.addLink( s2, c8 )
+    self.addLink( s2, c9 )
+    self.addLink( s2, c10 )
+    self.addLink( s2, c11 )
+    
+    self.addLink( p1, s1 )
+    self.addLink( p2, s1 )
+    self.addLink( p3, s1 )
+    self.addLink( p4, s1 )
+    self.addLink( p5, s1 )
+    self.addLink( p6, s1 )
+    self.addLink( p7, s1 )
+    self.addLink( p8, s1 )
+    self.addLink( p9, s1 )
+    self.addLink( p10, s1 )
+    self.addLink( p11, s1 )
+    
+    self.addLink( s3, t11 )
+    
+    self.addLink( s1, s3 )
+    self.addLink( s3, s2 )
+    '''
     self.addLink( s2, c1, **wide_linkopts )
     self.addLink( s2, c2, **wide_linkopts )
     self.addLink( s2, c3, **wide_linkopts )
@@ -72,6 +101,7 @@ class MyTopo(Topo):
     
     self.addLink( s1, s3, **wide_linkopts )
     self.addLink( s3, s2, **wide_linkopts )
+    '''
     
 def run_tnodes(hosts):
   popens = {}
@@ -159,12 +189,12 @@ if __name__ == '__main__':
   #
   net.start()
   #
-  #run_tnodes([t11])
+  run_tnodes([t11])
   
-  #run_pcnodes([c1, p1, c2, p2])
   #run_pcnodes([c1, p1])
+  #run_pcnodes([c1, p1, c2, p2])
+  run_pcnodes([c1, p1, c2, p2, c3, p3])
   #run_pcnodes([c1, c2, c3])
-  #run_pcnodes([c1, p1, c2, p2, c3, p3])
   #run_pcnodes([c1, p1, c2, p2, c3, p3, c4, p4, c5, p5, c6, p6])
   #run_pcnodes([c10, p10, c11, p11])
   #run_pcnodes([c1, p1, c2, p2, c3, p3, c4, p4, c5, p5, c6, p6, c7, p7, c8, p8, c9, p9, c10, p10, c11, p11])

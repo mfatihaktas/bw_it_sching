@@ -54,7 +54,8 @@ class Scheduler(object):
   event_chief = EventChief()
   def __init__(self, xml_net_num, sching_logto, data_over_tp):
     #logging.basicConfig(filename='logs/schinglog',filemode='w',level=logging.DEBUG)
-    logging.basicConfig(level=logging.WARNING)
+    #logging.basicConfig(level=logging.WARNING)
+    #logging.basicConfig(level=logging.DEBUG)
     #
     if not (sching_logto == 'console' or sching_logto == 'file'):
       logging.error('Unexpected sching_logto=%s', sching_logto)
@@ -823,10 +824,10 @@ class Scheduler(object):
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
     #data_size (MB) slack_metric (ms)
-    req_dict_list = [ {'data_size':94.4, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':8, 'slack_metric':25, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+    req_dict_list = [ {'data_size':10, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':10, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':10, 'slack_metric':30, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300, 'func_list':['fft'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                     ]
     app_pref_dict_list = [
@@ -841,13 +842,13 @@ class Scheduler(object):
                         ['10.0.2.1','10.0.1.1'],
                         ['10.0.2.2','10.0.1.2']
                        ]
-    '''
     for i in range(num_session):
       self.welcome_session(p_c_ip_list = p_c_ip_list_list[int(i%3)],
                            req_dict = req_dict_list[int(i%5)],
                            app_pref_dict = app_pref_dict_list[int(i%5)] )
     #
     #self.run_sching()
+    self.do_sching()
     '''
     expschingtime_data = ''
     for i in range(num_session):
@@ -860,6 +861,7 @@ class Scheduler(object):
       expschingtime_data += str(i+1) + ' ' + str(schingdur) + '\n'
     #
     print 'expschingtime_data=\n%s' % expschingtime_data
+    '''
     #
     
 is_scheduler_run = False
@@ -870,7 +872,7 @@ def main():
                   sching_logto = 'console',
                   data_over_tp = 'tcp')
   
-  sch.test(num_session = 30)
+  sch.test(num_session = 1)
   #
   raw_input('Enter')
   
