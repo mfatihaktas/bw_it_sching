@@ -62,7 +62,7 @@ class RuleParser (object):
         new_uptojobinfo = ET.SubElement(new_itjob, 'uptojobinfo')
         for itfunc,comp in itjobrule['completeduptohere_job'].items():
           new_itfunc = ET.SubElement(new_uptojobinfo, 'func')
-          new_itfunc.set('n',str(n))
+          new_itfunc.set('n',str(comp))
           new_itfunc.set('tag',itfunc)
         #
         new_jobinfo = ET.SubElement(new_itjob, 'jobinfo')

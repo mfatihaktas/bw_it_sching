@@ -107,6 +107,7 @@ class Scheduler(object):
     self.startedtime = time.time()
     #
     self.sid_schregid_dict = {}
+    self.schingid_rescapalloc_dict = {}
     
   
   def recv_from_user(self, userinfo_dict, msg):
@@ -125,6 +126,8 @@ class Scheduler(object):
   def get_sessionspreserved_dict(self):
     return self.sessionspreserved_dict
   
+  def get_schingid_rescapalloc_dict(self):
+    return self.schingid_rescapalloc_dict
   #########################  _handle_*** methods  #######################
   def _handle_recvfromacter(self, msg):
     #msg = [type_, data_]l
@@ -448,6 +451,8 @@ class Scheduler(object):
       
       sinfo['trans_time'] = salloc['trans_time']
     #'''
+    #res capacity allocation distribution over sessions
+    self.schingid_rescapalloc_dict[sching_id] = self.alloc_dict['res-wise']
     #
     """
     logging.info('saving sching_dec to figs...')
@@ -632,7 +637,7 @@ class Scheduler(object):
             'datasize': pitwalkbundle_dict['p_info']['datasize'],
             'bw': pitwalkbundle_dict['p_info']['bw'] }]
         else:
-          itjob_rule_dict[tailsw['dpid']].append( [{
+          itjob_rule_dict[tailsw['dpid']].append( {
             'proto': 6,
             'tpr_ip': tail_ip,
             'tpr_mac': tail_mac,
@@ -642,15 +647,16 @@ class Scheduler(object):
             'session_tp': int(s_tp_dst),
             'consumer_ip': to_ip,
             'datasize': pitwalkbundle_dict['p_info']['datasize'],
-            'bw': pitwalkbundle_dict['p_info']['bw'] }] )
+            'bw': pitwalkbundle_dict['p_info']['bw'] } )
         #
         #update__uptoitr_func_dict
-        for ftag in assigned_job:
+        for ftag in assigned_job['itfunc_dict']:
           if ftag in uptoitr_func_dict:
-            uptoitr_func_dict[ftag] += assigned_job[ftag]
+            uptoitr_func_dict[ftag] += float(assigned_job['itfunc_dict'][ftag])
           else:
-            uptoitr_func_dict[ftag] = assigned_job[ftag]
+            uptoitr_func_dict[ftag] = float(assigned_job['itfunc_dict'][ftag])
         #
+        print 'uptoitr_func_dict=%s' % pprint.pformat(uptoitr_func_dict)
       #
       
       #extract modify_backward route to head
@@ -849,6 +855,21 @@ class Scheduler(object):
     #
     #self.run_sching()
     self.do_sching()
+    '''
+    #converting schingid_rescapalloc_dict to resid_rescapalloc_dict
+    print '-----------------------'
+    schingid_rescapalloc_dict = self.get_schingid_rescapalloc_dict()
+    print 'schingid_rescapalloc_dict=\n%s' % pprint.pformat(schingid_rescapalloc_dict)
+    resid_rescapalloc_dict = {}
+    for sching_id, rescapalloc_dict in schingid_rescapalloc_dict.items():
+      for res_id, rescapalloc in rescapalloc_dict.items():
+        if not res_id in resid_rescapalloc_dict:
+          resid_rescapalloc_dict[res_id] = {}
+        #
+        resid_rescapalloc_dict[res_id][sching_id] = rescapalloc
+    #
+    print 'resid_rescapalloc_dict=\n%s' % pprint.pformat(resid_rescapalloc_dict)
+    '''
     '''
     expschingtime_data = ''
     for i in range(num_session):

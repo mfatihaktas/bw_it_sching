@@ -699,7 +699,7 @@ class Transit(object):
     self.stpdst_txintereqtime_dict = {}
     self.stpdst_itwork_dict = {}
     #
-    self.init_htbdir()
+    #self.init_htbdir()
     #
     self.logger.info('%s is ready...', self.nodename)
 

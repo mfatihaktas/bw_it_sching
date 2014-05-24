@@ -85,9 +85,23 @@ class SchController(object):
     f = open(furl, 'w')
     f.write(pprint.pformat(couplingdoneinfo_dict))
     f.close()
-    
+    #converting schingid_rescapalloc_dict to resid_rescapalloc_dict
+    schingid_rescapalloc_dict = self.scheduler.get_schingid_rescapalloc_dict()
+    print 'schingid_rescapalloc_dict=%s' % pprint.pformat(schingid_rescapalloc_dict)
+    resid_rescapalloc_dict = {}
+    for sching_id, rescapalloc_dict in schingid_rescapalloc_dict.items():
+      for res_id, rescapalloc in rescapalloc_dict.items():
+        if not res_id in resid_rescapalloc_dict:
+          resid_rescapalloc_dict[res_id] = {}
+        #
+        resid_rescapalloc_dict[res_id][sching_id] = rescapalloc
+    #
+    print 'resid_rescapalloc_dict=%s' % pprint.pformat(resid_rescapalloc_dict)
+    #
     self.exp_plotter.write_expdatafs(couplingdoneinfo_dict = couplingdoneinfo_dict,
-                                     outfurl='/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat' )
+                                     outf1url='/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat',
+                                     resid_rescapalloc_dict = resid_rescapalloc_dict,
+                                     outf2basename='/home/ubuntu/pox/ext/logs/rescapalloc_resid' )
     self.exp_plotter.plot_sizerel(datafurl = '/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat', 
                                   outfurl = '/home/ubuntu/pox/ext/logs/sizerel.png',
                                   nums = len(couplingdoneinfo_dict),
@@ -102,6 +116,8 @@ class SchController(object):
                                       nums = len(couplingdoneinfo_dict),
                                       yrange = 1.1*max([couplingdoneinfo['session_done']['schingrr_time'] for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()] + \
                                                        [couplingdoneinfo['session_done']['joinrr_time'] for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()]) )
+    #
+    
   #########################  _handle_*** methods  #######################
   def _handle_SendMsgToUser(self, event):
     #print '_handle_SendMsgToUser::'

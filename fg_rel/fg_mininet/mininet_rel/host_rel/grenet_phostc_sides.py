@@ -39,10 +39,8 @@ class MyTopo(Topo):
     s2 = self.addSwitch( 's2' )
     s3 = self.addSwitch( 's3' )
     
-    t11 = self.addHost( 't11', ip='10.0.0.11' )
-    #
-    #wide_linkopts = dict(bw=11, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
-    #dsa_linkopts = dict(bw=11, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
+    t31 = self.addHost( 't31', ip='10.0.0.31' )
+    t32 = self.addHost( 't32', ip='10.0.0.32' )
     #
     self.addLink( s2, c1 )
     self.addLink( s2, c2 )
@@ -68,40 +66,11 @@ class MyTopo(Topo):
     self.addLink( p10, s1 )
     self.addLink( p11, s1 )
     
-    self.addLink( s3, t11 )
-    
     self.addLink( s1, s3 )
     self.addLink( s3, s2 )
-    '''
-    self.addLink( s2, c1, **wide_linkopts )
-    self.addLink( s2, c2, **wide_linkopts )
-    self.addLink( s2, c3, **wide_linkopts )
-    self.addLink( s2, c4, **wide_linkopts )
-    self.addLink( s2, c5, **wide_linkopts )
-    self.addLink( s2, c6, **wide_linkopts )
-    self.addLink( s2, c7, **wide_linkopts )
-    self.addLink( s2, c8, **wide_linkopts )
-    self.addLink( s2, c9, **wide_linkopts )
-    self.addLink( s2, c10, **wide_linkopts )
-    self.addLink( s2, c11, **wide_linkopts )
     
-    self.addLink( p1, s1, **wide_linkopts )
-    self.addLink( p2, s1, **wide_linkopts )
-    self.addLink( p3, s1, **wide_linkopts )
-    self.addLink( p4, s1, **wide_linkopts )
-    self.addLink( p5, s1, **wide_linkopts )
-    self.addLink( p6, s1, **wide_linkopts )
-    self.addLink( p7, s1, **wide_linkopts )
-    self.addLink( p8, s1, **wide_linkopts )
-    self.addLink( p9, s1, **wide_linkopts )
-    self.addLink( p10, s1, **wide_linkopts )
-    self.addLink( p11, s1, **wide_linkopts )
-    
-    self.addLink( s3, t11, **dsa_linkopts )
-    
-    self.addLink( s1, s3, **wide_linkopts )
-    self.addLink( s3, s2, **wide_linkopts )
-    '''
+    self.addLink( s3, t31 )
+    self.addLink( s3, t32 )
     
 def run_tnodes(hosts):
   popens = {}
@@ -133,7 +102,7 @@ if __name__ == '__main__':
   c1,c2,c3 = net.getNodeByName('c1', 'c2', 'c3')
   c4,c5,c6 = net.getNodeByName('c4', 'c5', 'c6')
   c7,c8,c9,c10,c11 = net.getNodeByName('c7', 'c8', 'c9', 'c10', 'c11')
-  t11 = net.getNodeByName('t11')
+  t31,t32 = net.getNodeByName('t31','t32')
   #
   p1.setMAC(mac='00:00:00:01:02:00')
   p2.setMAC(mac='00:00:00:01:02:01')
@@ -159,7 +128,8 @@ if __name__ == '__main__':
   c10.setMAC(mac='00:00:00:01:01:09')
   c11.setMAC(mac='00:00:00:01:01:10')
   
-  t11.setMAC(mac='00:00:00:00:01:01')
+  t31.setMAC(mac='00:00:00:00:03:01')
+  t32.setMAC(mac='00:00:00:00:03:02')
   #To fix "network is unreachable"
   p1.setDefaultRoute(intf='p1-eth0')
   p2.setDefaultRoute(intf='p2-eth0')
@@ -185,19 +155,20 @@ if __name__ == '__main__':
   c10.setDefaultRoute(intf='c10-eth0')
   c11.setDefaultRoute(intf='c11-eth0')
   
-  t11.setDefaultRoute(intf='t11-eth0')
+  t31.setDefaultRoute(intf='t31-eth0')
+  t32.setDefaultRoute(intf='t32-eth0')
   #
   net.start()
   #
-  run_tnodes([t11])
+  run_tnodes([t31, t32])
   
-  #run_pcnodes([c1, p1])
+  run_pcnodes([c1, p1])
   #run_pcnodes([c1, p1, c2, p2])
   #run_pcnodes([c1, p1, c2, p2, c3, p3])
   #run_pcnodes([c1, c2, c3])
   #run_pcnodes([c1, p1, c2, p2, c3, p3, c4, p4, c5, p5, c6, p6])
   #run_pcnodes([c10, p10, c11, p11])
-  run_pcnodes([c1, p1, c2, p2, c3, p3, c4, p4, c5, p5, c6, p6, c7, p7, c8, p8, c9, p9, c10, p10, c11, p11])
+  #run_pcnodes([c1, p1, c2, p2, c3, p3, c4, p4, c5, p5, c6, p6, c7, p7, c8, p8, c9, p9, c10, p10, c11, p11])
   #
   CLI( net )
   net.stop()

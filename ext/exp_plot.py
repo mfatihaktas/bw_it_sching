@@ -4,14 +4,14 @@ class ExpPlotter(object):
   def __init__(self):
     pass
   
-  def write_expdatafs(self, couplingdoneinfo_dict, outfurl):
+  def write_expdatafs(self, couplingdoneinfo_dict, outf1url, resid_rescapalloc_dict, outf2basename):
     '''
     1:sch_req_id  2:recvedsize  3:slacktime  4:couplingdur  5:couplingdur_relerr  
     6:recvedsizewithf1  7:recvedpercwithf1  8:recvedsizewithf2  9:recvedpercwithf2
     10: joinrr_time 11: schingrr_time 12: sching_overhead
     '''
     maxnumitfuncs = 2
-    outf = open(outfurl, 'w')
+    outf1 = open(outf1url, 'w')
     
     for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items():
       #1:5
@@ -32,9 +32,29 @@ class ExpPlotter(object):
                  str(abs(couplingdoneinfo['overall']['sching_overhead'])) + ' '
       # 
       infostr += '\n'
-      outf.write(infostr)
+      outf1.write(infostr)
     #
-    outf.close()
+    outf1.close()
+    #
+    for res_id, rescapalloc_dict in resid_rescapalloc_dict.items():
+      outf2 = open(outf2basename+str(res_id)+'.dat', 'w')
+      #
+      infostr = ''
+      for sching_id, rescapalloc in rescapalloc_dict.items():
+        salloc_str = None
+        if 'bw_salloc_dict' in rescapalloc:
+          salloc_str = 'bw_salloc_dict'
+        elif 'proc_salloc_dict' in rescapalloc:
+          salloc_str = 'proc_salloc_dict'
+        #
+        for s_id, salloc in rescapalloc[salloc_str].items():
+          infostr += str(salloc) + ' '
+        #
+        infostr += '\n'
+      # 
+      outf2.write(infostr)
+    #
+    outf2.close()
   
   def plot_sizerel(self, datafurl, outfurl, nums, yrange):
     pipe = subprocess.Popen(['gnuplot'], shell = True, stdin=subprocess.PIPE)
@@ -114,6 +134,26 @@ class ExpPlotter(object):
                      ', "" using 10 w points linewidth 2 lc rgb "#696969" title "join rtt"' + \
                      ', "" using 12 axes x1y2 w points pointsize 2 lc rgb "#7F7F7F" title "overhead"' + \
                      ', 1 w l lw 1 lc rgb "#000000" title "rtt" \n' )
+  
+  def plot_resallocrel(self, datafurl, outfurl, numsching, yrange, resunit):
+    pipe = subprocess.Popen(['gnuplot'], shell = True, stdin=subprocess.PIPE)
+    pipe.stdin.write("set term png enhanced font '/usr/share/fonts/liberation/LiberationSans-Regular.ttf' 12\n")
+    pipe.stdin.write('set output "%s"\n' % outfurl)
+    pipe.stdin.write('set xlabel "Scheduling Number"\n')
+    pipe.stdin.write('set ylabel "Resource Capacity (%s)"\n' % resunit)
+    
+    pipe.stdin.write('set xrange [0:%s] \n' % (int(numsching)+1) )
+    pipe.stdin.write('set yrange [0:%s] \n'  % yrange )
+    
+    pipe.stdin.write('set boxwidth 0.2 absolute\n')
+    pipe.stdin.write('set key inside right top vertical Right noreverse noenhanced autotitles nobox\n')
+    pipe.stdin.write('set style fill solid border -1\n')
+    pipe.stdin.write('set style fill pattern border\n')
+    pipe.stdin.write('set samples 11\n')
+    pipe.stdin.write('plot "%s" using 11:xtic(1) w points linewidth 2 lc rgb "#000000" title "sching rtt"' % datafurl + \
+                     ', "" using 10 w points linewidth 2 lc rgb "#696969" title "join rtt"' + \
+                     ', "" using 12 axes x1y2 w points pointsize 2 lc rgb "#7F7F7F" title "overhead"\n' )
+    
 def main():
   pass
 
