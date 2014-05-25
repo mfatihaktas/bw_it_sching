@@ -3,7 +3,7 @@ import sys,socket,json,getopt,struct,time,errno,logging,threading
 #import numpy as np
 
 CHUNKHSIZE = 50
-TXCHUNK_SIZE = 24*8*9*10000 #24*8*9*10 #1024 #4096
+TXCHUNK_SIZE = 24*8*9*10 #1024 #4096
 CHUNKSTRSIZE=TXCHUNK_SIZE+CHUNKHSIZE
 #IMGSIZE = 24*8*9
 

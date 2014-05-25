@@ -16,7 +16,7 @@ def get_addr(lintf):
   return intf_eth0_ip
 
 BWREGCONST=1.05
-CHUNKSTRSIZE= 24*8*9*10000+50 #24*8*9*10+50
+CHUNKSTRSIZE=24*8*9*10+50
 class Producer(object):
   def __init__(self, intf, pl_port, dtsl_ip, dtsl_port, cl_ip, proto,tx_type, file_url, kstardata_url,
                req_dict,app_pref_dict, htbdir, logto):

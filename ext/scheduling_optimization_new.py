@@ -30,15 +30,9 @@ class SchingOptimizer:
     self.num_itr = self.k - self.num_link
     # func_compconstant_dict; key:function, val:comp_constant (2-8)
     self.func_compconstant_dict = {
-      'fft': 0.5,
-      'upsampleplot': 7.5
-    }
-    '''
-    self.func_compconstant_dict = {
       'fft': 5,
       'upsampleplot': 75
     }
-    '''
     #
     self.add_proccomp__update_parism_info()
     self.add_sessionpathlinks_with_ids()
@@ -882,7 +876,7 @@ class SchingOptimizer:
       self.sid_res_dict[s_id]['s_info'].update({'fair_bw':s_fair_bw})
   def solve(self):
     while(1):
-      (self.scal_var).value = 0 #100
+      (self.scal_var).value = 100
       #
       '''
       self.logger.debug('------------------------------')
