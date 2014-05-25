@@ -67,7 +67,7 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    net_xml_file_url = "net_xmls/grenet_1p_singletr.xml" #"net_xmls/net_1p_singletr.xml"
+    net_xml_file_url = "net_xmls/grenet_gbit_1p_singletr.xml" #"net_xmls/grenet_1p_singletr.xml" #"net_xmls/net_1p_singletr.xml"
     if not is_scheduler_run:
       net_xml_file_url = "ext/" + net_xml_file_url
     
@@ -828,7 +828,7 @@ class Scheduler(object):
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
     #data_size (MB) slack_metric (ms)
-    req_dict_list = [ {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+    req_dict_list = [ {'data_size':1024, 'slack_metric':1, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
@@ -891,7 +891,7 @@ def main():
                   sching_logto = 'console',
                   data_over_tp = 'tcp')
   
-  sch.test(num_session = 3)
+  sch.test(num_session = 1)
   #
   raw_input('Enter')
   

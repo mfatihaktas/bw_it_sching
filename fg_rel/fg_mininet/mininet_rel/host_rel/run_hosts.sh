@@ -22,7 +22,7 @@ CR3_LPORT=6002
 
 C1D=1
 P1D=2
-P1_REQDICT='{"data_size":100,"slack_metric":300,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P1_REQDICT='{"data_size":1024,"slack_metric":1,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P1_APPPREFDICT='{"m_p":0.5,"m_u":0.5,"x_p":0,"x_u":0}'
 P1_CLIP=10.0.1.0
 
@@ -107,11 +107,8 @@ elif [ ${sel:0:1}  = 'p' ]; then
   reqdictvar='P'$i'_REQDICT'
   appprefvar='P'$i'_APPPREFDICT'
   clipvar='P'$i'_CLIP'
-  #python producer.py --intf=$sel'-eth0' --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=${!clipvar} \
-  #                   --proto=tcp --tx_type=kstardata2 --file_url=ltx1.dat --kstardata_url=ltx.dat --logto=file --nodename=$sel \
-  #                   --req_dict=${!reqdictvar} --app_pref_dict=${!appprefvar} --htbdir=$MINHTBDIR
   python producer.py --intf=$sel'-eth0' --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=${!clipvar} \
-                     --proto=tcp --tx_type=kstardata2 --file_url=ltx1.dat --kstardata_url=/home/ubuntu/large_ecei_data.bp --logto=file --nodename=$sel \
+                     --proto=tcp --tx_type=fastdata --file_url=ltx1.dat --kstardata_url=/home/ubuntu/large_ecei_data.bp --logto=file --nodename=$sel \
                      --req_dict=${!reqdictvar} --app_pref_dict=${!appprefvar} --htbdir=$MINHTBDIR
 elif [ $1  = 'c' ]; then
   python consumer.py --intf=lo --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
