@@ -1,4 +1,4 @@
-import json,pprint,os,inspect,sys,logging,time
+import json,pprint,os,inspect,sys,logging,time,copy
 from xmlparser import XMLParser
 from graphman import GraphMan
 from scheduling_optimization_new import SchingOptimizer
@@ -108,7 +108,7 @@ class Scheduler(object):
     #
     self.sid_schregid_dict = {}
     self.schingid_rescapalloc_dict = {}
-    
+    self.geninfo_dict = {}
   
   def recv_from_user(self, userinfo_dict, msg):
     user_ip = userinfo_dict['user_ip']
@@ -128,6 +128,9 @@ class Scheduler(object):
   
   def get_schingid_rescapalloc_dict(self):
     return self.schingid_rescapalloc_dict
+  
+  def get_geninfo_dict(self):
+    return self.geninfo_dict
   #########################  _handle_*** methods  #######################
   def _handle_recvfromacter(self, msg):
     #msg = [type_, data_]l
@@ -453,6 +456,7 @@ class Scheduler(object):
     #'''
     #res capacity allocation distribution over sessions
     self.schingid_rescapalloc_dict[sching_id] = self.alloc_dict['res-wise']
+    self.geninfo_dict = self.alloc_dict['general']
     #
     """
     logging.info('saving sching_dec to figs...')
@@ -567,7 +571,7 @@ class Scheduler(object):
     from_mac = p_info_dict['mac']
     to_mac = c_info_dict['mac']
     #
-    uptoitr_func_dict = {}
+    uptoitrjob_list = []
     #
     for i,pwalk_chop in list(enumerate(chopped_pwalk_list)):
       chop_wr = [] #chop_walk_rule
@@ -631,7 +635,7 @@ class Scheduler(object):
             'tpr_mac': tail_mac,
             'swdev_to_tpr': totail_swportname,
             'assigned_job': assigned_job,
-            'completeduptohere_job': uptoitr_func_dict.copy(),
+            'uptoitrjob_list': copy.copy(uptoitrjob_list),
             'session_tp': int(s_tp_dst),
             'consumer_ip': to_ip,
             'datasize': pitwalkbundle_dict['p_info']['datasize'],
@@ -643,20 +647,14 @@ class Scheduler(object):
             'tpr_mac': tail_mac,
             'swdev_to_tpr': totail_swportname,
             'assigned_job': assigned_job,
-            'completeduptohere_job': uptoitr_func_dict.copy(),
+            'uptoitrjob_list': copy.copy(uptoitrjob_list),
             'session_tp': int(s_tp_dst),
             'consumer_ip': to_ip,
             'datasize': pitwalkbundle_dict['p_info']['datasize'],
             'bw': pitwalkbundle_dict['p_info']['bw'] } )
         #
-        #update__uptoitr_func_dict
-        for ftag in assigned_job['itfunc_dict']:
-          if ftag in uptoitr_func_dict:
-            uptoitr_func_dict[ftag] += float(assigned_job['itfunc_dict'][ftag])
-          else:
-            uptoitr_func_dict[ftag] = float(assigned_job['itfunc_dict'][ftag])
-        #
-        print 'uptoitr_func_dict=%s' % pprint.pformat(uptoitr_func_dict)
+        #update__uptoitrjob_list
+        uptoitrjob_list.append(assigned_job)
       #
       
       #extract modify_backward route to head

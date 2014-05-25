@@ -102,6 +102,25 @@ class SchController(object):
                                      outf1url='/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat',
                                      resid_rescapalloc_dict = resid_rescapalloc_dict,
                                      outf2basename='/home/ubuntu/pox/ext/logs/rescapalloc_resid' )
+    #
+    geninfo_dict = self.scheduler.get_geninfo_dict()
+    maxbw = 10 #Mbps
+    maxproc = 100 #Mfps
+    for res_id in resid_rescapalloc_dict:
+      if res_id <= geninfo_dict['ll_index']: #res is link
+        self.exp_plotter.plot_resallocrel(datafurl='/home/ubuntu/pox/ext/logs/rescapalloc_resid'+str(res_id)+'.dat',
+                                          outfurl='/home/ubuntu/pox/ext/logs/fig_rescapallocLINKid'+str(res_id)+'.png',
+                                          numsching=len(schingid_rescapalloc_dict),
+                                          yrange=1.1*maxbw,
+                                          resunit='Mbps' )
+      else: #res is itr
+        self.exp_plotter.plot_resallocrel(datafurl='/home/ubuntu/pox/ext/logs/rescapalloc_resid'+str(res_id)+'.dat',
+                                          outfurl='/home/ubuntu/pox/ext/logs/fig_rescapallocITRid'+str(res_id)+'.png',
+                                          numsching=len(schingid_rescapalloc_dict),
+                                          yrange=1.1*maxproc,
+                                          resunit='Mfps' )
+      #
+    #
     self.exp_plotter.plot_sizerel(datafurl = '/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat', 
                                   outfurl = '/home/ubuntu/pox/ext/logs/sizerel.png',
                                   nums = len(couplingdoneinfo_dict),

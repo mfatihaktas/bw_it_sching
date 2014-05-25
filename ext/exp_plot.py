@@ -4,6 +4,39 @@ class ExpPlotter(object):
   def __init__(self):
     pass
   
+  def rows_to_columns(self, furl):
+    list_ = []
+    max_ = 0
+    with open(furl, 'r') as f:
+      for line in f:
+        #print 'line=%s' % line
+        token_list = line.strip(' \n').split(' ')
+        #print 'token_list=%s' % token_list
+        if len(token_list) > max_:
+          max_ = len(token_list)
+        #
+        list_.append(token_list)
+      #
+    #
+    #print 'max_=%s' % max_
+    #print 'list_=\n%s' % pprint.pformat(list_)
+    #
+    str_ = ''
+    for lnum in range(max_):
+      for rowtoken_list in list_:
+        try:
+          str_ += rowtoken_list[lnum] + ' '
+        except IndexError:
+          str_ += '0.00000000000' + ' '
+        #
+      #
+      str_ += '\n'
+    #
+    f = open(furl, 'w')
+    f.truncate()
+    f.write(str_)
+    f.close()
+  
   def write_expdatafs(self, couplingdoneinfo_dict, outf1url, resid_rescapalloc_dict, outf2basename):
     '''
     1:sch_req_id  2:recvedsize  3:slacktime  4:couplingdur  5:couplingdur_relerr  
@@ -37,7 +70,8 @@ class ExpPlotter(object):
     outf1.close()
     #
     for res_id, rescapalloc_dict in resid_rescapalloc_dict.items():
-      outf2 = open(outf2basename+str(res_id)+'.dat', 'w')
+      outf2url = outf2basename+str(res_id)+'.dat'
+      outf2 = open(outf2url, 'w')
       #
       infostr = ''
       for sching_id, rescapalloc in rescapalloc_dict.items():
@@ -53,8 +87,9 @@ class ExpPlotter(object):
         infostr += '\n'
       # 
       outf2.write(infostr)
+      outf2.close()
+      self.rows_to_columns(outf2url)
     #
-    outf2.close()
   
   def plot_sizerel(self, datafurl, outfurl, nums, yrange):
     pipe = subprocess.Popen(['gnuplot'], shell = True, stdin=subprocess.PIPE)
@@ -139,20 +174,25 @@ class ExpPlotter(object):
     pipe = subprocess.Popen(['gnuplot'], shell = True, stdin=subprocess.PIPE)
     pipe.stdin.write("set term png enhanced font '/usr/share/fonts/liberation/LiberationSans-Regular.ttf' 12\n")
     pipe.stdin.write('set output "%s"\n' % outfurl)
-    pipe.stdin.write('set xlabel "Scheduling Number"\n')
+    pipe.stdin.write('set xlabel "Scheduling Id"\n')
     pipe.stdin.write('set ylabel "Resource Capacity (%s)"\n' % resunit)
     
-    pipe.stdin.write('set xrange [0:%s] \n' % (int(numsching)+1) )
+    pipe.stdin.write('set xrange [-0.5:%s] \n' % (int(numsching)+1) )
     pipe.stdin.write('set yrange [0:%s] \n'  % yrange )
+    pipe.stdin.write('set xtics 1\n')
     
+    pipe.stdin.write('set style data histogram\n')
+    pipe.stdin.write('set style histogram columnstacked\n')
     pipe.stdin.write('set boxwidth 0.2 absolute\n')
-    pipe.stdin.write('set key inside right top vertical Right noreverse noenhanced autotitles nobox\n')
     pipe.stdin.write('set style fill solid border -1\n')
     pipe.stdin.write('set style fill pattern border\n')
     pipe.stdin.write('set samples 11\n')
-    pipe.stdin.write('plot "%s" using 11:xtic(1) w points linewidth 2 lc rgb "#000000" title "sching rtt"' % datafurl + \
-                     ', "" using 10 w points linewidth 2 lc rgb "#696969" title "join rtt"' + \
-                     ', "" using 12 axes x1y2 w points pointsize 2 lc rgb "#7F7F7F" title "overhead"\n' )
+    
+    str_ = 'plot "%s" using 1' % datafurl
+    for n in range(numsching-1):
+      str_ += ', "" using %s' % (n+2)
+    #
+    pipe.stdin.write( str_+'\n' )
     
 def main():
   pass

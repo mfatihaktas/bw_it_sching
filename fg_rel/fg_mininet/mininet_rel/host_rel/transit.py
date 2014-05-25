@@ -730,6 +730,12 @@ class Transit(object):
     self.stpdst_txintereqtime_dict[stpdst] = TXINTEREQTIME_REGCONST*float(float(modeltxt)/nchunks)
     self.logger.debug('rewelcome_s:: datasize_=%s, modeltxt=%s', datasize_, modeltxt)
     #self.reinit_htbconf(bw, stpdst)
+    uptoitrjob_list = data_['uptoitrjob_list']
+    upto_modelproct = 0
+    for uptoitrjob in uptoitrjob_list:
+      upto_modelproct += proc_time_model(datasize = datasize,
+                                         func_n_dict = uptoitrjob['itfunc_list'],
+                                         proc_cap = uptoitrjob['proc'] )
     #
     jobtobedone = {}
     for ftag,n in func_n_dict.items():
@@ -741,12 +747,12 @@ class Transit(object):
                                  proc_cap = proc_cap )
     tobeproced_datasize = float(datasize_)*max([float(n) for func,n in func_n_dict.items()])
     tobeproceddata_modeltxt = float(tobeproced_datasize*8)/(bw*BWREGCONST)
-    tobeproceddata_modeltranst = tobeproced_modelproct+tobeproceddata_modeltxt
+    tobeproceddata_modeltranst = tobeproced_modelproct+tobeproceddata_modeltxt+upto_modelproct
     nchunkstobeproced = tobeproced_datasize*(1024**2)/CHUNKSTRSIZE
     self.stpdst_procintereqtime_dict[stpdst] = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
     #
     self.sflagq_topipes_dict[stpdst].put(data_)
-    self.logger.debug('rewelcome_s:: done for stpdst=%s;\n\ttobeproced_datasize=%s, tobeproceddata_modeltranst=%s, tobeproced_modelproct=%s, tobeproceddata_modeltxt=%s', stpdst, tobeproced_datasize, tobeproceddata_modeltranst, tobeproced_modelproct, tobeproceddata_modeltxt)
+    self.logger.debug('rewelcome_s:: done for stpdst=%s;\n\ttobeproced_datasize=%s, tobeproceddata_modeltranst=%s, upto_modelproct=%s, tobeproced_modelproct=%s, tobeproceddata_modeltxt=%s', stpdst, tobeproced_datasize, tobeproceddata_modeltranst, upto_modelproct, tobeproced_modelproct, tobeproceddata_modeltxt)
     
   def welcome_s(self, data_):
     #If new_s with same tpdst arrives, old_s is overwritten by new_s
@@ -777,8 +783,15 @@ class Transit(object):
     self.logger.debug('welcome_s:: datasize=%s, modeltxt=%s', datasize, modeltxt)
     #self.init_htbconf(bw, stpdst)
     #
+    uptoitrjob_list = data_['uptoitrjob_list']
+    upto_modelproct = 0
+    for uptoitrjob in uptoitrjob_list:
+      upto_modelproct += proc_time_model(datasize = datasize,
+                                         func_n_dict = uptoitrjob['itfunc_dict'],
+                                         proc_cap = uptoitrjob['proc'] )
+    #
     jobtobedone = {}
-    for ftag,n in data_['itfunc_dict'].items():
+    for ftag,n in func_n_dict.items():
       jobtobedone[ftag] = datasize*float(n)
     data_.update( {'jobtobedone': jobtobedone} )
     #
@@ -790,17 +803,17 @@ class Transit(object):
     self.sproctokenq_dict[stpdst] = sproctokenq
     #
     tobeproced_modelproct = proc_time_model(datasize = datasize,
-                                 func_n_dict = func_n_dict,
-                                 proc_cap = proc_cap )
+                                            func_n_dict = func_n_dict,
+                                            proc_cap = proc_cap )
     tobeproced_datasize = float(datasize)*max([float(n) for func,n in func_n_dict.items()])
     tobeproceddata_modeltxt = float(tobeproced_datasize*8)/(bw*BWREGCONST)
     nchunkstobeproced = float(tobeproced_datasize*(1024**2))/CHUNKSTRSIZE
-    tobeproceddata_modeltranst = tobeproced_modelproct+tobeproceddata_modeltxt
+    tobeproceddata_modeltranst = tobeproced_modelproct+tobeproceddata_modeltxt+upto_modelproct
     
     self.stpdst_procintereqtime_dict[stpdst] = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
     threading.Thread(target = self.manage_sproctokenq,
                      kwargs = {'stpdst':stpdst } ).start()
-    self.logger.debug('welcome_s:: tobeproced_datasize=%s, tobeproceddata_modeltranst=%s, tobeproced_modelproct=%s, tobeproceddata_modeltxt=%s', tobeproced_datasize, tobeproceddata_modeltranst, tobeproced_modelproct, tobeproceddata_modeltxt)
+    self.logger.debug('welcome_s:: tobeproced_datasize=%s, tobeproceddata_modeltranst=%s, upto_modelproct=%s, tobeproced_modelproct=%s, tobeproceddata_modeltxt=%s', tobeproced_datasize, tobeproceddata_modeltranst, upto_modelproct, tobeproced_modelproct, tobeproceddata_modeltxt)
     self.logger.debug('welcome_s::\n stpdst_txintereqtime_dict=%s,\n stpdst_procintereqtime_dict=%s', pprint.pformat(self.stpdst_txintereqtime_dict), pprint.pformat(self.stpdst_procintereqtime_dict))
     #
     #self.stpdst_itwork_dict[stpdst] = data_

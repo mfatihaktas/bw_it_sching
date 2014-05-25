@@ -78,8 +78,8 @@ class Actuator (object):
       walk_rule = data_['walk_rule']
       itjob_rule = data_['itjob_rule']
       
-      #print 'walk_rule=\n%s' % pprint.pformat(walk_rule)
-      #print 'itjob_rule=\n%s' % pprint.pformat(itjob_rule)
+      print 'walk_rule=\n%s' % pprint.pformat(walk_rule)
+      print 'itjob_rule=\n%s' % pprint.pformat(itjob_rule)
       
       #updating global dicts based on the input rxed from scher
       if not (s_id in info_dict['sid_pidlist_dict']):

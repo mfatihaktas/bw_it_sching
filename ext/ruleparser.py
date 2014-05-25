@@ -60,10 +60,14 @@ class RuleParser (object):
         new_itjob = ET.SubElement(new_conn, 'itjob')
         #
         new_uptojobinfo = ET.SubElement(new_itjob, 'uptojobinfo')
-        for itfunc,comp in itjobrule['completeduptohere_job'].items():
-          new_itfunc = ET.SubElement(new_uptojobinfo, 'func')
-          new_itfunc.set('n',str(comp))
-          new_itfunc.set('tag',itfunc)
+        for uptoitrjob in itjobrule['uptoitrjob_list']:
+          new_uptoitrjob = ET.SubElement(new_uptojobinfo, 'uptoitrjob')
+          new_uptoitrjob.set('proc', str(uptoitrjob['proc']))
+          for itfunc,n in uptoitrjob['itfunc_dict'].items():
+            new_itfunc = ET.SubElement(new_uptoitrjob, 'func')
+            new_itfunc.set('n',str(n))
+            new_itfunc.set('tag',itfunc)
+          #
         #
         new_jobinfo = ET.SubElement(new_itjob, 'jobinfo')
         ji_dict = itjobrule['assigned_job']
@@ -104,9 +108,17 @@ class RuleParser (object):
             itjob_dict = {}
             #
             uptojobinfo = itjob.find('uptojobinfo')
-            uptoitfunc_dict = {}
-            for func in uptojobinfo.iter('func'):
-              uptoitfunc_dict[func.get('tag')] = float(func.get('n'))
+            uptoitrjob_list = []
+            for uptoitrjob in uptojobinfo.iter('uptoitrjob'):
+              uptoitrjob_ = {}
+              uptoitrjob_['proc'] = uptoitrjob.get('proc')
+              itfunc_dict = {}
+              for func in uptoitrjob.iter('func'):
+                itfunc_dict[func.get('tag')] = float(func.get('n'))
+              #
+              uptoitrjob_['itfunc_dict'] = itfunc_dict
+              #
+              uptoitrjob_list.append(uptoitrjob_)
             #
             jobinfo = itjob.find('jobinfo')
             itfunc_dict = {}
@@ -114,7 +126,7 @@ class RuleParser (object):
               itfunc_dict[func.get('tag')] = float(func.get('n'))
             #
             itjob_dict['jobinfo'] = {'proc':float(jobinfo.get('proc')),
-                                     'uptoitfunc_dict':uptoitfunc_dict,
+                                     'uptoitrjob_list':uptoitrjob_list,
                                      'itfunc_dict':itfunc_dict,
                                      'proto':int(jobinfo.get('proto')),
                                      's_tp':int(jobinfo.get('s_tp')),
