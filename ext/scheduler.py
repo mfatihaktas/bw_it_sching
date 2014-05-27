@@ -67,7 +67,7 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    net_xml_file_url = "net_xmls/grenet_1p_singletr.xml" #"net_xmls/net_1p_singletr.xml"
+    net_xml_file_url = "net_xmls/grenet_multipaths.xml" #"net_xmls/net_1p_singletr.xml" #"net_xmls/grenet_gbit_1p_singletr.xml" #"net_xmls/grenet_1p_singletr.xml"
     if not is_scheduler_run:
       net_xml_file_url = "ext/" + net_xml_file_url
     
@@ -819,7 +819,9 @@ class Scheduler(object):
                       {'user_ip':'10.0.2.2','user_mac':'00:00:00:01:02:02','gw_dpid':1,'gw_conn_port':5},
                       {'user_ip':'10.0.1.0','user_mac':'00:00:00:01:01:00','gw_dpid':2,'gw_conn_port':3},
                       {'user_ip':'10.0.1.1','user_mac':'00:00:00:01:01:00','gw_dpid':2,'gw_conn_port':4},
-                      {'user_ip':'10.0.1.2','user_mac':'00:00:00:01:00:01','gw_dpid':2,'gw_conn_port':5} ]
+                      {'user_ip':'10.0.1.2','user_mac':'00:00:00:01:01:01','gw_dpid':2,'gw_conn_port':5},
+                      {'user_ip':'10.0.2.20','user_mac':'00:00:00:01:02:20','gw_dpid':11,'gw_conn_port':2},
+                      {'user_ip':'10.0.1.20','user_mac':'00:00:00:01:01:20','gw_dpid':21,'gw_conn_port':2} ]
     #
     for userinfo in userinfo_list:
       self.welcome_user(user_ip = userinfo['user_ip'],
@@ -842,6 +844,7 @@ class Scheduler(object):
                           {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
                          ]
     p_c_ip_list_list = [
+                        ['10.0.2.20','10.0.1.20'],
                         ['10.0.2.0','10.0.1.0'],
                         ['10.0.2.1','10.0.1.1'],
                         ['10.0.2.2','10.0.1.2']
@@ -891,7 +894,7 @@ def main():
                   sching_logto = 'console',
                   data_over_tp = 'tcp')
   
-  sch.test(num_session = 3)
+  sch.test(num_session = 1)
   #
   raw_input('Enter')
   

@@ -84,6 +84,7 @@ class Producer(object):
     self.sdone_dict[stpdst] = False
     threading.Thread(target = self.manage_stxtokenq,
                      kwargs = {'stpdst':stpdst } ).start()
+    logging.debug('welcome_s:: stpdst=%s, datasize=%s, bw=%s, modeltxt=%s', stpdst, datasize, bw, modeltxt)
     #self.init_htbconf(pl, p_bw, p_tp_dst)
     
     self.qtosender_list = [Queue.Queue(0) for i in range(pl)]
@@ -146,8 +147,8 @@ class Producer(object):
            'data':sinfo_dict }
     self.userdts_intf.relsend_to_dts(msg)
     #
-    self.clear_htbconf()
-    self.init_htbdir()
+    #self.clear_htbconf()
+    #self.init_htbdir()
   
   def _handle_recvfromdts(self, msg):
     [type_, data_] = msg

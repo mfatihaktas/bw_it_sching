@@ -132,7 +132,7 @@ class Receiver(threading.Thread):
       logging.error('rx_kstardata:: Unexpected proto=%s. Aborting...', self.proto)
       return
     #
-    self.f_obj = open(self.file_url, 'w')
+    #self.f_obj = open(self.file_url, 'w')
     
     self.rx_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self.rx_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -165,7 +165,7 @@ class Receiver(threading.Thread):
       #
     #
     sc.close()
-    self.f_obj.close()
+    #self.f_obj.close()
     
     self.recvend_time = time.time()
     logging.info('rx_kstardata:: finished rxing; rxeddatasize=%s, dur=%s', self.rxeddatasize, self.recvend_time-self.recvstart_time)
@@ -193,7 +193,7 @@ class Receiver(threading.Thread):
       (uptofunc_list, chunk, chunksize) = self.get_uptofunc_list__chunk(self.chunkstr)
       self.update_rxedsizewithfunc_dict(uptofunc_list = uptofunc_list,
                                         chunksize = chunksize )
-      self.f_obj.write(chunk)
+      #self.f_obj.write(chunk)
       self.rxeddatasize += chunksize
       
       #logging.debug('push_to_kstarfile:: pushed; chunksize=%s, uptofunc_list=%s', chunksize, uptofunc_list)
@@ -210,7 +210,7 @@ class Receiver(threading.Thread):
       (uptofunc_list, chunk, chunksize) = self.get_uptofunc_list__chunk(chunkstr_to_push)
       self.update_rxedsizewithfunc_dict(uptofunc_list = uptofunc_list,
                                         chunksize = chunksize )
-      self.f_obj.write(chunk)
+      #self.f_obj.write(chunk)
       self.rxeddatasize += chunksize
       
       #logging.debug('push_to_kstarfile:: pushed; chunksize=%s, overflow_size=%s, uptofunc_list=%s', chunksize, overflow_size, uptofunc_list)

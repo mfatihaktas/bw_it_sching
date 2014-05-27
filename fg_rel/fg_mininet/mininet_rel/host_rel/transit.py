@@ -1017,7 +1017,7 @@ class Transit(object):
   def test(self):
     self.logger.debug('test')
     
-    datasize = 20 #MB
+    datasize = 1024 #MB
     #imgsize = CHUNKSIZE/10
     #nimg = datasize*(1024**2)/float(imgsize)
     #
@@ -1025,17 +1025,17 @@ class Transit(object):
             'data_to_ip': u'10.0.1.0',
             'datasize': datasize,
             'itfunc_dict': {'fft': 1 },
-            'uptoitfunc_dict': {},
-            'proc': 50.0,
+            'uptoitrjob_list': [],
+            'proc': 100,
             's_tp': 6000,
-            'bw': 3 }
+            'bw': 1024 }
     self.welcome_s(data.copy())
     '''
     data_ = {'proto': 6,
             'data_to_ip': u'10.0.0.1',
             'datasize': datasize,
             'itfunc_dict': {'fft': 0.5, 'upsampleplot':0.05},
-            'uptoitfunc_dict': {},
+            'uptoitrjob_list': [],,
             'proc': 1.0,
             's_tp': 6000 }
     time.sleep(10)
@@ -1046,21 +1046,21 @@ class Transit(object):
             'data_to_ip': u'10.0.1.1',
             'datasize': datasize,
             'itfunc_dict': {'fft': 1},
-            'uptoitfunc_dict': {},
+            'uptoitrjob_list': [],
             'proc': 50.0,
             's_tp': 6001,
             'bw': 3 }
-    self.welcome_s(data.copy())
+    #self.welcome_s(data.copy())
     
     data = {'proto': 6,
             'data_to_ip': u'10.0.1.2',
             'datasize': datasize,
             'itfunc_dict': {'fft': 0.5},
-            'uptoitfunc_dict': {},
+            'uptoitrjob_list': [],
             'proc': 50.0,
             's_tp': 6002,
             'bw': 3 }
-    self.welcome_s(data.copy())
+    #self.welcome_s(data.copy())
     
 def main(argv):
   nodename = intf = htbdir = dtsl_ip = dtsl_port= dtst_port = logto = trans_type = None

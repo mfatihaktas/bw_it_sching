@@ -6,7 +6,7 @@
 echo $1
 sel=$1
 
-DS=20
+DS=1024
 
 PS1_DSTIP=10.0.1.0
 PS1_DSTPORT=6000
@@ -20,6 +20,7 @@ PS3_DSTIP=10.0.1.2
 PS3_DSTPORT=6002
 CR3_LPORT=6002
 
+###
 C1D=1
 P1D=2
 P1_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
@@ -91,7 +92,7 @@ MINHTBDIR='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
 if [ $1  = 'p' ]; then
   python producer.py --intf=p-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.0.1 \
                      --proto=tcp --tx_type=file --file_url=ltx.dat --kstardata_url=... --logto=console --nodename=p \
-                     --req_dict='{"data_size":1,"slack_metric":10,"func_list":["f1","f2","f3"],"parism_level":1,"par_share":[1]}' \
+                     --req_dict='{"data_size":1,"slack_metric":10,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}' \
                      --app_pref_dict='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}' \
                      --htbdir='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
 elif [ ${sel:0:2}  = 'ps' ]; then
@@ -128,11 +129,13 @@ elif [ $1  = 't' ]; then
 elif [ ${sel:0:1}  = 't' ]; then
   python transit.py --nodename=$sel --intf=$sel'-eth0' --htbdir=$MINHTBDIR --dtsl_ip=10.0.0.255 --dtsl_port=7001 --dtst_port=7001 --logto=file --trans_type=file
 elif [ $1  = 's' ]; then
-  python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=$DS --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console  --kstardata_url=/media/portable_large/large_ecei_data.bp
+  #python sender.py --dst_ip=127.0.0.1 --dst_lport=6000 --datasize=$DS --proto=tcp --tx_type=fastdata --file_url=ltx.dat --logto=console  --kstardata_url=/media/portable_large/large_ecei_data.bp
+  python sender.py --dst_ip=10.0.0.31 --dst_lport=6000 --datasize=$DS --proto=tcp --tx_type=fastdata --file_url=ltx.dat --logto=console  --kstardata_url=/media/portable_large/large_ecei_data.bp
 elif [ ${sel:0:1}  = 's' ]; then
   python sender.py --dst_ip=127.0.0.1 --dst_lport=${sel:1} --datasize=$DS --proto=tcp --tx_type=kstardata --file_url=ltx.dat --logto=console --kstardata_url=/home/ubuntu/large_ecei_data.bp
 elif [ $1  = 'r' ]; then
-  python receiver.py --lintf=lo --lport=6000 --proto=tcp --rx_type=kstardata --file_url=/home/mehmet/Desktop/rx.dat --logto=console
+  #python receiver.py --lintf=lo --lport=6000 --proto=tcp --rx_type=kstardata --file_url=/home/mehmet/Desktop/rx.dat --logto=console
+  python receiver.py --lintf=t31-eth0 --lport=6000 --proto=tcp --rx_type=kstardata --file_url=/home/mehmet/Desktop/rx.dat --logto=console
 elif [ $1  = 'glf' ]; then
 	dd if=/dev/urandom of=lltx.dat bs=1024 count=1000000000 #outputs bs x count Bs 
 elif [ $1  = 'k' ]; then

@@ -12,12 +12,9 @@ class MyTopo(Topo):
     Topo.__init__( self )
     #
     s3 = self.addSwitch( 's3' )
-    t11 = self.addHost( 't11', ip='10.0.0.11' )
+    t31 = self.addHost( 't31', ip='10.0.0.31' )
     #
-    #dsa_linkopts = dict(bw=1000, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
-    #
-    self.addLink( s3, t11 )
-    #self.addLink( s3, t11, **dsa_linkopts )
+    self.addLink( s3, t31 )
     
 def run_tnodes(hosts):
   popens = {}
@@ -35,11 +32,11 @@ if __name__ == '__main__':
                     ip='10.39.1.11',
                     port=6633 )
   #
-  t11 = net.getNodeByName('t11')
+  t31 = net.getNodeByName('t31')
   #
-  t11.setMAC(mac='00:00:00:00:01:01')
+  t31.setMAC(mac='00:00:00:00:03:01')
   #To fix "network is unreachable"
-  t11.setDefaultRoute(intf='t11-eth0')
+  t31.setDefaultRoute(intf='t31-eth0')
   #
   net.start()
   #
@@ -50,7 +47,7 @@ if __name__ == '__main__':
   #s3.cmd('sudo ovs-ofctl add-flow s3 "in_port=1 ip idle_timeout=0 actions=output:2"')
   #s3.cmd('sudo ovs-ofctl add-flow s3 "in_port=2 ip idle_timeout=0 actions=output:1"')
   #
-  run_tnodes([t11])
+  run_tnodes([t31])
   #
   CLI( net )
   net.stop()

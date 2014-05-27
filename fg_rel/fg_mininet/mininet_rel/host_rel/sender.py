@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys,socket,json,getopt,struct,time,errno,logging,threading
+import sys,socket,json,getopt,struct,time,errno,logging,threading,Queue,copy
 #import numpy as np
 
 CHUNKHSIZE = 50
@@ -84,7 +84,11 @@ class Sender(threading.Thread):
     elif self.tx_type == 'kstardata2':
       self.kstardata2_send()
     elif self.tx_type == 'fastdata':
-      self.fastdata_send()
+      if self.txtokenq == None:
+        self.fastdata2_send()
+      else:
+        self.fastdata_send()
+      #
     #
     if self.out_queue != None:
       sendinfo_dict = {'sendstart_time': self.sendstart_time,
@@ -92,8 +96,52 @@ class Sender(threading.Thread):
                        'sentsize': self.sentsize }
       self.out_queue.put(sendinfo_dict)
   
+  def fastdata2_send(self):
+    chunk = '0'*TXCHUNK_SIZE
+    #
+    self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    logging.info('fastdata2_send:: trying to connect to %s ...', self.dst_addr )
+    self.sock.connect(self.dst_addr)
+    logging.info('fastdata2_send:: connected to %s ...', self.dst_addr )
+    #
+    ds_tobesent_B = self.datasize*(1024**2)
+    self.sendstart_time = time.time()
+    logging.info('fastdata2_send:: started at time=%s', self.sendstart_time )
+    #
+    len_ = 0
+    while (len_ < ds_tobesent_B):
+      l = copy.copy(chunk)
+      #add uptofunc_list padding
+      uptofunc_list = []
+      header = json.dumps(uptofunc_list)
+      padding_length = CHUNKHSIZE - len(header)
+      header += ' '*padding_length
+      l = header+l
+      try:
+        self.sock.sendall(l)
+        logging.info('fastdata_send:: sent datasize=%s', TXCHUNK_SIZE )
+        len_ += TXCHUNK_SIZE
+      except socket.error, e:
+        if isinstance(e.args, tuple):
+          logging.error('errno is %d', e[0])
+          if e[0] == errno.EPIPE:
+            logging.error('Detected remote disconnect')
+          else:
+            pass
+        else:
+          logging.error('socket error=%s', e)
+      #
+    #
+    self.sock.sendall('EOF')
+    logging.info('fastdata_send:: EOF is txed.')
+    #
+    self.sendstop_time = time.time()
+    self.sentsize = len_
+    send_dur = self.sendstop_time - self.sendstart_time
+    logging.info('fastdata_send:: sent to %s; size=%sB, dur=%ssec', self.dst_addr,len_,send_dur)
+  
   def fastdata_send(self):
-    l = '0'*TXCHUNK_SIZE
+    chunk = '0'*TXCHUNK_SIZE
     #
     self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     logging.info('fastdata_send:: trying to connect to %s ...', self.dst_addr )
@@ -106,6 +154,7 @@ class Sender(threading.Thread):
     #
     len_ = 0
     while (len_ < ds_tobesent_B):
+      l = copy.copy(chunk)
       #add uptofunc_list padding
       uptofunc_list = []
       header = json.dumps(uptofunc_list)
@@ -125,6 +174,7 @@ class Sender(threading.Thread):
       #
       try:
         self.sock.sendall(l)
+        logging.info('fastdata_send:: sent datasize=%s', TXCHUNK_SIZE )
         len_ += TXCHUNK_SIZE
       except socket.error, e:
         if isinstance(e.args, tuple):
@@ -211,6 +261,9 @@ class Sender(threading.Thread):
       return
     #
     self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #from socket import socket, SOL_SOCKET, SO_RCVBUF, TCP_WINDOW_CLAMP
+    #sock.setsockopt(SOL_SOCKET, SO_RCVBUF, 65536*10)
+    #sock.setsockopt(SOL_SOCKET, TCP_WINDOW_CLAMP, 32768*10)
     #IP_MTU_DISCOVER   = 10
     #IP_PMTUDISC_DONT  =  0  # Never send DF frames.
     #self.sock.setsockopt(socket.SOL_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DONT)
@@ -384,9 +437,20 @@ class Sender(threading.Thread):
     else:
       self.init_send()
 
+def manage_stxtokenq(stxtokenq, intereq_time):
+  while not stopflag:
+    try:
+      stxtokenq.put(CHUNKSTRSIZE, False)
+    except Queue.Full:
+      pass
+    time.sleep(intereq_time)
+  #
+  logging.debug('manage_stxtokenq_%s:: stoppped by stopflag.')
+
+stopflag = False
 is_sender_run = False
 def main(argv):
-  global is_sender_run
+  global is_sender_run, stopflag
   is_sender_run = True
   #
   dst_ip = dst_lport = proto = datasize = tx_type = file_url = logto = kstardata_url = None
@@ -422,9 +486,19 @@ def main(argv):
     elif opt == '--kstardata_url':
       kstardata_url = arg
   #
-  import Queue
+  datasize = 1024 #MB
+  bw = 1024 #Mbps
+  modeltxt = float(datasize*8)/(bw)
+  nchunks = float(datasize*(1024**2))/CHUNKSTRSIZE
+  intereq_time = 0 #float(float(modeltxt)/nchunks)
+  stxtokenq = Queue.Queue(1)
+  threading.Thread(target = manage_stxtokenq,
+                   kwargs = {'stxtokenq': stxtokenq,
+                             'intereq_time': intereq_time } ).start()
+  #
   queue_tosender = Queue.Queue(0)
   ds = Sender(in_queue = queue_tosender,
+              txtokenq = stxtokenq,
               dst_addr = (dst_ip, dst_lport),
               proto = proto,
               datasize = datasize,
@@ -436,6 +510,7 @@ def main(argv):
   #
   raw_input('Enter\n')
   queue_tosender.put('STOP')
+  stopflag = True
   
 if __name__ == "__main__":
   main(sys.argv[1:])

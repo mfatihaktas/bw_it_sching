@@ -15,7 +15,9 @@ Caps:
       <s2  type="sw" dpid="2" />
       <s3  type="sw" dpid="3" />
       <t31 type="t" ip="10.0.0.31" mac="00:00:00:00:03:01" proc_cap="100" stor_cap="100"/>
+      <!--
       <t32 type="t" ip="10.0.0.32" mac="00:00:00:00:03:02" proc_cap="100" stor_cap="100"/>
+      -->
     </nodes>
     <edges>
       <!-- SW...SW-->
@@ -35,11 +37,13 @@ Caps:
         <session/>
         <link_cap bw="20" delay="0" loss="0" max_queue_size="10000"/>
       </edge>
+      <!--
       <edge pre_node="s3" post_node="t32">
         <dev pre_dev="s3-eth4" post_dev="t32-eth0"/>
         <session/>
         <link_cap bw="20" delay="0" loss="0" max_queue_size="10000"/>
       </edge>
+      -->
     </edges>
   </network>
 </networks>

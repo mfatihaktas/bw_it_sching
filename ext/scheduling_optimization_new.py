@@ -33,6 +33,12 @@ class SchingOptimizer:
       'fft': 5,
       'upsampleplot': 75
     }
+    '''
+    self.func_compconstant_dict = {
+      'fft': 5,
+      'upsampleplot': 75
+    }
+    '''
     #
     self.add_proccomp__update_parism_info()
     self.add_sessionpathlinks_with_ids()
@@ -389,7 +395,7 @@ class SchingOptimizer:
       
       for i,tup in enumerate(s_rid_notindomain_list):
         s_id_ = tup[0]+tup[1]*self.N
-        proc_sparsity_list[i] = self.r_proc.get((s_id_, tup[2]))
+        proc_sparsity_list[i] = self.r_proc[s_id_, tup[2]]
         #dur_sparsity_list[i] = self.r_dur.get((s_id_, tup[2]))
       #
       return  [cp.vstack(*proc_sparsity_list) == 0] + \
@@ -546,15 +552,25 @@ class SchingOptimizer:
       num_ps = len(s_ps_info)
       p_bw,p_proc,p_dur = [],[],[]
       sp_txt,sp_proct,sp_durt,sp_transt = [],[],[],[]
-      for k in range(0,num_ps):
+      for k in range(num_ps):
         p_bw.append(self.get_var_val('p_bw',(i,k)))
         p_proc.append(self.p_proc.get((i,k)).value)
         #p_dur.append(self.p_dur.get((i,k)).value)
-        
-        sp_txt.append(self.sp_tx.get((i,k)).value)
-        sp_proct.append(self.sp_proc.get((i,k)).value)
+        try:
+          sp_txt.append(self.sp_tx.get((i,k)).value)
+        except AttributeError:
+          sp_txt.append(self.sp_tx.get((i,k)))
+        #
+        try:
+          sp_proct.append(self.sp_proc.get((i,k)).value)
+        except AttributeError:
+          sp_proct.append(self.sp_proc.get((i,k)))
+        #
         #sp_durt.append(self.sp_dur.get((i,k)).value)
-        sp_transt.append(self.sp_trans.get((i,k)).value)
+        try:
+          sp_transt.append(self.sp_trans.get((i,k)).value)
+        except AttributeError:
+          sp_transt.append(self.sp_trans.get((i,k)))
       #
       tobeproceddatasize = s_data_size*max(sn_list) #MB
       tobeproceddata_transt = tobeproceddatasize*8/(BWREGCONST_INGRAB*bw) + sp_proct[0] #sec
@@ -589,10 +605,20 @@ class SchingOptimizer:
     #FOR network links
     for i in range(self.num_link):
       #link_cap total usage
-      self.session_res_alloc_dict['res-wise'][i] = {'bw': r_bw_in_row.get((0,i)).value}
+      try:
+        self.session_res_alloc_dict['res-wise'][i] = {'bw': r_bw_in_row.get((0,i)).value}
+      except AttributeError:
+        self.session_res_alloc_dict['res-wise'][i] = {'bw': r_bw_in_row.get((0,i))}
       #link_cap-session portion alloc
-      self.session_res_alloc_dict['res-wise'][i].update(
-        {'bw_salloc_dict': {s_id:e.value for s_id,e in enumerate(self.r_bw.get_column(i)) } } )
+      bw_salloc_dict = {}
+      for s_id,e in enumerate(self.r_bw.get_column(i)):
+        try:
+          bw_salloc_dict[s_id] = e.value
+        except AttributeError:
+          bw_salloc_dict[s_id] = e
+        #
+      #
+      self.session_res_alloc_dict['res-wise'][i].update({'bw_salloc_dict':bw_salloc_dict})
     #FOR it-resources
     for i in range(self.num_itr):
       #calculation of actual storage space

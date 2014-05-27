@@ -25,8 +25,20 @@ class MyTopo(Topo):
     
     s2 = self.addSwitch( 's2' )
     #
-    wide_linkopts = dict(bw=11, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
+    #wide_linkopts = dict(bw=11, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
     #
+    self.addLink( s2, c1 )
+    self.addLink( s2, c2 )
+    self.addLink( s2, c3 )
+    self.addLink( s2, c4 )
+    self.addLink( s2, c5 )
+    self.addLink( s2, c6 )
+    self.addLink( s2, c7 )
+    self.addLink( s2, c8 )
+    self.addLink( s2, c9 )
+    self.addLink( s2, c10 )
+    self.addLink( s2, c11 )
+    '''
     self.addLink( s2, c1, **wide_linkopts )
     self.addLink( s2, c2, **wide_linkopts )
     self.addLink( s2, c3, **wide_linkopts )
@@ -38,7 +50,8 @@ class MyTopo(Topo):
     self.addLink( s2, c9, **wide_linkopts )
     self.addLink( s2, c10, **wide_linkopts )
     self.addLink( s2, c11, **wide_linkopts )
-
+    '''
+  
 def run_pcnodes(hosts):
   popens = {}
   for host in hosts:
@@ -88,9 +101,8 @@ if __name__ == '__main__':
   s2.cmd('sudo ovs-vsctl add-port s2 s2-eth12 -- set interface s2-eth12 type=gre options:remote_ip=10.39.1.65') #to mininet2
   s2.cmdPrint('ovs-vsctl show')
   #
-  #run_pcnodes([c1, p1, c2, p2])
-  run_pcnodes([c1, c2, c3])
-  #run_pcnodes([c1, p1, c2, p2, c3, p3, c4, p4, c5, p5, c6, p6, c7, p7, c8, p8, c9, p9, c10, p10, c11, p11])
+  run_pcnodes([c1])
+  #run_pcnodes([c1, c2, c3])
   #
   CLI( net )
   net.stop()
