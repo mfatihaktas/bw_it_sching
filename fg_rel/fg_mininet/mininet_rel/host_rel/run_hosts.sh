@@ -142,9 +142,16 @@ elif [ $1  = 'k' ]; then
   #sudo rm -r /tmp/fft6*; mkdir /tmp/fft6000; mkdir /tmp/fft6001
   #sudo rm -r /tmp/upsampleplot6*; mkdir /tmp/upsampleplot6000; mkdir /tmp/upsampleplot6001
   #sudo rm /tmp/fft*; sudo rm /tmp/upsampleplot*
+  sudo pkill -f sleep
+  echo 'sleep are killed'
   sudo pkill -f transit
+  echo 'transit are killed'
   sudo pkill -f producer
+  echo 'producer are killed'
   sudo pkill -f consumer
+  echo 'consumer are killed'
+  sudo pkill -f run_hosts
+  echo 'run_hosts are killed'
   #sudo pkill -f eceiproc
 elif [ $1  = 'den' ]; then
   g++ deneme.c -o deneme

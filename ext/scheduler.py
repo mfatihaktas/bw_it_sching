@@ -54,6 +54,7 @@ class Scheduler(object):
   event_chief = EventChief()
   def __init__(self, xml_net_num, sching_logto, data_over_tp):
     #logging.basicConfig(filename='logs/schinglog',filemode='w',level=logging.DEBUG)
+    #logging.basicConfig(level=logging.ERROR)
     #logging.basicConfig(level=logging.WARNING)
     logging.basicConfig(level=logging.DEBUG)
     #
@@ -67,7 +68,7 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    net_xml_file_url = "net_xmls/grenet_multipaths.xml" #"net_xmls/net_1p_singletr.xml" #"net_xmls/grenet_gbit_1p_singletr.xml" #"net_xmls/grenet_1p_singletr.xml"
+    net_xml_file_url =  "net_xmls/grenet_multipaths.xml" #"net_xmls/net_1p_singletr.xml" #"net_xmls/grenet_gbit_1p_singletr.xml" #"net_xmls/grenet_1p_singletr.xml"
     if not is_scheduler_run:
       net_xml_file_url = "ext/" + net_xml_file_url
     
@@ -844,7 +845,6 @@ class Scheduler(object):
                           {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
                          ]
     p_c_ip_list_list = [
-                        ['10.0.2.20','10.0.1.20'],
                         ['10.0.2.0','10.0.1.0'],
                         ['10.0.2.1','10.0.1.1'],
                         ['10.0.2.2','10.0.1.2']
@@ -883,8 +883,8 @@ class Scheduler(object):
       expschingtime_data += str(i+1) + ' ' + str(schingdur) + '\n'
     #
     print 'expschingtime_data=\n%s' % expschingtime_data
-    '''
     #
+    '''
     
 is_scheduler_run = False
 def main():

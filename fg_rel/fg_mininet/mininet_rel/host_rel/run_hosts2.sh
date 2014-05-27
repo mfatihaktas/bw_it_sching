@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo $1
+sel=$1
 
 ###
 C0D=1

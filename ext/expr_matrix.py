@@ -19,7 +19,7 @@ class Expr:
   def is_none(self, (r,c)):
     #return self.m[r][c] is None
     return self.m[r][c] == 0
-  
+
   def get(self, (r,c)):
     return self.m[r][c]
   
@@ -71,3 +71,10 @@ class Expr:
       #
       matrix_str += row_str
     return matrix_str
+
+if __name__ == '__main__':
+  expr = Expr((3,3))
+  expr.set_((0,0), 1)
+  print 'expr=%s' % expr
+  print 'expr.is_none((0,0))=%s' % expr.is_none((0,0))
+  

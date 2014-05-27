@@ -11,7 +11,7 @@ from expr_matrix import Expr as expr
 
 BWREGCONST = 1 #0.9 #0.95
 BWREGCONST_INGRAB = 1 #0.9 #0.95
-SLACKFEASIBILITYCONST = 1
+SLACKFEASIBILITYCONST = 1.1 #1
 
 class SchingOptimizer:
   def __init__(self, sessions_beingserved_dict, actual_res_dict, sid_res_dict):
@@ -293,11 +293,12 @@ class SchingOptimizer:
     #
     for s_id in self.sid_res_dict:
       ps_info_list = self.sid_res_dict[s_id]['ps_info']
-      for i in range(0, len(ps_info_list)):
+      for i in range(len(ps_info_list)):
         for l_id in ps_info_list[i]['p_linkid_list']:
           if par_.is_none((s_id,l_id)): #not touched yet
             par_.set_((s_id,l_id), self.p_bw[s_id,i])
           else:
+            print 'CALLED CALLED CALLED'
             par_.add_to((s_id,l_id), self.p_bw[s_id,i])
     #
     self.r_bw = par_

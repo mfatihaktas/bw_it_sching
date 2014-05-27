@@ -257,9 +257,9 @@ if __name__ == '__main__':
   #run_tnodes([t51])
   #run_tnodes([t31, t41, t51])
   
-  #run_pcnodes([c0,c1,c2,c3,c4,c5,c6,c7,c8,c9])
+  run_pcnodes([c0,c1,c2,c3,c4,c5,c6,c7,c8,c9])
   #run_pcnodes([c20,c21,c22,c23,c24,c25,c26,c27,c28,c29])
-  #run_pcnodes([p0,p1,p2,p3,p4,p5,p6,p7,p8,p9])
+  run_pcnodes([p0,p1,p2,p3,p4,p5,p6,p7,p8,p9])
   #run_pcnodes([p20,p21,p22,p23,p24,p25,p26,p27,p28,p29])
   #
   CLI( net )
