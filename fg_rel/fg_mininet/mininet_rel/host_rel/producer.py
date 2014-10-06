@@ -144,7 +144,7 @@ class Producer(object):
     sinfo_dict['schingrr_time'] = self.schingreplyrecved_time - self.schingreqsent_time
     
     msg = {'type':'session_done',
-           'data':sinfo_dict }
+           'data': sinfo_dict }
     self.userdts_intf.relsend_to_dts(msg)
     #
     #self.clear_htbconf()
