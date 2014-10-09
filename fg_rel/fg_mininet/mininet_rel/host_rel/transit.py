@@ -29,8 +29,8 @@ CHUNKSIZE = 24*8*9*10 #B
 CHUNKSTRSIZE = CHUNKSIZE+CHUNKHSIZE
 
 BWREGCONST = 1 #0.95 #0.9
-TXINTEREQTIME_REGCONST = 0.98 #1
-PROCINTEREQTIME_REGCONST = 0.98
+TXINTEREQTIME_REGCONST = 1 #0.98 #1
+PROCINTEREQTIME_REGCONST = 1 #0.98
 
 class PipeServer(threading.Thread):
   def __init__(self, nodename, server_addr, itwork_dict, to_addr, sflagq_in, sflagq_out, sproctokenq, stxtokenq, procintereq_time):
@@ -747,7 +747,7 @@ class Transit(object):
                                  proc_cap = proc_cap )
     tobeproced_datasize = float(datasize_)*max([float(n) for func,n in func_n_dict.items()])
     tobeproceddata_modeltxt = float(tobeproced_datasize*8)/(bw*BWREGCONST)
-    tobeproceddata_modeltranst = tobeproced_modelproct+tobeproceddata_modeltxt+upto_modelproct
+    tobeproceddata_modeltranst = tobeproced_modelproct+tobeproceddata_modeltxt #+upto_modelproct
     nchunkstobeproced = tobeproced_datasize*(1024**2)/CHUNKSTRSIZE
     self.stpdst_procintereqtime_dict[stpdst] = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
     #
@@ -808,7 +808,7 @@ class Transit(object):
     tobeproced_datasize = float(datasize)*max([float(n) for func,n in func_n_dict.items()])
     tobeproceddata_modeltxt = float(tobeproced_datasize*8)/(bw*BWREGCONST)
     nchunkstobeproced = float(tobeproced_datasize*(1024**2))/CHUNKSTRSIZE
-    tobeproceddata_modeltranst = tobeproced_modelproct+tobeproceddata_modeltxt+upto_modelproct
+    tobeproceddata_modeltranst = tobeproced_modelproct+tobeproceddata_modeltxt #+upto_modelproct
     
     self.stpdst_procintereqtime_dict[stpdst] = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
     threading.Thread(target = self.manage_sproctokenq,

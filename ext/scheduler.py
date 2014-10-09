@@ -350,13 +350,19 @@ class Scheduler(object):
     Network resources will be only the ones on the session_shortest path.
     It resources need to lie on the session_shortest path.
     """
-    logging.info('update_sid_res_dict:')
+    logging.info('update_sid_res_dict::')
     #TODO: sessions whose resources are already specified no need for putting them in the loop
     for s_id in self.sessionsbeingserved_dict:
       p_c_gwdpid_list = self.sessionsbeingserved_dict[s_id]['p_c_gwtag_list']
       s_all_paths = self.gm.give_all_paths(p_c_gwdpid_list[0], p_c_gwdpid_list[1])
+      # s_all_paths = [self.gm.give_all_paths(p_c_gwdpid_list[0], p_c_gwdpid_list[1])[0] ]
       #print forward all_paths for debugging
-      dict_ = {i:p for i,p in enumerate(s_all_paths)}
+      # dict_ = {i:p for i,p in enumerate(s_all_paths)}
+      dict_ = {}
+      for i,p in enumerate(s_all_paths):
+        dict_[i] = p
+        break
+        
       logging.info('s_id=%s, all_paths=\n%s', s_id, pprint.pformat(dict_))
       #
       for i,p in dict_.items():
@@ -831,9 +837,9 @@ class Scheduler(object):
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
     #data_size (MB) slack_metric (ms)
-    req_dict_list = [ {'data_size':100, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+    req_dict_list = [ {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                       {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                     ]
@@ -894,7 +900,7 @@ def main():
                   sching_logto = 'console',
                   data_over_tp = 'tcp')
   
-  sch.test(num_session = 1)
+  sch.test(num_session = 3)
   #
   raw_input('Enter')
   

@@ -12,6 +12,7 @@ from expr_matrix import Expr as expr
 BWREGCONST = 1 #0.9 #0.95
 BWREGCONST_INGRAB = 1 #0.9 #0.95
 SLACKFEASIBILITYCONST = 1.1 #1
+IT_HOPE_OVERHEAD = 1.1
 
 class SchingOptimizer:
   def __init__(self, sessions_beingserved_dict, actual_res_dict, sid_res_dict):
@@ -119,6 +120,7 @@ class SchingOptimizer:
     #
     quadoverlin = (quadoverlin_vector.agg_to_column()).get((0,0))
     
+    # IT_HOPE_OVERHEAD*(num_itres-1)
     proc_t = num_itres* (8*datasize)*(quadoverlin) # sec
     
     stage_t = 0 #self.p_dur.get((s_id,p_id))
@@ -318,13 +320,17 @@ class SchingOptimizer:
         for itr_id in p_info_dict['p_itrid_list']:
           itr_id_ = itr_id - self.ll_index - 1
           s_id_ = s_id+p_id*self.N
-          if par_proc.is_none((s_id,p_id)) and par_dur.is_none((s_id,p_id)): #not touched yet
-            #print 's_id_:%i, itr_id_:%i' % (s_id_,itr_id_)
-            par_proc.set_((s_id,p_id), self.r_proc[s_id_,itr_id_])
-            #par_dur.set_((s_id,p_id), self.r_dur[s_id_,itr_id_])
-          else:
-            par_proc.add_to((s_id,p_id), self.r_proc[s_id_,itr_id_])
-            #par_dur.add_to((s_id,p_id), self.r_dur[s_id_,itr_id_])
+          # if par_proc.is_none((s_id,p_id)) and par_dur.is_none((s_id,p_id)): #not touched yet
+          par_proc.add_to((s_id,p_id), self.r_proc[s_id_,itr_id_])
+          # # self.logger.debug("OOOOOOOOOOOOOO par_proc.get((%s, %s))= %s", s_id, p_id, par_proc.get((s_id, p_id)) )
+          # if par_proc.is_none((s_id,p_id)): #not touched yet
+          #   #print 's_id_:%i, itr_id_:%i' % (s_id_,itr_id_)
+          #   par_proc.set_((s_id,p_id), self.r_proc[s_id_,itr_id_])
+          #   #par_dur.set_((s_id,p_id), self.r_dur[s_id_,itr_id_])
+          # else:
+          #   # self.logger.debug("OOOOOOOOOOOOOO par_proc.add_to will be called !!!")
+          #   par_proc.add_to((s_id,p_id), self.r_proc[s_id_,itr_id_])
+          #   #par_dur.add_to((s_id,p_id), self.r_dur[s_id_,itr_id_])
     #
     self.p_proc = par_proc
     #self.p_dur = par_dur

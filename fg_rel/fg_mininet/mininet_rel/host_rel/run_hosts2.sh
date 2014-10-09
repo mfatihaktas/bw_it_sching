@@ -1,22 +1,20 @@
 #!/bin/bash
 
-echo $1
-sel=$1
 
 ###
-C0D=1
-P0D=2
-P0_REQDICT='{"data_size":100,"slack_metric":400,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
-P0_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
-P0_CLIP=10.0.1.0
-
 C1D=1
-P1D=7
-P1_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
-P1_APPPREFDICT='{"m_p":0.5,"m_u":0.5,"x_p":0,"x_u":0}'
-P1_CLIP=10.0.1.1
+P1D=2
+P1_REQDICT='{"data_size":100,"slack_metric":400,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P1_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
+P1_CLIP=10.0.1.0
 
 C2D=1
+P2D=7
+P2_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P2_APPPREFDICT='{"m_p":0.5,"m_u":0.5,"x_p":0,"x_u":0}'
+P2_CLIP=10.0.1.1
+
+CD=1
 P2D=12
 P2_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P2_APPPREFDICT='{"m_p":2,"m_u":2,"x_p":0,"x_u":0}'

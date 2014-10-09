@@ -74,7 +74,7 @@ class Expr:
 
 if __name__ == '__main__':
   expr = Expr((3,3))
-  expr.set_((0,0), 1)
+  # expr.set_((0,0), 1)
   print 'expr=%s' % expr
   print 'expr.is_none((0,0))=%s' % expr.is_none((0,0))
   
