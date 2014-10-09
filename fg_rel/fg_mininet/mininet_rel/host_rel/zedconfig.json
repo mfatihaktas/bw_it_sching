@@ -3,12 +3,22 @@
         "/default.json"
     ],
     "preferences": {
-        "theme": "terminal",
-        "fontSize": 14,
-        "tabSize": 2
+        "theme": "github",
+        "fontSize": 12,
+        "tabSize": 2,
+        "printMarginColumn": 100
     },
     "modes": {},
-    "keys": {},
+    "keys": {
+      "Split:Switch Focus": {
+          "mac": "Command-Tab",
+          "win": "Ctrl-Tab"
+      },
+      "Navigate:Goto": {
+          "mac": "Command-O",
+          "win": "Ctrl-O"
+      }
+    },
     "commands": {},
     "handlers": {},
     "themes": {},

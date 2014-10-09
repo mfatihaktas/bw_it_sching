@@ -77,6 +77,7 @@ class SchingOptimizer:
     redundantly as max_parismlevel times.
     '''
     self.max_parismlevel = self.get_max_parismlevel()
+    self.logger.debug("self.max_parismlevel= %s", self.max_parismlevel)
     self.r_proc = cp.Variable(self.N*self.max_parismlevel,self.num_itr,name='r_proc')
     #self.r_dur = cp.Variable(self.N*self.max_parismlevel,self.num_itr,name='r_dur')
     #
