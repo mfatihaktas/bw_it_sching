@@ -38,11 +38,13 @@ class MyTopo( Topo ):
     s1 = self.addSwitch( 's1' )
     s2 = self.addSwitch( 's2' )
     s3 = self.addSwitch( 's3' )
+    s4 = self.addSwitch( 's4' )
     s11 = self.addSwitch( 's11' )
     s12 = self.addSwitch( 's12' )
     t11 = self.addHost( 't11', ip='10.0.0.11' )
     t21 = self.addHost( 't21', ip='10.0.0.21' )
     t31 = self.addHost( 't31', ip='10.0.0.31' )
+    t41 = self.addHost( 't41', ip='10.0.0.41' )
     #
     #wide_linkopts = dict(bw=11, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
     #dsa_linkopts = dict(bw=11, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
@@ -52,12 +54,14 @@ class MyTopo( Topo ):
     self.addLink( s11,s1, **wide_linkopts )
     self.addLink( s1,s2, **wide_linkopts )
     self.addLink( s1,s3, **wide_linkopts )
-    self.addLink( s3,s2, **wide_linkopts )
+    self.addLink( s3,s4, **wide_linkopts )
+    self.addLink( s4,s2, **wide_linkopts )
     self.addLink( s2,s12, **wide_linkopts )
     
     self.addLink( s1, t11, **dsa_linkopts )
     self.addLink( s2,t21, **dsa_linkopts )
     self.addLink( s3,t31, **dsa_linkopts )
+    self.addLink( s4,t41, **dsa_linkopts )
     
     self.addLink( s12, c1, **wide_linkopts )
     self.addLink( s12, c2, **wide_linkopts )
@@ -97,7 +101,7 @@ def run_tnodes(hosts):
 def run_pcnodes(hosts):
   popens = {}
   for host in hosts:
-    popens[host] = host.popen('./run_hosts2.sh %s' % host.name )
+    popens[host] = host.popen('./run_hosts.sh %s' % host.name )
     print '%s is ready' % host.name
   #
   print 'pcnodes are ready...'
@@ -113,7 +117,7 @@ if __name__ == '__main__':
   c1,c2,c3 = net.getNodeByName('c1', 'c2', 'c3')
   c4,c5,c6 = net.getNodeByName('c4', 'c5', 'c6')
   c7,c8,c9,c10,c11 = net.getNodeByName('c7', 'c8', 'c9', 'c10', 'c11')
-  t11, t21, t31 = net.getNodeByName('t11','t21','t31')
+  t11, t21, t31, t41 = net.getNodeByName('t11','t21','t31', 't41')
   #
   p1.setMAC(mac='00:00:00:01:02:00')
   p2.setMAC(mac='00:00:00:01:02:01')
@@ -142,6 +146,7 @@ if __name__ == '__main__':
   t11.setMAC(mac='00:00:00:00:01:01')
   t21.setMAC(mac='00:00:00:00:02:01')
   t31.setMAC(mac='00:00:00:00:03:01')
+  t41.setMAC(mac='00:00:00:00:04:01')
   #To fix "network is unreachable"
   p1.setDefaultRoute(intf='p1-eth0')
   p2.setDefaultRoute(intf='p2-eth0')
@@ -170,10 +175,11 @@ if __name__ == '__main__':
   t11.setDefaultRoute(intf='t11-eth0')
   t21.setDefaultRoute(intf='t21-eth0')
   t31.setDefaultRoute(intf='t31-eth0')
+  t41.setDefaultRoute(intf='t41-eth0')
   #
   net.start()
   #
-  run_tnodes([t11, t21, t31])
+  run_tnodes([t11, t21, t31, t41])
   
   # run_pcnodes([c1, p1])
   run_pcnodes([c1, p1, c2, p2, c3, p3])

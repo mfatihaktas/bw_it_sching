@@ -809,10 +809,15 @@ class Transit(object):
     tobeproceddata_modeltxt = float(tobeproced_datasize*8)/(bw*BWREGCONST)
     nchunkstobeproced = float(tobeproced_datasize*(1024**2))/CHUNKSTRSIZE
     tobeproceddata_modeltranst = tobeproced_modelproct+tobeproceddata_modeltxt #+upto_modelproct
-    
-    self.stpdst_procintereqtime_dict[stpdst] = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
+    #
+    proc_intereq_time = 0
+    if nchunkstobeproced >= 1:
+      proc_intereq_time = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
+    self.stpdst_procintereqtime_dict[stpdst] = proc_intereq_time
+    #
     threading.Thread(target = self.manage_sproctokenq,
                      kwargs = {'stpdst':stpdst } ).start()
+    self.logger.debug('welcome_s:: nchunkstobeproced= %s', nchunkstobeproced)
     self.logger.debug('welcome_s:: tobeproced_datasize=%s, tobeproceddata_modeltranst=%s, upto_modelproct=%s, tobeproced_modelproct=%s, tobeproceddata_modeltxt=%s', tobeproced_datasize, tobeproceddata_modeltranst, upto_modelproct, tobeproced_modelproct, tobeproceddata_modeltxt)
     self.logger.debug('welcome_s::\n stpdst_txintereqtime_dict=%s,\n stpdst_procintereqtime_dict=%s', pprint.pformat(self.stpdst_txintereqtime_dict), pprint.pformat(self.stpdst_procintereqtime_dict))
     #

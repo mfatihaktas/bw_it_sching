@@ -115,7 +115,7 @@ class GraphMan(object):
       return (net_node_tuple[1], net_node_tuple[0])
       
   def graph_add_nodes(self, nodes):
-    print "graph_add_nodes:: nodes= ", nodes
+    # print "graph_add_nodes:: nodes= ", nodes
     for node in nodes:
       if node[1]['type'] == 'sw':
         self.g.add_node(node[0], node[1] )

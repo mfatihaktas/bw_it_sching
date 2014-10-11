@@ -156,13 +156,10 @@ class Scheduler(object):
         # print "sch_req_id=  ", sch_req_id
         # net_edge_list = self.sid_res_dict[sch_req_id]['ps_info'][0]['net_edge_list']
         # print "net_edge_list= ", net_edge_list
-        
-        # net_edge_list_ = [ne for ne in net_edge_list]
-        # self.gm.inc_num_user__update_weight_on_net_edge_list(net_edge_list_)
         self.gm.inc_num_user__update_weight_on_net_edge_list(self.sid_res_dict[sch_req_id]['ps_info'][0]['net_edge_list'])
-        print "????????????????????????????????????????????????????????????????????????????????????"
-        self.gm.print_graph()
-        print "????????????????????????????????????????????????????????????????????????????????????"
+        # print "????????????????????????????????????????????????????????????????????????????????????"
+        # self.gm.print_graph()
+        # print "????????????????????????????????????????????????????????????????????????????????????"
         #get s_alloc_info
         s_alloc_info = self.alloc_dict['s-wise'][s_id]
         s_pl = s_alloc_info['parism_level']
@@ -374,16 +371,16 @@ class Scheduler(object):
       #
       p_c_gwdpid_list = self.sessionsbeingserved_dict[s_id]['p_c_gwtag_list']
       # s_all_paths = self.gm.give_all_paths(p_c_gwdpid_list[0], p_c_gwdpid_list[1])
-      s_all_paths = self.gm.give_shortest_path(p_c_gwdpid_list[0], p_c_gwdpid_list[1], 'weight')
-      # logging.debug("s_all_paths= %s", s_all_paths) 
-      #print forward all_paths for debugging
       # dict_ = {i:p for i,p in enumerate(s_all_paths)}
+      s_all_paths = self.gm.give_shortest_path(p_c_gwdpid_list[0], p_c_gwdpid_list[1], 'weight')
+      #print forward all_paths for debugging
       dict_ = {}
       for i,p in enumerate([s_all_paths]):
+        # for i,p in enumerate(s_all_paths):
         dict_[i] = p
         break
         
-      logging.info('s_id=%s, $$$ ALL_PATHS=\n%s', s_id, pprint.pformat(dict_))
+      logging.info('\t\t $$$ s_id=%s, ALL_PATHS=\n%s', s_id, pprint.pformat(dict_))
       #
       for i,p in dict_.items():
         p_net_edge_list = self.gm.pathlist_to_netedgelist(p)
@@ -457,7 +454,7 @@ class Scheduler(object):
                                                            indict=self.sessionsbeingserved_dict),
                                    self.actual_res_dict,
                                    self.give_incintkeyform(flag=False,
-                                                           indict=self.sid_res_dict) )
+                                                           indict=self.sid_res_dict ) )
     sching_opter.solve()
     #
     self.alloc_dict = sching_opter.get_sching_result()
@@ -505,12 +502,12 @@ class Scheduler(object):
         if self.data_over_tp == 'tcp':
           sp_walk__tprrule = \
           self.get_overtcp_spwalkrule__sptprrule(s_id, p_id,
-                                                 p_walk = p_walk,
+                                                 p_walk = copy.copy(p_walk),
                                                  pitwalkbundle_dict = itwalkinfo_dict[p_id])
         elif self.data_over_tp == 'udp':
           sp_walk__tprrule = \
           self.get_overudp_spwalkrule__sptprrule(s_id, p_id,
-                                                 p_walk = p_walk,
+                                                 p_walk = copy.copy(p_walk),
                                                  pitwalkbundle_dict = itwalkinfo_dict[p_id])
         #
         logging.info('for s_id=%s, p_id=%s;', s_id, p_id)
@@ -925,7 +922,7 @@ def main():
                   data_over_tp = 'tcp',
                   act = False)
   
-  sch.test(num_session = 2)
+  sch.test(num_session = 3)
   #
   raw_input('Enter')
   

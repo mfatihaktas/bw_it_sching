@@ -3,6 +3,7 @@ import cvxpy as cp
 import cvxopt
 import numpy as np
 import sys,pprint,time,logging
+import copy
 #
 from collections import namedtuple
 import __builtin__
@@ -662,7 +663,7 @@ class SchingOptimizer:
       #
     def itbundle_to_datawalk__ordereditbundle(netpath, itbundle):
       #construct data_walk
-      walk = netpath
+      walk = copy.copy(netpath)
       for itr in itbundle:
         itr_id = self.actual_res_dict['res_id_map'][itr]
         conn_sw = self.actual_res_dict['id_info_map'][itr_id]['conn_sw']
