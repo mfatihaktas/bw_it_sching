@@ -22,7 +22,8 @@ class SchController(object):
     #
     self.scheduler = Scheduler(xml_net_num = 1,
                                sching_logto = 'console',
-                               data_over_tp = 'tcp')
+                               data_over_tp = 'tcp',
+                               act = True)
     #
     self.scheduler.event_chief.addListenerByName("SendMsgToUser",
                                                  self._handle_SendMsgToUser)

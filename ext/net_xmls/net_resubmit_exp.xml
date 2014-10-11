@@ -68,17 +68,17 @@ s12 lo:  s12-eth1:s2-eth3 s12-eth2:c1-eth0 s12-eth3:c2-eth0 s12-eth4:c3-eth0 s12
       <edge pre_node="s1" post_node="s2">
         <dev pre_dev="s1-eth2" post_dev="s2-eth1"/>
         <session/>
-        <link_cap bw="10" delay="5" loss="0" max_queue_size="1000"/>
+        <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>
       </edge>
       <edge pre_node="s1" post_node="s3">
         <dev pre_dev="s1-eth3" post_dev="s3-eth1"/>
         <session/>
-        <link_cap bw="10" delay="5" loss="0" max_queue_size="1000"/>
+        <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>
       </edge>
       <edge pre_node="s3" post_node="s2">
         <dev pre_dev="s3-eth2" post_dev="s2-eth2"/>
         <session/>
-        <link_cap bw="10" delay="5" loss="0" max_queue_size="1000"/>
+        <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>
       </edge>
       <edge pre_node="s2" post_node="s12">
         <dev pre_dev="s2-eth3" post_dev="s12-eth1"/>

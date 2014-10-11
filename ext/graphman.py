@@ -44,6 +44,9 @@ class GraphMan(object):
     return net_edge_list
   
   def give_shortest_path(self, src, trgt, wght):
+    if src == trgt:
+      return [ [src] ]
+    #
     return nx.shortest_path(self.g, source=src, target=trgt, weight=wght)
   
   def give_all_paths(self, src, trgt):
@@ -112,6 +115,7 @@ class GraphMan(object):
       return (net_node_tuple[1], net_node_tuple[0])
       
   def graph_add_nodes(self, nodes):
+    print "graph_add_nodes:: nodes= ", nodes
     for node in nodes:
       if node[1]['type'] == 'sw':
         self.g.add_node(node[0], node[1] )
@@ -120,7 +124,8 @@ class GraphMan(object):
   
   def graph_add_edges(self, edges):
     for edge in edges:
-      w_dict = {'weight':int(edge[3]['delay'])}
+      w_dict = {'weight':int(edge[3]['delay']),
+                'num_users': 0}
       self.g.add_edge(edge[0],edge[1], \
                       dict(w_dict.items() + edge[2].items() + edge[3].items() ))
       
@@ -158,4 +163,40 @@ class GraphMan(object):
     
   def give_tpr_sw_name(self, tpr_name):
     return self.g.neighbors(tpr_name)[0] #every tpr will have only one neighbor !
-
+  ### 
+  def inc_num_user__update_weight_on_net_edge_list(self, net_edge_list):
+    for net_edge in net_edge_list:
+      # print "net_edge= ", net_edge
+      self.inc_num_user__update_weight_on_edge(net_edge)
+    #
+    
+  def dec_num_user__update_weight_on_net_edge_list(self, net_edge_list):
+    for net_edge in net_edge_list:
+      # print "net_edge= ", net_edge
+      self.dec_num_user__update_weight_on_edge(net_edge)
+    #
+    
+  def inc_num_user__update_weight_on_edge(self, edge_list):
+    # print "edge_list= ", edge_list
+    pre_node = edge_list[0]
+    post_node = edge_list[1]
+    # print "pre_node= ", pre_node
+    # print "post_node= ", post_node
+    # print "pre_node= ", pre_node
+    # print "post_node= ", post_node
+    try:
+      self.g[pre_node][post_node]['num_users'] += 1
+      self.g[pre_node][post_node]['weight'] += 60
+    except KeyError:
+      return
+    #
+    # print "inc_num_user__update_weight_on_edge done on edge= ", edge_list
+    
+  def dec_num_user__update_weight_on_edge(self, edge_list):
+    try:
+      pre_node = edge_list[0]
+      post_node = edge_list[1]
+      self.g[pre_node][post_node]['num_users'] -= 1
+      self.g[pre_node][post_node]['weight'] -= 60
+    except KeyError:
+      return

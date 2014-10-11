@@ -52,7 +52,7 @@ ELAPSEDDSREGCONST = 1 #0.95
 
 class Scheduler(object):
   event_chief = EventChief()
-  def __init__(self, xml_net_num, sching_logto, data_over_tp):
+  def __init__(self, xml_net_num, sching_logto, data_over_tp, act):
     #logging.basicConfig(filename='logs/schinglog',filemode='w',level=logging.DEBUG)
     #logging.basicConfig(level=logging.ERROR)
     #logging.basicConfig(level=logging.WARNING)
@@ -95,11 +95,13 @@ class Scheduler(object):
     #self.perf_plotter = PerfPlotter(self.actual_res_dict)
     #for control_comm
     self.cci = ControlCommIntf()
-    self.cci.reg_commpair(sctag = 'scher-acter',
-                          proto = 'tcp',
-                          _recv_callback = self._handle_recvfromacter,
-                          s_addr = info_dict['lacter_addr'],
-                          c_addr = info_dict['acterl_addr'] )
+    self.act = act
+    if act:
+      self.cci.reg_commpair(sctag = 'scher-acter',
+                            proto = 'tcp',
+                            _recv_callback = self._handle_recvfromacter,
+                            s_addr = info_dict['lacter_addr'],
+                            c_addr = info_dict['acterl_addr'] )
     self.dtsuser_intf = DTSUserCommIntf()
     #
     #self.exp()
@@ -150,6 +152,17 @@ class Scheduler(object):
                        'gw_conn_port': user_info['gw_conn_port'] }
       if reply == 'done':
         self.sessionsbeingserved_dict[sch_req_id]['sching_job_done'][p_id] = True
+        
+        # print "sch_req_id=  ", sch_req_id
+        # net_edge_list = self.sid_res_dict[sch_req_id]['ps_info'][0]['net_edge_list']
+        # print "net_edge_list= ", net_edge_list
+        
+        # net_edge_list_ = [ne for ne in net_edge_list]
+        # self.gm.inc_num_user__update_weight_on_net_edge_list(net_edge_list_)
+        self.gm.inc_num_user__update_weight_on_net_edge_list(self.sid_res_dict[sch_req_id]['ps_info'][0]['net_edge_list'])
+        print "????????????????????????????????????????????????????????????????????????????????????"
+        self.gm.print_graph()
+        print "????????????????????????????????????????????????????????????????????????????????????"
         #get s_alloc_info
         s_alloc_info = self.alloc_dict['s-wise'][s_id]
         s_pl = s_alloc_info['parism_level']
@@ -331,6 +344,9 @@ class Scheduler(object):
     self.N -= 1
     # Send sessions whose "sching job" is done is sent to pre_served category
     self.sessionspreserved_dict[sch_req_id] = self.sessionsbeingserved_dict[sch_req_id]
+    # 
+    self.gm.dec_num_user__update_weight_on_net_edge_list(self.sid_res_dict[sch_req_id]['ps_info'][0]['net_edge_list'])
+    # 
     del self.sessionsbeingserved_dict[sch_req_id]
     del self.sid_res_dict[sch_req_id]
     #
@@ -353,17 +369,21 @@ class Scheduler(object):
     logging.info('update_sid_res_dict::')
     #TODO: sessions whose resources are already specified no need for putting them in the loop
     for s_id in self.sessionsbeingserved_dict:
+      if s_id in self.sid_res_dict:
+        continue
+      #
       p_c_gwdpid_list = self.sessionsbeingserved_dict[s_id]['p_c_gwtag_list']
-      s_all_paths = self.gm.give_all_paths(p_c_gwdpid_list[0], p_c_gwdpid_list[1])
-      # s_all_paths = [self.gm.give_all_paths(p_c_gwdpid_list[0], p_c_gwdpid_list[1])[0] ]
+      # s_all_paths = self.gm.give_all_paths(p_c_gwdpid_list[0], p_c_gwdpid_list[1])
+      s_all_paths = self.gm.give_shortest_path(p_c_gwdpid_list[0], p_c_gwdpid_list[1], 'weight')
+      # logging.debug("s_all_paths= %s", s_all_paths) 
       #print forward all_paths for debugging
       # dict_ = {i:p for i,p in enumerate(s_all_paths)}
       dict_ = {}
-      for i,p in enumerate(s_all_paths):
+      for i,p in enumerate([s_all_paths]):
         dict_[i] = p
         break
         
-      logging.info('s_id=%s, all_paths=\n%s', s_id, pprint.pformat(dict_))
+      logging.info('s_id=%s, $$$ ALL_PATHS=\n%s', s_id, pprint.pformat(dict_))
       #
       for i,p in dict_.items():
         p_net_edge_list = self.gm.pathlist_to_netedgelist(p)
@@ -375,6 +395,8 @@ class Scheduler(object):
                'net_edge_list': p_net_edge_list,
                'itres_list': p_itres_list
               }  }  )
+        # 
+        
   '''
   def update_sid_schregid_dict(self):
     self.sid_schregid_dict = {}
@@ -510,11 +532,12 @@ class Scheduler(object):
         else:
           type_toacter = 'resp_sching_req'
         #
-        msg = json.dumps({'type':type_toacter,
-                          'data':{'s_id':s_id, 'p_id':p_id,
-                                  'walk_rule':sp_walk__tprrule['walk_rule'],
-                                  'itjob_rule':sp_walk__tprrule['itjob_rule']} })
-        self.cci.send_to_client('scher-acter', msg)
+        if self.act:
+          msg = json.dumps({'type':type_toacter,
+                            'data':{'s_id':s_id, 'p_id':p_id,
+                                    'walk_rule':sp_walk__tprrule['walk_rule'],
+                                    'itjob_rule':sp_walk__tprrule['itjob_rule']} })
+          self.cci.send_to_client('scher-acter', msg)
       #
     #  
     logging.info('do_sching:: sching_id=%s done.', sching_id)
@@ -859,9 +882,10 @@ class Scheduler(object):
       self.welcome_session(p_c_ip_list = p_c_ip_list_list[int(i%3)],
                            req_dict = req_dict_list[int(i%5)],
                            app_pref_dict = app_pref_dict_list[int(i%5)] )
+      self.do_sching()
     #
-    #self.run_sching()
-    self.do_sching()
+    # self.run_sching()
+    # self.do_sching()
     '''
     #converting schingid_rescapalloc_dict to resid_rescapalloc_dict
     print '-----------------------'
@@ -898,9 +922,10 @@ def main():
   is_scheduler_run = True
   sch = Scheduler(xml_net_num = 1,
                   sching_logto = 'console',
-                  data_over_tp = 'tcp')
+                  data_over_tp = 'tcp',
+                  act = False)
   
-  sch.test(num_session = 3)
+  sch.test(num_session = 2)
   #
   raw_input('Enter')
   

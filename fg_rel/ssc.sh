@@ -37,6 +37,8 @@ elif [ $1 = 'uk' ]; then
 elif [ $1  = 'scpkeys' ]; then
   scp mfa51@india.futuregrid.org:~/.ssh/mininet* ./keys
   scp mfa51@india.futuregrid.org:~/.ssh/mfa* ./keys
+elif [ $1  = 'scpexpdata' ]; then
+  scp -i $VMKEYDIR ${VM_USRNAMES[0]}@${VM_PUBIPS[0]}:~/pox/ext/logs/* ~/Desktop/imgs
 #######################################################
 elif [ $1  = 'sshvm' ]; then
   if [ $2 = -1 ]; then

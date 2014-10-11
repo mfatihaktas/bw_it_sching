@@ -5,13 +5,19 @@ echo "1="$1 "2="$2
 
 KEYDIR=~/.ssh/mininet-key #mfa51-key
 KEY=mininet-key #mfa51-key
-FLV=m1.medium #m1.xlarge
+FLV=m1.xlarge #m1.xlarge medium
 
 VMNAME=mfa51-001
 VMUSERNAME=ubuntu
 VMIMG=futuregrid/ubuntu-12.04
 VM_PIVIP=10.39.1.46
 VM_PUBIP=149.165.159.16
+
+EXPCONT_VMNAME=exp_controller
+EXPCONT_VMIMG=controller
+EXPCONT_VMUSERNAME=ubuntu
+EXPCONT_VMPIVIP=10.39.1.46
+EXPCONT_VMPUBIP=149.165.159.47
 
 #mininet_(1 2 3 4 5) -> net_s_(1 2 3 11 12)
 #mininet_(1 2 3) -> net_s_(1)
@@ -37,8 +43,10 @@ elif [ $1  = 'snapvm' ]; then
   nova image-create $3 ${VM_NAMES[$2]}
 elif [ $1  = 'uvmi' ]; then
   if [ $2  = -1 ]; then
-    nova image-delete $VMNAME
-    nova image-create $VMNAME $VMNAME
+    nova image-delete $EXPCONT_VMNAME
+    nova image-create $EXPCONT_VMNAME $EXPCONT_VMNAME
+    # nova image-delete $VMNAME
+    # nova image-create $VMNAME $VMNAME
   else
     nova image-delete ${VM_NAMES[$2]}
     nova image-create ${VM_NAMES[$2]} ${VM_NAMES[$2]}
@@ -48,8 +56,11 @@ elif [ $1  = 'rmvmi' ]; then
 elif [ $1  = 'bvm' ]; then
   if [ $2 -eq -1 ]; then
     nova boot --flavor $FLV \
-              --image $VMIMG \
-              --key_name $KEY $VMNAME
+              --image $EXPCONT_VMIMG \
+              --key_name $KEY $EXPCONT_VMNAME
+    # nova boot --flavor $FLV \
+    #           --image $VMIMG \
+    #           --key_name $KEY $VMNAME
   else
     nova boot --flavor $FLV \
               --image ${VM_NAMES[$2]} \
@@ -57,19 +68,23 @@ elif [ $1  = 'bvm' ]; then
   fi
 elif [ $1  = 'eavm' ]; then
   if [ $2 -eq -1 ]; then
-    nova add-floating-ip $VMNAME $VM_PUBIP
+    nova add-floating-ip $EXPCONT_VMNAME $EXPCONT_PUBIP
   else
     nova add-floating-ip ${VM_NAMES[$2]} ${VM_PUBIPS[$2]}
   fi
   nova floating-ip-list
 elif [ $1  = 'rmvm' ]; then
   if [ $2 -eq -1 ]; then
-    nova delete $VMNAME
+    nova delete $EXPCONT_VMNAME
   else  
     nova delete ${VM_NAMES[$2]}
   fi
 elif [ $1  = 'sshvm' ]; then
-  ssh -v -l ${VM_USRNAMES[$2]} -i $KEYDIR ${VM_PIVIPS[$2]}
+  if [ $2 -eq -1 ]; then
+    ssh -v -l $EXPCONT_VMUSERNAME -i $KEYDIR $EXPCONT_PUBIP
+  else
+    ssh -v -l ${VM_USRNAMES[$2]} -i $KEYDIR ${VM_PIVIPS[$2]}
+  fi
 elif [ $1  = 'scprsa' ]; then
   cat ~/.ssh/id_rsa.pub | ssh -l ${VM_USRNAMES[$2]} -i $KEYDIR ${VM_PIVIPS[$2]} 'cat >> ~/.ssh/authorized_keys'
 #cmds for vm bundle
