@@ -138,8 +138,8 @@ class ExpPlotter(object):
     pipe.stdin.write('set style fill solid border -1\n')
     pipe.stdin.write('set style fill pattern border\n')
     pipe.stdin.write('set samples 11\n')
-    pipe.stdin.write('plot "%s" using 3:xtic(1) w points linewidth 2 lc rgb "#000000" title "slack time"' % datafurl + \
-                     ', "" using 4 w points linewidth 2 lc rgb "#696969" title "coupling time"' + \
+    pipe.stdin.write('plot "%s" using 3:xtic(1) w points linewidth 2 lc rgb "#000000" title "opt trans time"' % datafurl + \
+                     ', "" using 4 w points linewidth 2 lc rgb "#696969" title "trans time"' + \
                      ', "" using 5 axes x1y2 w points pointsize 2 lc rgb "#7F7F7F" title "rel-err"\n' )
     #
   def plot_overheadrel(self, datafurl, outfurl, nums, yrange):

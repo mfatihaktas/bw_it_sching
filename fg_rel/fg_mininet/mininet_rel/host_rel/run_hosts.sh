@@ -25,14 +25,14 @@ P1_APPPREFDICT='{"m_p":0.5,"m_u":0.5,"x_p":0,"x_u":0}'
 P1_CLIP=10.0.1.0
 
 C2D=1
-P2D=4
+P2D=3
 P2_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P2_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 P2_CLIP=10.0.1.1
 
 C3D=1
-P3D=6
-P3_REQDICT='{"data_size":20,"slack_metric":30,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P3D=8
+P3_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
 P3_APPPREFDICT='{"m_p":2,"m_u":2,"x_p":0,"x_u":0}'
 P3_CLIP=10.0.1.2
 

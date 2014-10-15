@@ -437,6 +437,8 @@ class Scheduler(object):
         elapsed_datasize = None
         tobeproceddata_transt = sinfo['tobeproceddata_transt_list'][-1]
         tobeproceddatasize = sinfo['tobeproceddatasize_list'][-1]
+        
+        # elapsed_datasize = float(BWREGCONST*sinfo['bw_list'][-1]*elapsed_time)/8
         if elapsed_time < tobeproceddata_transt:
           elapsed_datasize = ELAPSEDDSREGCONST*float(tobeproceddatasize*float(elapsed_time))/tobeproceddata_transt
         else:

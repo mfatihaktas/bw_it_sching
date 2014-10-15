@@ -637,7 +637,7 @@ class SchingOptimizer:
       #res_cap total usage and res_cap-session portion alloc
       self.session_res_alloc_dict['res-wise'][i+self.num_link] = {
         'proc': r_proc2_in_row.get((0,i)).value,
-        'proc_salloc_dict': {s_id:e.value for s_id,e in enumerate(self.r_proc2.get_column(i))}
+        'proc_salloc_dict': {s_id:e.value for s_id,e in enumerate(self.r_proc2.get_column(i) ) }
         #'dur': r_dur2_in_row.get((0,i)).value,
         #'dur_salloc_dict': {s_id:e.value for s_id,e in enumerate(self.r_dur2.get_column(i))}
         #'stor_actual': float(self.r_stor_actual[i]),
