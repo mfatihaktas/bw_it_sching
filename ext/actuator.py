@@ -31,10 +31,37 @@ info_dict = {'lscher_addr':('127.0.0.1', 7999),
              'sid_pidlist_dict': {},
              'scherl_tp': 7001,
              'schert_tp': 7001,
-             's_entry_dur': [0, 0],
-            }
-  
+             's_entry_dur': [0, 0] }
+
 ruleparser = RuleParser('ext/schedwalks.xml', 'ext/scheditjobs.xml')
+
+'''
+class Actuator (object):
+  def __init__ (self)
+  def signal_handler(self, signal, frame)
+###  _handle_*** methods
+  def _handle_recvfromscher(self, msg)
+  def _handle_PacketIn (self, event)
+  def _handle_ConnectionUp(self, event)
+  def _handle_FlowStatsReceived (self, event)
+  def dev_tfport(self, dev_str)
+  def _handle_sendtoitr(self, itrinfo_dict, msg_str)
+  def _handle_recvfromitr(self, msg)
+###  install_*** methods
+  def install_proactive_scheditjob(self, type_toitr, s_id, p_id)
+  def install_proactive_schedwalk(self, s_id,p_id)
+###  send_*** methods
+  def send_udp_packet_out(self, conn, payload, tp_src, tp_dst,src_ip, dst_ip,
+## #Basic send functions for communicating with SWs
+  def send_clear_swtable(self, conn)
+  def send_stat_req(self, conn)
+  def send_ofmod_delete(self, conn, nw_src, nw_dst, nw_proto, tp_src, tp_dst, duration)
+  def send_ofmod_forward(self, _called_from, conn, nw_src, nw_dst, nw_proto, tp_src,
+  def send_ofmod_mod_nw_src__forward(self, _called_from, conn, nw_src, nw_dst, nw_proto, 
+  def send_ofmod_mod_nw_dst__forward(self, _called_from, conn, nw_src, nw_dst, nw_proto,
+  ###
+  def launch (proactive_install=True, deneme_flow=False)
+'''
 
 class Actuator (object):
   def __init__ (self):

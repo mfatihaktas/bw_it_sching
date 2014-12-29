@@ -59,7 +59,7 @@ class DTSUserCommIntf(object):
                                     msg_str =  json.dumps(msg_tobeacked) )
     userinfo_dict['msg_tobeacked'] = msg_tobeacked
     userinfo_dict['state'] = 1
-    self.logger.debug('send_to_user:: sent to user_ip=%s, type=%s, seq_num=%s', user_ip, type_, userinfo_dict['seq_num'])
+    self.logger.debug('send_to_use r:: sent to user_ip=%s, type=%s, seq_num=%s', user_ip, type_, userinfo_dict['seq_num'])
     #
     timeout_timer = threading.Timer(interval = self.timeout,
                                     function = self.handle_timeout,

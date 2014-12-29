@@ -52,7 +52,7 @@ class GraphMan(object):
     #
     return nx.all_simple_paths(self.g, source=src, target=trgt)
   
-  def give_actual_resource_dict(self):
+  def get_actual_resource_dict(self):
     dict_ = {"overview":{}, "res_id_map":{}, "id_info_map":{}}
     #First fill links then itrs. This is used by last_link_index
     # fill links

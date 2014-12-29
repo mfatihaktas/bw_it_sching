@@ -3,16 +3,33 @@ import pox.openflow.libopenflow_01 as of
 from pox.lib.addresses import IPAddr
 import pox.lib.packet as pkt
 from pox.openflow.of_json import *
-#from pox.lib.util import dpid_to_str
-from scheduler import Scheduler #, EventChief
+from scheduler import Scheduler
 from exp_plot import ExpPlotter
 import pprint,logging,signal,threading
-#log = core.getLogger()
 
 info_dict = {'scher_vip': '10.0.0.255',
              'scher_vmac': '00:00:00:00:00:00',
              'sching_port': 7000 }
-  
+
+'''
+class SchController(object):
+  def __init__(self)
+  def waitforenter(self)
+###  _handle_*** methods
+  def _handle_SendMsgToUser(self, event)
+  def _handle_PacketIn(self, event)
+  def _handle_ConnectionUp(self, event)
+  def _handle_FlowStatsReceived (self, event)
+###  send_*** methods
+  def send_udp_packet_out(self, conn, payload, tp_src, tp_dst,src_ip, dst_ip, src_mac, dst_mac, fw_port = of.OFPP_ALL)
+  def send_stat_req(self, event)
+###  install_*** methods
+  def install_drop_sch_response(self, event)
+  def install_default_to_controller(self, event, proto)
+###
+  def launch ()
+'''
+
 class SchController(object):
   def __init__(self):
     #logging.basicConfig(filename='logs/schcontlog',filemode='w',level=logging.DEBUG)
@@ -28,7 +45,6 @@ class SchController(object):
                                                  self._handle_SendMsgToUser)
     #
     self.dpid_conn_dict = {}
-    #core.addListeners(self)
     core.openflow.addListenerByName("ConnectionUp", self._handle_ConnectionUp)
     core.openflow.addListenerByName("FlowStatsReceived", self._handle_FlowStatsReceived)
     core.openflow.addListenerByName("PacketIn", self._handle_PacketIn  )
@@ -159,10 +175,9 @@ class SchController(object):
     if ip_packet is None:
       print '_handle_PacketIn:: doesnt have ip_payload; eth_packet=%s' % eth_packet
       return
-    #
+    
     src_ip = (ip_packet.srcip).toStr()
     src_mac = (eth_packet.src).toStr()
-    #
     print '_handle_PacketIn:: rxed via sw_dpid=%s sw_port=%s from user_ip=%s' % (conn.dpid, event.port, src_ip)
     #handle_recv - assume only dts users know about udp_dts_port, no pre-checking
     userinfo_dict = {'user_ip': src_ip,

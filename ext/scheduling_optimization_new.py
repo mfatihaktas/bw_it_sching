@@ -14,6 +14,51 @@ BWREGCONST_INGRAB = 1 #0.9 #0.95
 SLACKFEASIBILITYCONST = 1.1 #1
 IT_HOPE_OVERHEAD = 1.1
 
+'''
+class SchingOptimizer:
+  def __init__(self, sessions_beingserved_dict, actual_res_dict, sid_res_dict):
+  def r_proc2dur2__r_procdur_map(self)
+  def get_max_parismlevel(self)
+  def get_max_numspaths(self)
+  def a__p_bwprocdur_map(self)
+  def r_bw__p_bw_map(self)
+  def p_procdur__r_procdur_map(self)
+  def p_bwprocdur_sparsity_constraint(self)
+  def r_bwprocdur_sparsity_constraint(self)
+  def fill__sp_txprocdurtrans_matrices(self)
+  def fill__r_hardsoft__s_penutil_vectors(self)
+### Modeling functions
+  def sumlist(self, l)
+  def txprocdurtrans_time_model(self,s_id,p_id, datasize,comp_list,num_itres)
+  def R_hard(self, s_id)
+  def R_soft(self, s_id)
+  def P(self, s_id, expr_)
+  def U(self, s_id, expr_)
+### Objective functions
+  def F0(self)
+  def F1(self)
+  def F(self)
+### Constraint functions
+  def tt_epigraph_form_constraint(self)
+  def constraint0(self)
+  def new_constraint0(self)
+  def s_n_sparsity_constraint(self)
+  def res_cap_constraint(self)
+### Support functions
+  def get_var_val(self, name, (i,j) )
+  def grab_sching_result(self)
+  def get_session_itbundle_dict__walk(self, s_id)
+  def it_time__basedon_itwalkinfo_dict(self, itwalkinfo_dict)
+  def print_optimizer(self)
+  def feasibilize_schinginfo(self)
+  def get_sching_result(self)
+  def add_proccomp__update_parism_info(self)
+  def add_sessionpathlinks_with_ids(self)
+  def add_sessionpathitrs_with_ids(self)
+  def add_path_sharing_info(self)
+  def solve(self)
+'''
+
 class SchingOptimizer:
   def __init__(self, sessions_beingserved_dict, actual_res_dict, sid_res_dict):
     logging.basicConfig(filename='logs/schinglog',filemode='w',level=logging.DEBUG)
@@ -34,12 +79,6 @@ class SchingOptimizer:
       'fft': 5,
       'upsampleplot': 75
     }
-    '''
-    self.func_compconstant_dict = {
-      'fft': 5,
-      'upsampleplot': 75
-    }
-    '''
     #
     self.add_proccomp__update_parism_info()
     self.add_sessionpathlinks_with_ids()
@@ -107,143 +146,6 @@ class SchingOptimizer:
     #To keep SCHING DECISION in a dict
     self.session_res_alloc_dict = {'general':{},'s-wise': {}, 'res-wise': {}}
   ###
-  #modeling functions
-  def txprocdurtrans_time_model(self,s_id,p_id, datasize,comp_list,num_itres):
-    #datasize: MB, bw: Mbps
-    tx_t = (8*datasize)*cp.inv_pos(BWREGCONST*self.p_bw[s_id,p_id]) # sec
-    #proc: Mbps
-    numitfuncs = len(comp_list)
-    quadoverlin_vector = expr((1, numitfuncs))
-    for i,comp in enumerate(comp_list):
-      quadoverlin = comp*cp.quad_over_lin(self.s_n[s_id, i], self.p_proc.get((s_id,p_id)) )
-      quadoverlin_vector.set_((0,i), quadoverlin)
-    #
-    quadoverlin = (quadoverlin_vector.agg_to_column()).get((0,0))
-    
-    # IT_HOPE_OVERHEAD*(num_itres-1)
-    proc_t = num_itres* (8*datasize)*(quadoverlin) # sec
-    
-    stage_t = 0 #self.p_dur.get((s_id,p_id))
-    #
-    #trans_t = tx_t + proc_t + stage_t
-    #trans_t = cp.max(tx_t, proc_t)
-    trans_t = tx_t + proc_t
-    
-    return [tx_t, proc_t, stage_t, trans_t]
-  
-  def R_hard(self, s_id):
-    '''
-    total_trans_time = max{ trans_time over each par_walk}
-    '''
-    s_pl = self.sessions_beingserved_dict[s_id]['req_dict']['parism_level']
-    ptranst_list = []
-    for p_id in range(0,s_pl):
-      ptranst_list.append(self.sp_trans.get((s_id,p_id)) )
-    #
-    if s_pl == 1:
-      return ptranst_list[0]
-    else:
-      return cp.max(*ptranst_list)
-    '''
-    if s_pl == 1:
-      return self.sp_trans.get((s_id, 0))
-    else:
-      return cp.max(*self.sp_trans.get_row(s_id))
-    '''
-  
-  def R_soft(self, s_id):
-    tempexpr = expr((1, self.max_numitfuncs))
-    for i in range(self.max_numitfuncs):
-      tempexpr.set_((0,i), self.s_n[s_id, i])
-    #
-    totaln = self.sumlist(tempexpr.get_row(0))
-    return totaln
-    #TODO: next line is causing s_n.value to be None after solution. Report as bug !
-    #return sum(self.s_n[s_id, :])*self.r_soft_grain
-
-  # modeling penalty and utility functions
-  """
-    Assumptions for simplicity of the initial modeling attempts;
-    * Penalty and utility functions are linear functions passing through
-    origin and can be defined by only its 'slope'
-    p_s: penalty func slope
-    u_s: utility func slope
-    --
-    App requirements will be reflected to the optimization problem by
-    auto-tune of penalty and utility functions (look at report for more)
-    In this case, three coupling types will tune 'function slopes' as;
-    Tight Coupling: p_s >> u_s
-    Loose Coupling: p_s ~ u_s
-    Dataflow Coupling: p_s << u_s
-  """
-  def P(self, s_id, expr_):
-    m_p = self.sessions_beingserved_dict[s_id]['app_pref_dict']['m_p']
-    x_p = self.sessions_beingserved_dict[s_id]['app_pref_dict']['x_p']
-    #return m_p*(expr_-x_p)
-    return cp.max( *(m_p*(expr_-x_p),0) )
-    
-  def U(self, s_id, expr_):
-    m_u = self.sessions_beingserved_dict[s_id]['app_pref_dict']['m_u']
-    x_u = self.sessions_beingserved_dict[s_id]['app_pref_dict']['x_u']
-    #return max( vstack(( m_u*(expr_-x_u),0 )) )
-    #return min( vstack(( -1*m_u*(expr_-x_u),0 )) )
-    return m_u*(expr_-x_u)
-
-  # objective functions
-  def F0(self):
-    return cp.max( *(self.s_pen_vector.get_row(0)) )
-
-  def F1(self):
-    return cp.min( *(self.s_util_vector.get_row(0)) )
-    
-  def F(self):
-    return self.F0() - self.scal_var*self.F1()
-  ###
-  def sumlist(self, l):
-    '''
-    sum_ = None
-    for i,e in enumerate(l):
-      if i == 0:
-        sum_ = e
-      else:
-        sum_ += e
-    return sum_
-    '''
-    '''
-    len_ = len(l)
-    temp = cp.Variable(1,len_, name='temp')
-    for i,e in enumerate(l):
-      temp[0,i] = e
-    #
-    return cp.sum_entries(temp)
-    '''
-    return sum(l)
-  '''
-  def r_stor__r_durXs_bw_map(self):
-    def norm2_square(l):
-      #l: python list
-      size = len(l)
-      if size == 0:
-        self.logger.error('r_stor__r_durXs_bw_map:: list is empty')
-        sys.exit(0)
-      #
-      l_ = [None]*size
-      for i in range(size):
-        l_[i] = cp.square(l[i])
-      return self.sumlist(l_)
-    # itr_storage requirement modeling for self.r_storstaging
-    for i in range(0, self.num_itr):
-      #dur_vector = self.r_dur2.get_column(i) #list, 1xN
-      bw_vector = self.a.get_row(0) #list, 1xN
-      #(|x|^2+|y|^2)/2 >= |x|.|y| >= <x,y>: actual_dur
-      upper_bound = (float)(0.001/2)*( norm2_square(bw_vector)+norm2_square(dur_vector) )
-      self.r_stor.set_((0,i), upper_bound)
-      
-      #(0.001/2)*( square(norm2(bw_vector))+square(norm2(dur_vector)) )
-      #(0.001/2)*( power_pos(norm2(bw_vector), 2)+power_pos(norm2(dur_vector), 2) )
-    self.logger.debug('r_stor__r_durXs_bw_map:: r_stor=\n%s', self.r_stor)
-  '''
-  
   def r_proc2dur2__r_procdur_map(self):
     par_proc2 = expr((self.N,self.num_itr))
     par_dur2 = expr((self.N,self.num_itr))
@@ -416,7 +318,7 @@ class SchingOptimizer:
       s_par_share = s_req_dict['par_share']
       s_pl = s_req_dict['parism_level']
       ps_info = self.sid_res_dict[s_id]['ps_info']
-      for p_id in range(0,s_pl):
+      for p_id in range(0, s_pl):
         num_itres = len(ps_info[p_id]['itres_list'])
         sp_ds = s_ds*s_par_share[p_id]
         
@@ -448,8 +350,147 @@ class SchingOptimizer:
     self.logger.debug('self.r_soft_vector=\n%s', self.r_soft_vector)
     self.logger.debug('self.s_pen_vector=\n%s', self.s_pen_vector)
     self.logger.debug('self.s_util_vector=\n%s', self.s_util_vector)
+  #####################################  Modeling functions  #######################################
+  def txprocdurtrans_time_model(self,s_id,p_id, datasize,comp_list,num_itres):
+    #datasize: MB, bw: Mbps
+    tx_t = (8*datasize)*cp.inv_pos(BWREGCONST*self.p_bw[s_id,p_id]) # sec
+    #proc: Mbps
+    numitfuncs = len(comp_list)
+    quadoverlin_vector = expr((1, numitfuncs))
+    for i, comp in enumerate(comp_list):
+      quadoverlin = comp*cp.quad_over_lin(self.s_n[s_id, i], self.p_proc.get((s_id,p_id)) )
+      quadoverlin_vector.set_((0,i), quadoverlin)
+    #
+    quadoverlin = (quadoverlin_vector.agg_to_column()).get((0,0))
+    
+    # IT_HOPE_OVERHEAD*(num_itres-1)
+    proc_t = num_itres* (8*datasize)*(quadoverlin) # sec
+    
+    stage_t = 0 #self.p_dur.get((s_id,p_id))
+    #
+    #trans_t = tx_t + proc_t + stage_t
+    #trans_t = cp.max(tx_t, proc_t)
+    trans_t = tx_t + proc_t
+    
+    return [tx_t, proc_t, stage_t, trans_t]
   
-  # Constraint functions
+  def R_hard(self, s_id):
+    '''
+    total_trans_time = max{ trans_time over each par_walk}
+    '''
+    s_pl = self.sessions_beingserved_dict[s_id]['req_dict']['parism_level']
+    ptranst_list = []
+    for p_id in range(0,s_pl):
+      ptranst_list.append(self.sp_trans.get((s_id,p_id)) )
+    #
+    if s_pl == 1:
+      return ptranst_list[0]
+    else:
+      return cp.max_elemwise(*ptranst_list)
+  
+  def R_soft(self, s_id):
+    tempexpr = expr((1, self.max_numitfuncs))
+    for i in range(self.max_numitfuncs):
+      tempexpr.set_((0,i), self.s_n[s_id, i])
+    #
+    totaln = self.sumlist(tempexpr.get_row(0))
+    return totaln
+    #TODO: next line is causing s_n.value to be None after solution. Report as bug !
+    #return sum(self.s_n[s_id, :])*self.r_soft_grain
+
+  # modeling penalty and utility functions
+  """
+    Assumptions for simplicity of the initial modeling attempts;
+    * Penalty and utility functions are linear functions passing through
+    origin and can be defined by only its 'slope'
+    p_s: penalty func slope
+    u_s: utility func slope
+    --
+    App requirements will be reflected to the optimization problem by
+    auto-tune of penalty and utility functions (look at report for more)
+    In this case, three coupling types will tune 'function slopes' as;
+    Tight Coupling: p_s >> u_s
+    Loose Coupling: p_s ~ u_s
+    Dataflow Coupling: p_s << u_s
+  """
+  def P(self, s_id, expr_):
+    m_p = self.sessions_beingserved_dict[s_id]['app_pref_dict']['m_p']
+    x_p = self.sessions_beingserved_dict[s_id]['app_pref_dict']['x_p']
+    #return m_p*(expr_-x_p)
+    return cp.max_elemwise( *(m_p*(expr_-x_p),0) )
+    
+  def U(self, s_id, expr_):
+    m_u = self.sessions_beingserved_dict[s_id]['app_pref_dict']['m_u']
+    x_u = self.sessions_beingserved_dict[s_id]['app_pref_dict']['x_u']
+    #return max( vstack(( m_u*(expr_-x_u),0 )) )
+    #return min( vstack(( -1*m_u*(expr_-x_u),0 )) )
+    return m_u*(expr_-x_u)
+
+  # objective functions
+  def F0(self):
+    if self.N > 1:
+      return cp.max_elemwise( *(self.s_pen_vector.get_row(0)) )
+    elif self.N == 1:
+      return self.s_pen_vector.get((0, 0))
+    else:
+      self.logger.error('F0:: erronous N = %s', self.N)
+    
+  def F1(self):
+    if self.N > 1:
+      return cp.min_elemwise( *(self.s_util_vector.get_row(0)) )
+    elif self.N == 1:
+      return self.s_util_vector.get((0, 0))
+    else:
+      self.logger.error('F1:: erronous N = %s', self.N)
+    
+  def F(self):
+    return self.F0() - self.scal_var*self.F1()
+  ###
+  def sumlist(self, l):
+    '''
+    sum_ = None
+    for i,e in enumerate(l):
+      if i == 0:
+        sum_ = e
+      else:
+        sum_ += e
+    return sum_
+    '''
+    '''
+    len_ = len(l)
+    temp = cp.Variable(1,len_, name='temp')
+    for i,e in enumerate(l):
+      temp[0,i] = e
+    #
+    return cp.sum_entries(temp)
+    '''
+    return sum(l)
+  '''
+  def r_stor__r_durXs_bw_map(self):
+    def norm2_square(l):
+      #l: python list
+      size = len(l)
+      if size == 0:
+        self.logger.error('r_stor__r_durXs_bw_map:: list is empty')
+        sys.exit(0)
+      #
+      l_ = [None]*size
+      for i in range(size):
+        l_[i] = cp.square(l[i])
+      return self.sumlist(l_)
+    # itr_storage requirement modeling for self.r_storstaging
+    for i in range(0, self.num_itr):
+      #dur_vector = self.r_dur2.get_column(i) #list, 1xN
+      bw_vector = self.a.get_row(0) #list, 1xN
+      #(|x|^2+|y|^2)/2 >= |x|.|y| >= <x,y>: actual_dur
+      upper_bound = (float)(0.001/2)*( norm2_square(bw_vector)+norm2_square(dur_vector) )
+      self.r_stor.set_((0,i), upper_bound)
+      
+      #(0.001/2)*( square(norm2(bw_vector))+square(norm2(dur_vector)) )
+      #(0.001/2)*( power_pos(norm2(bw_vector), 2)+power_pos(norm2(dur_vector), 2) )
+    self.logger.debug('r_stor__r_durXs_bw_map:: r_stor=\n%s', self.r_stor)
+  '''
+  #####################################  Constraint functions  ######################################
   def tt_epigraph_form_constraint(self):
     # trans_time_i <= tt_i ; i=0,1,2,3,...,N-1
     return [cp.vstack(*self.r_hard_vector.get_row(0)) <= self.tt.T]
@@ -516,6 +557,7 @@ class SchingOptimizer:
             [cp.vstack(*r_proc_agged_row.get_row(0)) <= cp.vstack(*r_proc_cap_list) ] # + \
             #[cp.vstack(*self.r_stor.get_row(0)) <= cp.vstack(*r_stor_cap_list) ]
   
+  #####################################  Support functions  ######################################
   def get_var_val(self, name, (i,j) ):
     if self.N == 1:
       return eval('self.%s.value' % name)
@@ -966,7 +1008,8 @@ class SchingOptimizer:
       #'''
       opts = {'maxiters': 500}
       #p.solve(verbose=True, solver=cp.CVXOPT, solver_specific_opts=opts.items())
-      p.solve(solver=cp.CVXOPT, solver_specific_opts=opts.items())
+      #p.solve(solver=cp.CVXOPT, solver_specific_opts=opts.items())
+      p.solve(solver=cp.CVXOPT)
       #'''
       #p.solve()
       print 'solved.took %s secs' % (time.time()-t_s)

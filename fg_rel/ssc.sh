@@ -1,5 +1,7 @@
 #!/bin/bash
-echo $1
+echo $1 $2 $3
+
+LSYNC_BIN_DIR=/home/mehmet/Desktop/lsyncd/install/bin
 
 VMUSRNAME=ubuntu
 VMPUBIP=149.165.159.16
@@ -52,13 +54,19 @@ elif [ $1  = 'fvm' ]; then
   else
     scp -r -i $VMKEYDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]}:~/mininet/mininet_rel/host_rel .
   fi
+elif [ $1  = 'sync' ]; then
+  #$LSYNC_BIN_DIR/./lsyncd lsyncd_conf -nodaemon -log all -rsyncssh $MINRELDIR ${VM_USRNAMES[$2]}@${VM_PUBIPS[$2]} /home/ubuntu/mininet/mininet_rel
+  $LSYNC_BIN_DIR/./lsyncd lsyncd_conf_mininet1
+  $LSYNC_BIN_DIR/./lsyncd lsyncd_conf_controller
+  read -p "Enter to finish sync..."
+  pkill -f lsyncd
 elif [ $1  = 'tvm' ]; then
   if [ $2 = -1 ]; then
     tar czf - $POXEXTDIR | ssh -l $VMUSRNAME -i $VMKEYDIR $VMPUBIP "tar xzf -; cp -r ~/ext ~/pox; rm -r ~/ext"
   elif [ $2 = 0 ]; then
-    tar czf - $POXEXTDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r ~/ext ~/pox; rm -r ~/ext"
+    #tar czf - $POXEXTDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r ~/ext ~/pox; rm -r ~/ext"
     #tar czf - $MINRELDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r $MINRELDIR ~/; rm -r ~/fg_mininet; cp -r ~/mininet_rel ~/mininet; rm -r ~/mininet_rel"
-    #tar czf - $FVRELDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r ~/fg_controller/fv_rel ~/; rm -r ~/fg_controller"
+    tar czf - $FVRELDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r ~/fg_controller/fv_rel ~/; rm -r ~/fg_controller"
     #tar czf - $FONTDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -"
   else
     #tar czf - $MINRELDIR | ssh -l ${VM_USRNAMES[$2]} -i $VMKEYDIR ${VM_PUBIPS[$2]} "tar xzf -; cp -r ~$MINRELDIR ~/; rm -r ~/home; cp -r ~/mininet_rel ~/mininet; rm -r ~/mininet_rel"

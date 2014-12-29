@@ -50,6 +50,42 @@ info_dict = {'acterl_addr':('127.0.0.1',7999), #192.168.56.1
 BWREGCONST = 1 #0.95
 ELAPSEDDSREGCONST = 1 #0.95
 
+'''
+class Scheduler:
+  def __init__(self, xml_net_num, sching_logto, data_over_tp)
+  recv_from_user(self, userinfo_dict, msg)
+  get_couplingdoneinfo_dict(self)
+  def get_sessionspreserved_dict(self)
+  def get_schingid_rescapalloc_dict(self)
+  def get_geninfo_dict(self)
+###  _handle_*** methods
+  def _handle_recvfromacter(self, msg)
+  def _handle_sendtouser(self, userinfo_dict, msg_str)
+  def _handle_recvfromuser(self, userinfo_dict, msg_)
+###  scher_state_management  methods
+  def init_network_from_xml(self)
+  def print_scher_state(self)
+  def next_sching_id(self)
+  def next_sch_req_id(self)
+  def next_tp_dst(self)
+  def did_user_joindts(self, user_ip)
+  def welcome_user(self, user_ip, user_mac, gw_dpid, gw_conn_port)
+  def bye_user(self, user_ip)
+  def welcome_session(self, p_c_ip_list, req_dict, app_pref_dict)
+  def bye_session(self, sch_req_id)
+###  sching_rel methods
+  def update_sid_res_dict(self)
+  def give_incintkeyform(self, flag, indict)
+  def do_sching(self)
+  def get_overtcp_spwalkrule__sptprrule(self,s_id,p_id,p_walk,pitwalkbundle_dict)
+  def get_overudp_spwalkrule__sptprrule(self,s_id,p_id,p_walk,pitwalkbundle_dict)
+###
+  def exp(self)
+  def run_sching(self)
+  def test(self, num_session)
+  def main()
+'''
+
 class Scheduler(object):
   event_chief = EventChief()
   def __init__(self, xml_net_num, sching_logto, data_over_tp):
@@ -90,7 +126,7 @@ class Scheduler(object):
     self.sessionsbeingserved_dict = {}
     self.sessionspreserved_dict = {}
     self.sid_res_dict = {}
-    self.actual_res_dict = self.gm.give_actual_resource_dict()
+    self.actual_res_dict = self.gm.get_actual_resource_dict()
     #for perf plotting
     #self.perf_plotter = PerfPlotter(self.actual_res_dict)
     #for control_comm
@@ -194,7 +230,7 @@ class Scheduler(object):
     #
 
   def _handle_sendtouser(self, userinfo_dict, msg_str):
-    Scheduler.event_chief.raise_event('send_msg_to_user',msg_str,userinfo_dict)
+    Scheduler.event_chief.raise_event('send_msg_to_user', msg_str, userinfo_dict)
     
   def _handle_recvfromuser(self, userinfo_dict, msg_):
     user_ip = userinfo_dict['user_ip']
@@ -250,6 +286,15 @@ class Scheduler(object):
       self.couplinginfo_dict[sch_req_id]['coupling_done'] = data_
     
   ####################  scher_state_management  methods  #######################
+  def init_network_from_xml(self):
+    node_edge_lst = self.xml_parser.give_node_and_edge_list_from_xml()
+    #print 'node_lst:'
+    #pprint.pprint(node_edge_lst['node_lst'])
+    #print 'edge_lst:'
+    #pprint.pprint(node_edge_lst['edge_lst'])
+    self.gm.graph_add_nodes(node_edge_lst['node_lst'])
+    self.gm.graph_add_edges(node_edge_lst['edge_lst'])
+  
   def print_scher_state(self):
     print '<---------------------------------------->'
     print 'is_scheduler_run: ', is_scheduler_run
@@ -300,9 +345,9 @@ class Scheduler(object):
     return True
   
   def welcome_session(self, p_c_ip_list, req_dict, app_pref_dict):
-    ''' sch_req_id: should be unique for every sch_session '''
+    #sch_req_id: should be unique for every sch_session
     [p_ip, c_ip] = p_c_ip_list
-    if not (self.did_user_joindts(p_ip) and self.did_user_joindts(c_ip)):
+    if not (self.did_user_joindts(p_ip) and self.did_user_joindts(c_ip) ):
       print 'nonjoined user in sching_req'
       return -1
     #
@@ -335,15 +380,7 @@ class Scheduler(object):
     del self.sid_res_dict[sch_req_id]
     #
     print 'bye_session:: bye sch_req_id=%s, session_info=\n%s' % (sch_req_id, pprint.pformat(self.sessionspreserved_dict[sch_req_id]))
-  
-  def init_network_from_xml(self):
-    node_edge_lst = self.xml_parser.give_node_and_edge_list_from_xml()
-    #print 'node_lst:'
-    #pprint.pprint(node_edge_lst['node_lst'])
-    #print 'edge_lst:'
-    #pprint.pprint(node_edge_lst['edge_lst'])
-    self.gm.graph_add_nodes(node_edge_lst['node_lst'])
-    self.gm.graph_add_edges(node_edge_lst['edge_lst'])
+
   #########################  sching_rel methods  ###############################
   def update_sid_res_dict(self):
     """
@@ -365,7 +402,7 @@ class Scheduler(object):
         
       logging.info('s_id=%s, all_paths=\n%s', s_id, pprint.pformat(dict_))
       #
-      for i,p in dict_.items():
+      for i, p in dict_.items():
         p_net_edge_list = self.gm.pathlist_to_netedgelist(p)
         p_itres_list = self.gm.give_itreslist_on_path(p)
         if not (s_id in self.sid_res_dict):
@@ -373,8 +410,7 @@ class Scheduler(object):
         self.sid_res_dict[s_id]['ps_info'].update(
           {i: {'path': p,
                'net_edge_list': p_net_edge_list,
-               'itres_list': p_itres_list
-              }  }  )
+               'itres_list': p_itres_list }  }  )
   '''
   def update_sid_schregid_dict(self):
     self.sid_schregid_dict = {}
@@ -398,9 +434,8 @@ class Scheduler(object):
   
   def do_sching(self):
     '''
-    Currently for active sessions, gets things together to work sching logic and
-    then sends corresponding walk/itjob rules to correspoding actuator - which is
-    a single actuator right now !
+    Currently for active sessions, gets things together to work sching logic and then sends corresponding 
+    walk/itjob rules to correspoding actuator - which is a single actuator right now !
     '''
     sching_id = self.next_sching_id()
     if self.sching_logto == 'file':
@@ -408,7 +443,6 @@ class Scheduler(object):
       logging.basicConfig(filename=fname,filemode='w',level=logging.DEBUG)
     elif self.sching_logto == 'console':
       logging.basicConfig(level=logging.DEBUG)
-    #
     #'''
     for sch_req_id, sinfo in self.sessionsbeingserved_dict.items():
       if 'schedtime_list' in sinfo:
@@ -422,11 +456,10 @@ class Scheduler(object):
           elapsed_datasize = ELAPSEDDSREGCONST*float(tobeproceddatasize*float(elapsed_time))/tobeproceddata_transt
         else:
           elapsed_datasize = tobeproceddatasize + float(BWREGCONST*(sinfo['bw_list'][-1])*elapsed_time)/8
-        #
+         #
         sinfo['req_dict']['slack_metric'] = sinfo['slackmetric_list'][-1] - elapsed_time
         sinfo['req_dict']['data_size'] -= elapsed_datasize
       #
-    #
     #'''
     logging.info('do_sching:: sching_id=%s started;', sching_id)
     self.update_sid_res_dict()
@@ -837,11 +870,11 @@ class Scheduler(object):
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
     #data_size (MB) slack_metric (ms)
-    req_dict_list = [ {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+    req_dict_list = [ {'data_size':100, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'data_size':100, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                     ]
     app_pref_dict_list = [
                           {'m_p': 0.5,'m_u': 0.5,'x_p': 0,'x_u': 0},
@@ -862,35 +895,6 @@ class Scheduler(object):
     #
     #self.run_sching()
     self.do_sching()
-    '''
-    #converting schingid_rescapalloc_dict to resid_rescapalloc_dict
-    print '-----------------------'
-    schingid_rescapalloc_dict = self.get_schingid_rescapalloc_dict()
-    print 'schingid_rescapalloc_dict=\n%s' % pprint.pformat(schingid_rescapalloc_dict)
-    resid_rescapalloc_dict = {}
-    for sching_id, rescapalloc_dict in schingid_rescapalloc_dict.items():
-      for res_id, rescapalloc in rescapalloc_dict.items():
-        if not res_id in resid_rescapalloc_dict:
-          resid_rescapalloc_dict[res_id] = {}
-        #
-        resid_rescapalloc_dict[res_id][sching_id] = rescapalloc
-    #
-    print 'resid_rescapalloc_dict=\n%s' % pprint.pformat(resid_rescapalloc_dict)
-    '''
-    '''
-    expschingtime_data = ''
-    for i in range(num_session):
-      self.welcome_session(p_c_ip_list = p_c_ip_list_list[int(i%3)],
-                           req_dict = req_dict_list[int(i%5)],
-                           app_pref_dict = app_pref_dict_list[int(i%5)] )
-      schingstart_time = time.time()
-      self.run_sching()
-      schingdur = time.time() - schingstart_time
-      expschingtime_data += str(i+1) + ' ' + str(schingdur) + '\n'
-    #
-    print 'expschingtime_data=\n%s' % expschingtime_data
-    #
-    '''
     
 is_scheduler_run = False
 def main():
@@ -900,7 +904,7 @@ def main():
                   sching_logto = 'console',
                   data_over_tp = 'tcp')
   
-  sch.test(num_session = 3)
+  sch.test(num_session = 2)
   #
   raw_input('Enter')
   

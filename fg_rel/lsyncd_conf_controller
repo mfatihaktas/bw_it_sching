@@ -1,0 +1,17 @@
+settings {
+  nodaemon = false,
+}
+
+sync {
+  default.rsyncssh,
+  source = "/home/mehmet/Desktop/sim_rel-/ext",
+  host = "ubuntu@149.165.159.11",
+  targetdir = "/home/ubuntu/pox/ext",
+  rsync = {
+  archive = true,
+    compress = true
+  },
+  ssh = {
+    identityFile = "/home/mehmet/Desktop/sim_rel-/fg_rel/keys/mininet-key"
+  }
+}
