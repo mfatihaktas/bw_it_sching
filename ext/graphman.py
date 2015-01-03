@@ -4,12 +4,6 @@ import json
 import networkx as nx
 from collections import namedtuple
 
-# used to adjust computational time difference between diff functions
-func_tcomplexity_dict = {
-  'f1':1.1, 'f2':1.2, 'f3':1.3, 
-  'f4':1.4, 'f5':1.5, 'f6':1.6
-}
-
 class GraphMan(object):
   def __init__(self):
     self.g = nx.Graph()
@@ -50,7 +44,12 @@ class GraphMan(object):
     if src == trgt:
       return [ [src] ]
     #
-    return nx.all_simple_paths(self.g, source=src, target=trgt)
+    paths = nx.all_simple_paths(self.g, source=src, target=trgt)
+    path_list = []
+    for path in paths:
+      path_list.append(path)
+    
+    return path_list
   
   def get_actual_resource_dict(self):
     dict_ = {"overview":{}, "res_id_map":{}, "id_info_map":{}}

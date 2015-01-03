@@ -9,8 +9,8 @@ import pprint,json
 
 class RuleParser (object):
   def __init__ (self, walkrule_xmlfile_url, itjobrule_xmlfile_url):
-    self.walkrule_xmlfile_url=walkrule_xmlfile_url
-    self.itjobrule_xmlfile_url=itjobrule_xmlfile_url
+    self.walkrule_xmlfile_url = walkrule_xmlfile_url
+    self.itjobrule_xmlfile_url = itjobrule_xmlfile_url
     #
     self.walkrule_tree = ET.parse(walkrule_xmlfile_url)
     self.itjobrule_tree = ET.parse(itjobrule_xmlfile_url)
@@ -42,17 +42,15 @@ class RuleParser (object):
   
 ####################  For scheditjob_xmlfile operations #########################
   def modify_scheditjobxmlfile_by_itjobrule(self, s_id, p_id, conn_itjobrulelist_dict):
-    '''
-    Modify the scheditjob_xmlfile according to newly rxed itjobrule
-     - s_id and p_id are string
-    '''
+    # Modify the scheditjob_xmlfile according to newly rxed itjobrule
+    # - s_id and p_id are string
     for child in self.itjobrule_root:
-      if child.get('s_id') == s_id and child.get('p_id') == p_id:
-        self.itjobrule_root.remove(child) #old itjobrule for session is deleted
-    #write the new s_itjobrule
+      if child.get('s_id') == s_id:
+        # Delete old itjobrule for the session
+        self.itjobrule_root.remove(child)
+    # Write new itjobrule for the session
     new_session = ET.Element('session')
     new_session.set('s_id', s_id)
-    new_session.set('p_id', p_id)
     for conn_dpid,itjobrule_list in conn_itjobrulelist_dict.items():
       new_conn = ET.SubElement(new_session, 'connection')
       new_conn.set('dpid', conn_dpid)
@@ -62,7 +60,7 @@ class RuleParser (object):
         new_uptojobinfo = ET.SubElement(new_itjob, 'uptojobinfo')
         for uptoitrjob in itjobrule['uptoitrjob_list']:
           new_uptoitrjob = ET.SubElement(new_uptojobinfo, 'uptoitrjob')
-          new_uptoitrjob.set('proc', str(uptoitrjob['proc']))
+          new_uptoitrjob.set('proc', struptoitrjob['proc'])
           for itfunc,n in uptoitrjob['itfunc_dict'].items():
             new_itfunc = ET.SubElement(new_uptoitrjob, 'func')
             new_itfunc.set('n',str(n))
@@ -95,18 +93,18 @@ class RuleParser (object):
     """
     self.itjobrule_tree.write(self.itjobrule_xmlfile_url)
   
-  def get_itjobruledict_forsp(self, s_id, p_id):
-    #s_id and p_id are string
+  def get_itjobruledict_forsp(self, s_id):
+    #s_id is string
     #hmfromdpid_dict = {}
     dict_ = {} #conndpid_itjoblist
     for session in self.itjobrule_root:
-      if session.get('s_id') == s_id and session.get('p_id') == p_id:
+      if session.get('s_id') == s_id:
         for conn in session.iter('connection'):
           dpid = conn.get('dpid')
           dict_[dpid] = []
           for itjob in conn.iter('itjob'):
             itjob_dict = {}
-            #
+            
             uptojobinfo = itjob.find('uptojobinfo')
             uptoitrjob_list = []
             for uptoitrjob in uptojobinfo.iter('uptoitrjob'):
@@ -115,9 +113,8 @@ class RuleParser (object):
               itfunc_dict = {}
               for func in uptoitrjob.iter('func'):
                 itfunc_dict[func.get('tag')] = float(func.get('n'))
-              #
+              
               uptoitrjob_['itfunc_dict'] = itfunc_dict
-              #
               uptoitrjob_list.append(uptoitrjob_)
             #
             jobinfo = itjob.find('jobinfo')
@@ -143,17 +140,15 @@ class RuleParser (object):
   
 ####################  For schedwalk_xmlfile operations #########################
   def modify_schedwalkxmlfile_by_walkrule(self, s_id, p_id, walkrule):
-    '''
-    Modify the schedwalk_xmlfile according to newly rxed walkrule
-     - s_id and p_id are string
-    '''
+    # Modify the schedwalk_xmlfile according to newly rxed walkrule
+    # - s_id and p_id are string
     for child in self.walkrule_root:
-      if child.get('s_id') == s_id and child.get('p_id') == p_id:
-        self.walkrule_root.remove(child) #old walkrule for session is deleted
-    #write the new s_walkrule
+      if child.get('s_id') == s_id:
+        # Delete old walkrule for the session
+        self.walkrule_root.remove(child)
+    # Write the new walkrule for the session
     new_session = ET.Element('session')
     new_session.set('s_id', s_id)
-    new_session.set('p_id', p_id)
     for step_dict in walkrule:
       new_conn = ET.SubElement(new_session, 'connection')
       new_conn.set('dpid', str(step_dict['conn'][0]))
@@ -184,19 +179,17 @@ class RuleParser (object):
         raise ParseError('Unexpected type', new_type.text)
     self.walkrule_root.append((new_session))
     self.indent(self.walkrule_root,0)
-    """
-    print '***'
-    print ET.dump(self.walkrule_root)
-    print '***'
-    """
+    # print '***'
+    # print ET.dump(self.walkrule_root)
+    # print '***'
     self.walkrule_tree.write(self.walkrule_xmlfile_url)
   
-  def get_walkruledict_forsp(self, s_id, p_id):
-    #s_id and p_id are string
+  def get_walkruledict_forsp(self, s_id):
+    # s_id is string
     hmfromdpid_dict = {}
     dict_ = {}
     for session in self.walkrule_root:
-      if session.get('s_id') == s_id and session.get('p_id') == p_id:
+      if session.get('s_id') == s_id:
         for conn in session.iter('connection'):
           dpid = conn.get('dpid')
           #
@@ -235,55 +228,10 @@ class RuleParser (object):
           tup = dpid, hmfromdpid_dict[dpid]
           dict_[tup] = { 'typ': typ, 'wc_dict': wc_dict, 'rule_dict': rule_dict}
         return [dict_, hmfromdpid_dict]
-  """
-  #by sending json_walkrule from scher to cont1, (not in xml_walkrule)
-  #DEPRECATED
-  def rule_dict_rxed_cmd_from_sch(self, xml_walkrule):
-    dict_ = {}
-    root = ET.fromstring(xml_walkrule)
-    for child in root:
-      #print "child.get('number'): ", child.get('number')
-      s_id = child.get('number')
-      dict_[s_id] = {}
-      for conn in child.iter('connection'):
-        dpid = conn.get('dpid')
-        fromm = conn.get('from')
-        tup = dpid, fromm
-
-        typ = conn.find('type').text
-        wc = conn.find('wildcards')
-        wc_dict = {}
-        wc_dict['src_ip'] = wc.get('src_ip')
-        wc_dict['dst_ip'] = wc.get('dst_ip')
-        wc_dict['tp_dst'] = wc.get('tp_dst')
-
-        rule = conn.find('rule')
-        rule_dict = {}
-        if typ == 'forward':
-          rule_dict['fport'] = rule.get('fport')
-          rule_dict['duration'] = rule.get('duration')
-        elif typ == 'modify_forward':
-          rule_dict['new_dst_ip'] = rule.get('new_dst_ip')
-          rule_dict['new_dst_mac'] = rule.get('new_dst_mac')
-          rule_dict['fport'] = rule.get('fport')
-          rule_dict['duration'] = rule.get('duration')
-        else:
-          print 'Unrecognized rule type'
-
-        dict_[s_id][tup] = { 'typ': typ, 'wc_dict': wc_dict, 'rule_dict': rule_dict}
-
-    return dict_
-  """
+        
 ###################################  OOO  ######################################
 def main():
   my_p = RuleParser('schedwalks.xml', 'scheditjobs.xml')
-  '''
-  rule_dict = my_p.walkrule_dict_for_session_I('1')
-  for k,v in rule_dict.iteritems():
-    print k, "- ", v, "\n"
-  
-  print my_p.hmfromdpid_dict
-  '''
   itjob_rule ={'1': [{'assigned_job': {'comp': 2.8333333331303283,
                                        'itfunc_dict': {'f1': 2, 'f2': 0.8333333331303283},
                                        'proc': 288.9353187878799},
@@ -309,11 +257,10 @@ def main():
                       'swdev_to_tpr': 's3-eth3',
                       'tpr_ip': '10.0.0.31',
                       'tpr_mac': '00:00:00:00:03:01'}]}
-  s_id, p_id = '0', '0'
-  my_p.modify_scheditjobxmlfile_by_itjobrule(s_id, p_id, itjob_rule)
-  itjobrule = my_p.get_itjobruledict_forsp(s_id, p_id)
-  print 'itjobrule:'
-  pprint.pprint(itjobrule)
+  s_id = '0'
+  my_p.modify_scheditjobxmlfile_by_itjobrule(s_id, itjob_rule)
+  itjobrule = my_p.get_itjobruledict_forsp(s_id)
+  print 'itjobrule= %s' % pprint.pformat(itjobrule)
 
 if __name__ == "__main__":
   main()

@@ -2,7 +2,7 @@ import json,pprint,os,inspect,sys,logging,time,copy
 from xmlparser import XMLParser
 from graphman import GraphMan
 from scheduling_optimization_new import SchingOptimizer
-#from perf_plot import PerfPlotter
+# from perf_plot import PerfPlotter
 from control_comm_intf import ControlCommIntf
 from dtsuser_comm_intf import DTSUserCommIntf
 
@@ -51,39 +51,34 @@ BWREGCONST = 1 #0.95
 ELAPSEDDSREGCONST = 1 #0.95
 
 '''
-class Scheduler:
-  def __init__(self, xml_net_num, sching_logto, data_over_tp)
-  recv_from_user(self, userinfo_dict, msg)
-  get_couplingdoneinfo_dict(self)
-  def get_sessionspreserved_dict(self)
-  def get_schingid_rescapalloc_dict(self)
-  def get_geninfo_dict(self)
-###  _handle_*** methods
-  def _handle_recvfromacter(self, msg)
-  def _handle_sendtouser(self, userinfo_dict, msg_str)
-  def _handle_recvfromuser(self, userinfo_dict, msg_)
-###  scher_state_management  methods
-  def init_network_from_xml(self)
-  def print_scher_state(self)
-  def next_sching_id(self)
-  def next_sch_req_id(self)
-  def next_tp_dst(self)
-  def did_user_joindts(self, user_ip)
-  def welcome_user(self, user_ip, user_mac, gw_dpid, gw_conn_port)
-  def bye_user(self, user_ip)
-  def welcome_session(self, p_c_ip_list, req_dict, app_pref_dict)
-  def bye_session(self, sch_req_id)
-###  sching_rel methods
-  def update_sid_res_dict(self)
-  def give_incintkeyform(self, flag, indict)
-  def do_sching(self)
-  def get_overtcp_spwalkrule__sptprrule(self,s_id,p_id,p_walk,pitwalkbundle_dict)
-  def get_overudp_spwalkrule__sptprrule(self,s_id,p_id,p_walk,pitwalkbundle_dict)
-###
-  def exp(self)
-  def run_sching(self)
-  def test(self, num_session)
-  def main()
+class Scheduler(object):
+def __init__(self, xml_net_num, sching_logto, data_over_tp):
+def get_couplingdoneinfo_dict(self):
+def get_sessionspreserved_dict(self):
+def get_schingid_rescapalloc_dict(self):
+def get_geninfo_dict(self):
+###################################  _handle_*** methods  ##########################################
+def _handle_recvfromacter(self, msg):
+def _handle_sendtouser(self, userinfo_dict, msg_str):
+def _handle_recvfromuser(self, userinfo_dict, msg_):
+def init_network_from_xml(self):
+def print_scher_state(self):
+def next_sching_id(self):
+def next_sch_req_id(self):
+def next_tp_dst(self):
+def did_user_joindts(self, user_ip):
+def welcome_user(self, user_ip, user_mac, gw_dpid, gw_conn_port):
+def bye_user(self, user_ip):
+def welcome_session(self, p_c_ip_list, req_dict, app_pref_dict):
+def bye_session(self, sch_req_id):
+###################################  Sching rel methods  ###########################################
+def update_sid_res_dict(self):
+def give_incintkeyform(self, flag, indict):
+def do_sching(self):
+def get_overtcp_session_walk_rule_list__itjob_rule_dict(self, s_id, s_walk_list, s_itwalk_dict):
+def exp(self):
+def run_sching(self):
+def test(self, num_session):
 '''
 
 class Scheduler(object):
@@ -141,7 +136,7 @@ class Scheduler(object):
     #self.exp()
     
     self.couplinginfo_dict = {}
-    self.startedtime = time.time()
+    self.starting_time = time.time()
     #
     self.sid_schregid_dict = {}
     self.schingid_rescapalloc_dict = {}
@@ -168,14 +163,14 @@ class Scheduler(object):
   
   def get_geninfo_dict(self):
     return self.geninfo_dict
-  #########################  _handle_*** methods  #######################
+  ###################################  _handle_*** methods  ##########################################
   def _handle_recvfromacter(self, msg):
     #msg = [type_, data_]l
     [type_, data_] = msg
-    if type_ == 'sp_sching_reply' or type_ == 'resp_sching_reply':
+    if type_ == 's_sching_reply' or type_ == 'res_sching_reply':
       reply = data_['reply']
       #
-      s_id, p_id = int(data_['s_id']), int(data_['p_id'])
+      s_id = int(data_['s_id'])
       sch_req_id = self.sid_schregid_dict[s_id]
       s_info = self.sessionsbeingserved_dict[sch_req_id]
       [p_ip, c_ip] = s_info['p_c_ip_list']
@@ -185,33 +180,30 @@ class Scheduler(object):
                        'gw_dpid': user_info['gw_dpid'],
                        'gw_conn_port': user_info['gw_conn_port'] }
       if reply == 'done':
-        self.sessionsbeingserved_dict[sch_req_id]['sching_job_done'][p_id] = True
+        s_info['sching_job_done'] = True
         #get s_alloc_info
         s_alloc_info = self.alloc_dict['s-wise'][s_id]
-        s_pl = s_alloc_info['parism_level']
         #
         type_touser = None
-        if type_ == 'sp_sching_reply':
+        if type_ == 's_sching_reply':
           type_touser = 'sching_reply'
-        elif type_ == 'resp_sching_reply':
+        elif type_ == 'res_sching_reply':
           type_touser = 'resching_reply'
         #to producer
         msg = {'type':type_touser,
                'data':{'sch_req_id': sch_req_id,
-                       'parism_level':s_pl,
-                       'p_bw':s_alloc_info['p_bw'][0:s_pl],
-                       'p_tp_dst':s_info['tp_dst_list'][0:s_pl] } }
+                       'bw':s_alloc_info['bw'],
+                       'tp_dst':s_info['tp_dst'] } }
         if self.dtsuser_intf.relsend_to_user(user_ip = p_ip,
                                              msg = msg ) == 0:
           print 'Couldnt send msg=%s, \nuserinfo_dict=%s' % (pprint.pformat(msg), pprint.pformat(userinfo_dict))
         else:
           print 'sent msg=%s' % pprint.pformat(msg)
         #to consumer
-        if type_ == 'sp_sching_reply': #no need to resend for resching
+        if type_ == 's_sching_reply': #no need to resend for resching
           msg = {'type':type_touser,
                  'data':{'sch_req_id': sch_req_id,
-                         'parism_level':s_pl,
-                         'p_tp_dst':s_info['tp_dst_list'][0:s_pl] } }
+                         'tp_dst':s_info['tp_dst'] } }
           if self.dtsuser_intf.relsend_to_user(user_ip = c_ip,
                                                msg = msg ) == 0:
             print 'Couldnt send msg=%s, \nuserinfo_dict=%s' % (pprint.pformat(msg), pprint.pformat(userinfo_dict))
@@ -356,15 +348,14 @@ class Scheduler(object):
     #update global var, list and dicts
     self.N += 1
     s_pl = req_dict['parism_level']
-    s_tp_dst_list = [self.next_tp_dst() for i in range(s_pl)]
     sch_req_id = self.next_sch_req_id()
     self.sessionsbeingserved_dict.update(
-      {sch_req_id:{'tp_dst_list': s_tp_dst_list,
+      {sch_req_id:{'tp_dst': self.next_tp_dst(),
                    'p_c_ip_list': p_c_ip_list,
                    'p_c_gwtag_list': p_c_gwtag_list,
                    'app_pref_dict': app_pref_dict,
                    'req_dict': req_dict,
-                   'sching_job_done':[False]*s_pl }
+                   'sching_job_done': False }
       }
     )
     #print 'self.sessionsbeingserved_dict: '
@@ -381,36 +372,28 @@ class Scheduler(object):
     #
     print 'bye_session:: bye sch_req_id=%s, session_info=\n%s' % (sch_req_id, pprint.pformat(self.sessionspreserved_dict[sch_req_id]))
 
-  #########################  sching_rel methods  ###############################
+  ###################################  Sching rel methods  ###########################################
   def update_sid_res_dict(self):
     """
     Network resources will be only the ones on the session_shortest path.
     It resources need to lie on the session_shortest path.
     """
-    logging.info('update_sid_res_dict::')
     #TODO: sessions whose resources are already specified no need for putting them in the loop
     for s_id in self.sessionsbeingserved_dict:
       p_c_gwdpid_list = self.sessionsbeingserved_dict[s_id]['p_c_gwtag_list']
       s_all_paths = self.gm.give_all_paths(p_c_gwdpid_list[0], p_c_gwdpid_list[1])
-      # s_all_paths = [self.gm.give_all_paths(p_c_gwdpid_list[0], p_c_gwdpid_list[1])[0] ]
-      #print forward all_paths for debugging
-      # dict_ = {i:p for i,p in enumerate(s_all_paths)}
-      dict_ = {}
-      for i,p in enumerate(s_all_paths):
-        dict_[i] = p
-        break
-        
-      logging.info('s_id=%s, all_paths=\n%s', s_id, pprint.pformat(dict_))
+      #TODO: pick a path using heuristic
+      s_path = s_all_paths[0]
+      logging.debug('update_sid_res_dict:: s_id=%s, path=\n%s', s_id, pprint.pformat(s_path))
       #
-      for i, p in dict_.items():
-        p_net_edge_list = self.gm.pathlist_to_netedgelist(p)
-        p_itres_list = self.gm.give_itreslist_on_path(p)
-        if not (s_id in self.sid_res_dict):
-          self.sid_res_dict[s_id] = {'s_info':{}, 'ps_info':{}}
-        self.sid_res_dict[s_id]['ps_info'].update(
-          {i: {'path': p,
-               'net_edge_list': p_net_edge_list,
-               'itres_list': p_itres_list }  }  )
+      net_edge_list = self.gm.pathlist_to_netedgelist(s_path)
+      itr_list = self.gm.give_itreslist_on_path(s_path)
+      if not (s_id in self.sid_res_dict):
+        self.sid_res_dict[s_id] = {'s_info':{}, 'path_info':{}}
+      self.sid_res_dict[s_id]['path_info'].update(
+        {'path': s_path,
+         'net_edge_list': net_edge_list,
+         'itr_list': itr_list } )
   '''
   def update_sid_schregid_dict(self):
     self.sid_schregid_dict = {}
@@ -433,34 +416,31 @@ class Scheduler(object):
     return outdict
   
   def do_sching(self):
-    '''
-    Currently for active sessions, gets things together to work sching logic and then sends corresponding 
-    walk/itjob rules to correspoding actuator - which is a single actuator right now !
-    '''
+    # Currently for active sessions, gets things together to work sching logic and then sends corresponding 
+    # walk/itjob rules to correspoding actuator - which is a single actuator right now !
     sching_id = self.next_sching_id()
     if self.sching_logto == 'file':
       fname = 'ext/sching_decs/sching_'+sching_id+'.log'
       logging.basicConfig(filename=fname,filemode='w',level=logging.DEBUG)
     elif self.sching_logto == 'console':
       logging.basicConfig(level=logging.DEBUG)
-    #'''
+
     for sch_req_id, sinfo in self.sessionsbeingserved_dict.items():
-      if 'schedtime_list' in sinfo:
-        elapsed_time = (time.time() - self.startedtime - sinfo['schedtime_list'][-1])
-        #elapsed_datasize = sinfo['req_dict']['data_size']*elapsed_time/ #MB
-        #elapsed_datasize = sinfo['req_dict']['data_size'] - float(sinfo['bw_list'][-1]*elapsed_time)/8 #MB
+      if 'sched_time_list' in sinfo:
+        elapsed_time = (time.time() - self.starting_time - sinfo['sched_time_list'][-1])
+        # elapsed_datasize = sinfo['req_dict']['datasize']*elapsed_time/ #MB
+        # elapsed_datasize = sinfo['req_dict']['datasize'] - float(sinfo['bw_list'][-1]*elapsed_time)/8 #MB
         elapsed_datasize = None
-        tobeproceddata_transt = sinfo['tobeproceddata_transt_list'][-1]
-        tobeproceddatasize = sinfo['tobeproceddatasize_list'][-1]
-        if elapsed_time < tobeproceddata_transt:
-          elapsed_datasize = ELAPSEDDSREGCONST*float(tobeproceddatasize*float(elapsed_time))/tobeproceddata_transt
+        tobeproced_data_transt = sinfo['tobeproced_data_transt_list'][-1]
+        tobeproced_datasize = sinfo['tobeproced_datasize_list'][-1]
+        if elapsed_time < tobeproced_data_transt:
+          elapsed_datasize = ELAPSEDDSREGCONST*float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
         else:
-          elapsed_datasize = tobeproceddatasize + float(BWREGCONST*(sinfo['bw_list'][-1])*elapsed_time)/8
+          elapsed_datasize = tobeproced_datasize + float(BWREGCONST*(sinfo['bw_list'][-1])*elapsed_time)/8
          #
-        sinfo['req_dict']['slack_metric'] = sinfo['slackmetric_list'][-1] - elapsed_time
-        sinfo['req_dict']['data_size'] -= elapsed_datasize
+        sinfo['req_dict']['slack_metric'] = sinfo['slack_metric_list'][-1] - elapsed_time
+        sinfo['req_dict']['datasize'] -= elapsed_datasize
       #
-    #'''
     logging.info('do_sching:: sching_id=%s started;', sching_id)
     self.update_sid_res_dict()
     #self.update_sid_schregid_dict()
@@ -473,136 +453,117 @@ class Scheduler(object):
     #
     self.alloc_dict = sching_opter.get_sching_result()
     logging.info('do_sching:: alloc_dict=\n%s', pprint.pformat(self.alloc_dict))
-    #'''
     for s_id, salloc in self.alloc_dict['s-wise'].items():
       sch_req_id = self.sid_schregid_dict[s_id]
       sinfo = self.sessionsbeingserved_dict[sch_req_id]
-      if not 'schedtime_list' in sinfo:
-        sinfo['schedtime_list'] = []
-        sinfo['slackmetric_list'] = []
+      if not 'sched_time_list' in sinfo:
+        sinfo['sched_time_list'] = []
+        sinfo['slack_metric_list'] = []
         sinfo['bw_list'] = []
         sinfo['datasize_list'] = []
-        sinfo['tobeproceddatasize_list'] = []
-        sinfo['tobeproceddata_transt_list'] = []
+        sinfo['tobeproced_datasize_list'] = []
+        sinfo['tobeproced_data_transt_list'] = []
       #
-      sinfo['schedtime_list'].append(time.time()-self.startedtime)
-      sinfo['slackmetric_list'].append(sinfo['req_dict']['slack_metric'])
+      sinfo['sched_time_list'].append(time.time() - self.starting_time)
+      sinfo['slack_metric_list'].append(sinfo['req_dict']['slack_metric'])
       sinfo['bw_list'].append(salloc['bw'])
-      sinfo['datasize_list'].append(sinfo['req_dict']['data_size'])
-      sinfo['tobeproceddatasize_list'].append(salloc['tobeproceddatasize'])
-      sinfo['tobeproceddata_transt_list'].append(salloc['tobeproceddata_transt'])
+      sinfo['datasize_list'].append(sinfo['req_dict']['datasize'])
+      sinfo['tobeproced_datasize_list'].append(salloc['tobeproced_datasize'])
+      sinfo['tobeproced_data_transt_list'].append(salloc['tobeproced_data_transt'])
       
       sinfo['trans_time'] = salloc['trans_time']
-    #'''
-    #res capacity allocation distribution over sessions
+    # Resource capacity allocation distribution over sessions
     self.schingid_rescapalloc_dict[sching_id] = self.alloc_dict['res-wise']
     self.geninfo_dict = self.alloc_dict['general']
-    #
-    """
-    logging.info('saving sching_dec to figs...')
-    self.perf_plotter.save_sching_result(g_info_dict = self.alloc_dict['general'],
-                                         s_info_dict = self.alloc_dict['s-wise'],
-                                         res_info_dict = self.alloc_dict['res-wise'])
-    """
+    
+    # logging.info('saving sching_dec to figs...')
+    # self.perf_plotter.save_sching_result(g_info_dict = self.alloc_dict['general'],
+    #                                     s_info_dict = self.alloc_dict['s-wise'],
+    #                                     res_info_dict = self.alloc_dict['res-wise'])
     #Convert sching decs to rules
     for s_id in range(self.N):
       s_allocinfo_dict = self.alloc_dict['s-wise'][s_id]
+      
+      s_itwalk_dict = s_allocinfo_dict['itwalk_dict']
+      s_walk_list = s_allocinfo_dict['walk_list']
+      if not self.data_over_tp == 'tcp':
+        logging.error("do_sching:: Unexpected data_over_tp= %s", self.data_over_tp)
       #
-      itwalkinfo_dict = s_allocinfo_dict['itwalkinfo_dict']
-      p_walk_dict = s_allocinfo_dict['pwalk_dict']
-      for p_id in range(s_allocinfo_dict['parism_level']):
-        p_walk = p_walk_dict[p_id]
-        sp_walk__tprrule = None
-        if self.data_over_tp == 'tcp':
-          sp_walk__tprrule = \
-          self.get_overtcp_spwalkrule__sptprrule(s_id, p_id,
-                                                 p_walk = p_walk,
-                                                 pitwalkbundle_dict = itwalkinfo_dict[p_id])
-        elif self.data_over_tp == 'udp':
-          sp_walk__tprrule = \
-          self.get_overudp_spwalkrule__sptprrule(s_id, p_id,
-                                                 p_walk = p_walk,
-                                                 pitwalkbundle_dict = itwalkinfo_dict[p_id])
-        #
-        logging.info('for s_id=%s, p_id=%s;', s_id, p_id)
-        #print 'walkrule:'
-        #pprint.pprint(sp_walk__tprrule['walk_rule'])
-        #print 'itjob_rule:'
-        #pprint.pprint(sp_walk__tprrule['itjob_rule'])
-        #
-        #Dispatching rule to actuator_actuator
-        sch_req_id = self.sid_schregid_dict[s_id]
-        s_info = self.sessionsbeingserved_dict[sch_req_id]
-        #update s_info
-        #s_info['trans_time'] = s_allocinfo_dict['trans_time']*0.001 #sec
-        s_info['slack-tt'] = s_allocinfo_dict['slack-tt']
-        s_info['slack-transtime'] = abs(s_allocinfo_dict['trans_time']-s_info['req_dict']['slack_metric'])
-        #
-        if s_info['sching_job_done'][p_id] == False:
-          type_toacter = 'sp_sching_req'
-        else:
-          type_toacter = 'resp_sching_req'
-        #
-        msg = json.dumps({'type':type_toacter,
-                          'data':{'s_id':s_id, 'p_id':p_id,
-                                  'walk_rule':sp_walk__tprrule['walk_rule'],
-                                  'itjob_rule':sp_walk__tprrule['itjob_rule']} })
-        self.cci.send_to_client('scher-acter', msg)
+      [walk_rule_list, itjob_rule_dict] = \
+        self.get_overtcp_session_walk_rule_list__itjob_rule_dict(s_id,
+                                                                 s_walk_list = s_walk_list,
+                                                                 s_itwalk_dict = s_itwalk_dict)
+      s_info = self.sessionsbeingserved_dict[self.sid_schregid_dict[s_id]]
+      s_info['slack-tt'] = s_allocinfo_dict['slack-tt']
+      s_info['slack-transtime'] = abs(s_allocinfo_dict['trans_time']-s_info['req_dict']['slack_metric'])
+      logging.info('for s_id= %s;', s_id)
+      # logging.debug('walk_rule_list= \n%s', pprint.pformat(walk_rule_list) )
+      # logging.debug('itjob_rule_dict= \n%s', pprint.pformat(itjob_rule_dict) )
+      # Dispatching rule to actuator_actuator
+      if s_info['sching_job_done'] == False:
+        type_toacter = 'sp_sching_req'
+      else:
+        type_toacter = 'resp_sching_req'
+      
+      msg = json.dumps({'type': type_toacter,
+                        'data': {'s_id': s_id,
+                                 'walk_rule_list': walk_rule_list,
+                                 'itjob_rule_dict': itjob_rule_dict } } )
+      self.cci.send_to_client('scher-acter', msg)
       #
     #  
     logging.info('do_sching:: sching_id=%s done.', sching_id)
   
-  def get_overtcp_spwalkrule__sptprrule(self,s_id,p_id,p_walk,pitwalkbundle_dict):
+  def get_overtcp_session_walk_rule_list__itjob_rule_dict(self, s_id, s_walk_list, s_itwalk_dict):
     def get_touser_swportname(dpid, port):
-      return 's'+str(dpid)+'-eth'+str(port)
+      return 's' + str(dpid) + '-eth' + str(port)
     #
-    def chop_pwalk_into_tcppaths():
-      chopped_pwalk_list = []
+    def chop_swalk_into_tcppaths():
+      chopped_swalk_list = []
       cur_chop_id = 0
       #
-      l_ = list(enumerate(p_walk))
-      for i,node_str in l_:
+      l_ = list(enumerate(s_walk_list))
+      for i, node_str in l_:
         node = self.gm.get_node(node_str)
         node_type = node['type']
         if i == 0:
           if node_type != 'sw':
-            logging.error('right after p only sw type is allowed! what is found=(%s,%s)', node_str, node_type)
+            logging.error('right after p only sw type is allowed! what is found=(%s, %s)', node_str, node_type)
             system.exit(2)
           #
-          chopped_pwalk_list.append(['p', node_str])
-        elif i == len(l_)-1:
+          chopped_swalk_list.append(['p', node_str])
+        elif i == len(l_) - 1:
           if node_type != 'sw':
-            logging.error('right before c only sw type is allowed! what is found=(%s,%s)', node_str, node_type)
+            logging.error('right before c only sw type is allowed! what is found=(%s, %s)', node_str, node_type)
             system.exit(2)
           #
-          chopped_pwalk_list[cur_chop_id].append(node_str)
-          chopped_pwalk_list[cur_chop_id].append('c')
-        else: #i is pointing to intermediate pwalk_nodes
+          chopped_swalk_list[cur_chop_id].append(node_str)
+          chopped_swalk_list[cur_chop_id].append('c')
+        else: # i is pointing to intermediate pwalk_nodes
           if node_type == 'sw':
-            chopped_pwalk_list[cur_chop_id].append(node_str)
+            chopped_swalk_list[cur_chop_id].append(node_str)
           elif node_type == 't':
-            chopped_pwalk_list[cur_chop_id].append(node_str)
+            chopped_swalk_list[cur_chop_id].append(node_str)
             cur_chop_id += 1
-            chopped_pwalk_list.append([node_str])
+            chopped_swalk_list.append([node_str])
         #
-      return chopped_pwalk_list
+      return chopped_swalk_list
     #
-    chopped_pwalk_list = chop_pwalk_into_tcppaths()
+    chopped_swalk_list = chop_swalk_into_tcppaths()
     #
-    print '---> for s_id=%s, p_id=%s' % (s_id, p_id)
-    print 'pitwalkbundle_dict='
-    pprint.pprint(pitwalkbundle_dict)
-    print 'p_walk=', p_walk
-    #print 'chopped_pwalk_list='
-    #pprint.pprint(chopped_pwalk_list)
-    #
-    s_info_dict =  self.sessionsbeingserved_dict[self.sid_schregid_dict[s_id]]
-    s_tp_dst = s_info_dict['tp_dst_list'][p_id]
-    p_c_ip_list = s_info_dict['p_c_ip_list']
-    #
+    # print '---> for s_id=%s' % (s_id)
+    # print 's_itwalk_dict='
+    # pprint.pprint(s_itwalk_dict)
+    # print 's_walk_list=', s_walk_list
+    # print 'chopped_swalk_list='
+    # pprint.pprint(chopped_swalk_list)
     itjob_rule_dict = {}
-    #
-    walk_rule = []
+    walk_rule_list = []
+    
+    s_info_dict =  self.sessionsbeingserved_dict[self.sid_schregid_dict[s_id]]
+    s_tp_dst = s_info_dict['tp_dst']
+    p_c_ip_list = s_info_dict['p_c_ip_list']
+    
     duration = 0
     from_ip = p_c_ip_list[0]
     to_ip = p_c_ip_list[1]
@@ -613,10 +574,10 @@ class Scheduler(object):
     #
     uptoitrjob_list = []
     #
-    for i,pwalk_chop in list(enumerate(chopped_pwalk_list)):
-      chop_wr = [] #chop_walk_rule
-      head_i, tail_i = 0, len(pwalk_chop)-1
-      head_str, tail_str = pwalk_chop[head_i], pwalk_chop[tail_i]
+    for i, swalk_chop in list(enumerate(chopped_swalk_list)):
+      chop_walk_rule_list = []
+      head_i, tail_i = 0, len(swalk_chop) - 1
+      head_str, tail_str = swalk_chop[head_i], swalk_chop[tail_i]
       head_ip, tail_ip = None, None
       try:
         chop_head = self.gm.get_node(head_str)
@@ -628,46 +589,46 @@ class Scheduler(object):
         tail_ip, tail_mac = chop_tail['ip'], chop_tail['mac']
       except KeyError: #tail_str = 'c'
         tail_ip, tail_mac = to_ip, to_mac
-      #extract forward route from head to tail
-      for j in range(head_i+1, tail_i-1): #sws in [head_sw-tail_sw)
-        sw_str = pwalk_chop[j]
+      # Extract forward route from head to tail
+      for j in range(head_i + 1, tail_i - 1): #sws in [head_sw, tail_sw)
+        sw_str = swalk_chop[j]
         sw = self.gm.get_node(sw_str)
-        forward_edge = self.gm.get_edge(sw_str, pwalk_chop[j+1])
-        #
-        chop_wr.append({'conn':[sw['dpid'],head_ip],
-                        'typ':'forward',
-                        'wc':[head_ip,to_ip,6,-1,int(s_tp_dst)],
-                        'rule':[forward_edge['pre_dev'], duration] })
-      #extract backward route from tail to head
-      for j in range(head_i+2, tail_i): #sws in (head_sw-tail_sw]
-        sw_str = pwalk_chop[j]
+        forward_edge = self.gm.get_edge(sw_str, swalk_chop[j + 1])
+        chop_walk_rule_list.append({'conn': [sw['dpid'], head_ip],
+                                    'typ': 'forward',
+                                    'wc': [head_ip, to_ip, 6, -1, int(s_tp_dst)],
+                                    'rule': [forward_edge['pre_dev'], duration] })
+      # Extract backward route from tail to head
+      for j in range(head_i + 2, tail_i): #sws in (head_sw-tail_sw]
+        sw_str = swalk_chop[j]
         sw = self.gm.get_node(sw_str)
-        backward_edge = self.gm.get_edge(pwalk_chop[j-1], sw_str)
-        #
-        chop_wr.append({'conn':[sw['dpid'],tail_ip],
-                               'typ':'forward',
-                               'wc':[tail_ip,head_ip,6,int(s_tp_dst),-1],
-                               'rule':[backward_edge['post_dev'], duration] })
-      #extract modify_forward route to tail, and fill up itjob_rule
-      tailsw_str = pwalk_chop[tail_i-1]
+        backward_edge = self.gm.get_edge(swalk_chop[j-1], sw_str)
+        chop_walk_rule_list.append({'conn': [sw['dpid'], tail_ip],
+                                    'typ': 'forward',
+                                    'wc': [tail_ip, head_ip, 6, int(s_tp_dst), -1],
+                                    'rule': [backward_edge['post_dev'], duration] })
+      # Extract modify_forward route to tail, and fill up itjob_rule
+      tailsw_str = swalk_chop[tail_i-1]
       tailsw = self.gm.get_node(tailsw_str)
       totail_swportname = None
       if tail_str == 'c':
         totail_swportname = get_touser_swportname(dpid = c_info_dict['gw_dpid'],
                                                   port = c_info_dict['gw_conn_port'])
-        chop_wr.append({'conn':[tailsw['dpid'],head_ip],
-                        'typ':'forward',
-                        'wc':[head_ip,to_ip,6,-1,int(s_tp_dst)],
-                        'rule':[totail_swportname, duration] })
-      else: #tail is another itres        
-        tailedge = self.gm.get_edge(tailsw_str, tail_str)
-        totail_swportname = tailedge['pre_dev']
-        chop_wr.append({'conn':[tailsw['dpid'],head_ip],
-                        'typ':'mod_nw_dst__forward',
-                        'wc':[head_ip,to_ip,6,-1,int(s_tp_dst)],
-                        'rule':[tail_ip, tail_mac, totail_swportname, duration] })
-        #fill up it_job_rule for the itres
-        assigned_job = pitwalkbundle_dict['itbundle'][tail_str]
+        chop_walk_rule_list.append(
+          {'conn': [tailsw['dpid'], head_ip],
+           'typ': 'forward',
+           'wc': [head_ip, to_ip, 6, -1, int(s_tp_dst)],
+           'rule': [totail_swportname, duration] } )
+      else: # tail is another itres        
+        tail_edge = self.gm.get_edge(tailsw_str, tail_str)
+        totail_swportname = tail_edge['pre_dev']
+        chop_walk_rule_list.append(
+          {'conn': [tailsw['dpid'], head_ip],
+            'typ': 'mod_nw_dst__forward',
+            'wc': [head_ip, to_ip, 6, -1, int(s_tp_dst)],
+            'rule': [tail_ip, tail_mac, totail_swportname, duration] } )
+        # Fill up it_job_rule for the itres
+        assigned_job = s_itwalk_dict['itr_info_dict'][tail_str]
         if not (tailsw['dpid'] in itjob_rule_dict):
           itjob_rule_dict[tailsw['dpid']] = [{
             'proto': 6,
@@ -678,8 +639,8 @@ class Scheduler(object):
             'uptoitrjob_list': copy.copy(uptoitrjob_list),
             'session_tp': int(s_tp_dst),
             'consumer_ip': to_ip,
-            'datasize': pitwalkbundle_dict['p_info']['datasize'],
-            'bw': pitwalkbundle_dict['p_info']['bw'] }]
+            'datasize': s_itwalk_dict['info']['datasize'],
+            'bw': s_itwalk_dict['info']['bw'] }]
         else:
           itjob_rule_dict[tailsw['dpid']].append( {
             'proto': 6,
@@ -690,138 +651,31 @@ class Scheduler(object):
             'uptoitrjob_list': copy.copy(uptoitrjob_list),
             'session_tp': int(s_tp_dst),
             'consumer_ip': to_ip,
-            'datasize': pitwalkbundle_dict['p_info']['datasize'],
-            'bw': pitwalkbundle_dict['p_info']['bw'] } )
+            'datasize': s_itwalk_dict['info']['datasize'],
+            'bw': s_itwalk_dict['info']['bw'] } )
         #
-        #update__uptoitrjob_list
         uptoitrjob_list.append(assigned_job)
       #
       
-      #extract modify_backward route to head
-      headsw_str = pwalk_chop[head_i+1]
+      # Extract modify_backward route to head
+      headsw_str = swalk_chop[head_i + 1]
       headsw = self.gm.get_node(headsw_str)
       tohead_swportname = None
       if head_str == 'p':
         tohead_swportname = get_touser_swportname(dpid = p_info_dict['gw_dpid'],
                                                   port = p_info_dict['gw_conn_port'])
-      else: #head is another itres
+      else: # head is another itres
         headedge = self.gm.get_edge(head_str, headsw_str)
         tohead_swportname = headedge['pre_dev']
       #
-      chop_wr.append({'conn':[headsw['dpid'],tail_ip],
+      chop_walk_rule_list.append({'conn':[headsw['dpid'],tail_ip],
                       'typ':'mod_nw_src__forward',
                       'wc':[tail_ip,head_ip,6,int(s_tp_dst),-1],
                       'rule':[to_ip, to_mac, tohead_swportname, duration] })
-      #print 'chop_wr='
-      #pprint.pprint(chop_wr)
-      walk_rule += chop_wr
+      walk_rule_list += chop_walk_rule_list
       
-    return {'walk_rule':walk_rule, 'itjob_rule':itjob_rule_dict}
+    return [walk_rule_list, itjob_rule_dict]
 
-  def get_overudp_spwalkrule__sptprrule(self,s_id,p_id,p_walk,pitwalkbundle_dict):
-    """
-    This method extracts the rule for UDP-based data-coupling.
-    Jan 4 2014: Planning to deprecate this and go with TCP-based data-coupling.
-    """
-    def get_touser_swportname(dpid, port):
-      return 's'+str(dpid)+'-eth'+str(port)
-    #
-    print '---> for s_id=%s, p_id=%s' % (s_id, p_id)
-    print 'pitwalkbundle_dict:'
-    pprint.pprint(pitwalkbundle_dict)
-    print 'p_walk: ', p_walk
-    #
-    s_info_dict =  self.sessionsbeingserved_dict[self.sid_schregid_dict[s_id]]
-    s_tp_dst = s_info_dict['tp_dst_list'][p_id]
-    p_c_ip_list = s_info_dict['p_c_ip_list']
-    #
-    itjob_rule_dict = {}
-    #
-    walk_rule = []
-    cur_from_ip = p_c_ip_list[0]
-    cur_to_ip = p_c_ip_list[1]
-    duration = 50
-    cur_node_str = None
-    for i,node_str in list(enumerate(p_walk)):#node = next_hop
-      if i == 0:
-        cur_node_str = node_str
-        #for adding reverse-walk rule for p_gw_sw
-        userinfo_dict = self.users_beingserved_dict[cur_from_ip]
-        touser_swportname = get_touser_swportname(dpid = userinfo_dict['gw_dpid'],
-                                    port = userinfo_dict['gw_conn_port'])
-        node = self.gm.get_node(node_str)
-        walk_rule.append({'conn':[node['dpid'],cur_to_ip],
-                          'typ':'forward',
-                          'wc':[cur_to_ip,p_c_ip_list[0],17,-1,int(s_tp_dst)],
-                          'rule':[touser_swportname, duration] })
-        #
-        continue
-      cur_node = self.gm.get_node(cur_node_str)
-      if cur_node['type'] == 't':
-        cur_node_str = node_str
-        continue
-      #
-      node = self.gm.get_node(node_str)
-      edge = self.gm.get_edge(cur_node_str, node_str)
-      if node['type'] == 't': #sw-t
-        walk_rule.append({'conn':[cur_node['dpid'],cur_from_ip],
-                          'typ':'mod_nw_dst__forward',
-                          'wc':[cur_from_ip,cur_to_ip,17,-1,int(s_tp_dst)],
-                          'rule':[node['ip'],node['mac'],edge['pre_dev'],duration]
-                         })
-        if not (cur_node['dpid'] in itjob_rule_dict):
-          itjob_rule_dict[cur_node['dpid']] = [{
-            'proto': 17,
-            'tpr_ip': node['ip'],
-            'tpr_mac': node['mac'],
-            'swdev_to_tpr': edge['pre_dev'],
-            'assigned_job': pitwalkbundle_dict['itbundle'][node_str],
-            'session_tp': int(s_tp_dst),
-            'consumer_ip': cur_to_ip,
-            'datasize': pitwalkbundle_dict['p_info']['datasize'] }]
-        else:
-          itjob_rule_dict[cur_node['dpid']].append( [{
-            'proto': 17,
-            'tpr_ip': node['ip'],
-            'tpr_mac': node['mac'],
-            'swdev_to_tpr': edge['pre_dev'],
-            'assigned_job': pitwalkbundle_dict['itbundle'][node_str],
-            'session_tp': int(s_tp_dst),
-            'consumer_ip': cur_to_ip,
-            'datasize': pitwalkbundle_dict['p_info']['datasize'] }] )
-        cur_from_ip = node['ip']
-      elif node['type'] == 'sw': #sw-sw
-        walk_rule.append({'conn':[cur_node['dpid'],cur_from_ip],
-                          'typ':'forward',
-                          'wc':[cur_from_ip,cur_to_ip,17,-1,int(s_tp_dst)],
-                          'rule':[edge['pre_dev'], duration] })
-        cur_from_ip
-        #for reverse walk: data from c to p
-        walk_rule.append({'conn':[node['dpid'],cur_to_ip],
-                          'typ':'forward',
-                          'wc':[cur_to_ip,p_c_ip_list[0],17,-1,int(s_tp_dst)],
-                          'rule':[edge['post_dev'], duration] })
-        '''
-        #to deliver sch_response to src
-        walk_rule.append({'conn':[node['dpid'],info_dict['scher_vip']],
-                          'typ':'forward',
-                          'wc':[info_dict['scher_vip'],p_c_ip_list[0],17,-1,info_dict['sching_port']],
-                          'rule':[edge['post_dev'], duration] })
-        '''
-      else:
-        raise KeyError('Unknown node_type')
-      cur_node_str = node_str
-    #default rule to forward packet to consumer
-    userinfo_dict = self.users_beingserved_dict[cur_to_ip]
-    touser_swportname = get_touser_swportname(dpid = userinfo_dict['gw_dpid'],
-                                port = userinfo_dict['gw_conn_port'])
-    walk_rule.append({'conn':[userinfo_dict['gw_dpid'],cur_from_ip],
-                      'typ':'forward',
-                      'wc':[cur_from_ip,cur_to_ip,17,-1,int(s_tp_dst)],
-                      'rule':[touser_swportname,duration] })
-    return {'walk_rule':walk_rule, 'itjob_rule':itjob_rule_dict}
-  
-  ##############################################################################
   def exp(self):
     print '*** exp::'
     userinfo_list = [ {'user_ip':'10.0.2.0','user_mac':'00:00:00:01:02:00','gw_dpid':1,'gw_conn_port':3},
@@ -869,12 +723,12 @@ class Scheduler(object):
                         gw_dpid = userinfo['gw_dpid'],
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
-    #data_size (MB) slack_metric (ms)
-    req_dict_list = [ {'data_size':100, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'data_size':100, 'slack_metric':100, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+    #datasize (MB) slack_metric (ms)
+    req_dict_list = [ {'datasize':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'datasize':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'datasize':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'datasize':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+                      {'datasize':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
                     ]
     app_pref_dict_list = [
                           {'m_p': 0.5,'m_u': 0.5,'x_p': 0,'x_u': 0},

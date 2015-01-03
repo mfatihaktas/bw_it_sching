@@ -28,7 +28,6 @@ info_dict = {'lscher_addr':('127.0.0.1', 7999),
              'sensorl_addr':'...',
              'acter_vip': '10.0.0.255',
              'acter_vmac': '00:00:00:00:00:00',
-             'sid_pidlist_dict': {},
              'scherl_tp': 7001,
              'schert_tp': 7001,
              's_entry_dur': [0, 0] }
@@ -100,29 +99,24 @@ class Actuator (object):
   def _handle_recvfromscher(self, msg):
     #msg = [type_, data_]
     [type_, data_] = msg
-    if type_ == 'sp_sching_req' or type_ == 'resp_sching_req':
-      s_id, p_id = int(data_['s_id']), int(data_['p_id'])
-      walk_rule = data_['walk_rule']
-      itjob_rule = data_['itjob_rule']
+    if type_ == 's_sching_req' or type_ == 'res_sching_req':
+      s_id = int(data_['s_id'])
+      walk_rule_list = data_['walk_rule_list']
+      itjob_rule_dict = data_['itjob_rule_dict']
       
-      print 'walk_rule=\n%s' % pprint.pformat(walk_rule)
-      print 'itjob_rule=\n%s' % pprint.pformat(itjob_rule)
-      
-      #updating global dicts based on the input rxed from scher
-      if not (s_id in info_dict['sid_pidlist_dict']):
-        info_dict['sid_pidlist_dict'][s_id] = []
-      info_dict['sid_pidlist_dict'][s_id].append(p_id)
+      print 'walk_rule_list=\n%s' % pprint.pformat(walk_rule_list)
+      print 'itjob_rule_dict=\n%s' % pprint.pformat(itjob_rule_dict)
       #
-      ruleparser.modify_schedwalkxmlfile_by_walkrule(str(s_id),str(p_id),walk_rule)
-      ruleparser.modify_scheditjobxmlfile_by_itjobrule(str(s_id),str(p_id),itjob_rule)
+      ruleparser.modify_schedwalkxmlfile_by_walkrule(str(s_id), str(p_id), walk_rule_list)
+      ruleparser.modify_scheditjobxmlfile_by_itjobrule(str(s_id), str(p_id), itjob_rule_dict)
       if _install_schrules_proactively:
-        if type_ == 'sp_sching_req':
+        if type_ == 's_sching_req':
           self.install_proactive_schedwalk(s_id, p_id)
-          self.install_proactive_scheditjob(type_toitr = 'itjob_rule',
+          self.install_proactive_scheditjob(type_toitr = 'itjob_rule_dict',
                                             s_id = s_id,
                                             p_id = p_id )
-        elif type_ == 'resp_sching_req':
-          self.install_proactive_scheditjob(type_toitr = 'reitjob_rule',
+        elif type_ == 'res_sching_req':
+          self.install_proactive_scheditjob(type_toitr = 'reitjob_rule_dict',
                                             s_id = s_id,
                                             p_id = p_id )
         #
@@ -130,9 +124,9 @@ class Actuator (object):
       # Send "I am done with the job(sch realization)"
       print 'sending sching_realization_done to scher...'
       type_toscher = None
-      if type_ == 'sp_sching_req':
+      if type_ == 's_sching_req':
         type_toscher = 'sp_sching_reply'
-      elif type_ == 'resp_sching_req':
+      elif type_ == 'res_sching_req':
         type_toscher = 'resp_sching_reply'
       #
       msg = json.dumps({'type':type_toscher,
@@ -231,7 +225,7 @@ class Actuator (object):
         t = threading.Thread(name = 'relsend_to_itr;itr_ip='+itr_ip,
                              target = self.dtsitr_intf.relsend_to_itr,
                              kwargs = {'itr_ip': itr_ip,
-                                       'msg': {'type':'itjob_rule',
+                                       'msg': {'type':'itjob_rule_dict',
                                                'data': jobinfo} } )
         self.worker_threads.append(t)
         t.start()

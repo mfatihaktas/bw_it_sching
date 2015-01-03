@@ -6,13 +6,13 @@ s_dur = N x 1
 r_bw = N x num_link
 r_stor = 1 x num_itr
 s_txt = s_proct = s_durt = s_transt = N x 1
-r_hard_vector = r_soft_vector = s_pen_vector = s_util_vector = 1 x N
+r_hard_vector = r_soft_vector = s_pen_vector = s_util_vector = N x 1
 
 Parameters:
 scal_var
 
 Variables:
-tt = 1 x N
+tt = N x 1
 s_n = N x max_numitfuncs
 s_bw = N x 1
 r_proc = N x num_itr
