@@ -1,7 +1,0 @@
-ERROR:root:Unexpected trans_type=None
-INFO:root:udp_server is started at s_addr=('10.0.0.21', 7001)
-INFO:root:new commpair added
-INFO:root:proto=udp, s_addr=('10.0.0.21', 7001), c_addr=('10.0.0.255', 7001)
-INFO:root:t21 is ready...
-DEBUG:root:test
-DEBUG:root:welcome_s:: for stpdst=6000, est_proct=1364.99950632 

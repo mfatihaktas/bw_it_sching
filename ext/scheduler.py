@@ -114,7 +114,7 @@ class Scheduler(object):
     self.last_tp_dst_given = info_dict['base_sport']-1
     #Scher state dicts
     self.num_dstusers = 0
-    self.users_beingserved_dict = {} #user_ip:{'gw_dpid':<>,'gw_conn_port':<> ...}
+    self.users_beingserved_dict = {} #user_ip:{'gw_dpid':<>, 'gw_conn_port':<> ...}
     #
     self.N = 0 #num_activesessions
     self.alloc_dict = None
@@ -347,7 +347,6 @@ class Scheduler(object):
                       's'+str(self.users_beingserved_dict[c_ip]['gw_dpid']) ]
     #update global var, list and dicts
     self.N += 1
-    s_pl = req_dict['parism_level']
     sch_req_id = self.next_sch_req_id()
     self.sessionsbeingserved_dict.update(
       {sch_req_id:{'tp_dst': self.next_tp_dst(),
@@ -501,9 +500,9 @@ class Scheduler(object):
       # logging.debug('itjob_rule_dict= \n%s', pprint.pformat(itjob_rule_dict) )
       # Dispatching rule to actuator_actuator
       if s_info['sching_job_done'] == False:
-        type_toacter = 'sp_sching_req'
+        type_toacter = 's_sching_req'
       else:
-        type_toacter = 'resp_sching_req'
+        type_toacter = 'res_sching_req'
       
       msg = json.dumps({'type': type_toacter,
                         'data': {'s_id': s_id,
@@ -678,12 +677,12 @@ class Scheduler(object):
 
   def exp(self):
     print '*** exp::'
-    userinfo_list = [ {'user_ip':'10.0.2.0','user_mac':'00:00:00:01:02:00','gw_dpid':1,'gw_conn_port':3},
-                      {'user_ip':'10.0.2.1','user_mac':'00:00:00:01:02:01','gw_dpid':1,'gw_conn_port':4},
-                      {'user_ip':'10.0.1.0','user_mac':'00:00:00:01:01:00','gw_dpid':2,'gw_conn_port':3},
-                      {'user_ip':'10.0.1.1','user_mac':'00:00:00:01:01:01','gw_dpid':2,'gw_conn_port':4} ]
-    #userinfo_list = [ {'user_ip':'10.0.0.2','user_mac':'00:00:00:01:00:02','gw_dpid':1,'gw_conn_port':1},
-    #                  {'user_ip':'10.0.0.1','user_mac':'00:00:00:01:00:01','gw_dpid':2,'gw_conn_port':3} ]
+    userinfo_list = [ {'user_ip':'10.0.2.0','user_mac':'00:00:00:01:02:00','gw_dpid':1, 'gw_conn_port':3},
+                      {'user_ip':'10.0.2.1','user_mac':'00:00:00:01:02:01','gw_dpid':1, 'gw_conn_port':4},
+                      {'user_ip':'10.0.1.0','user_mac':'00:00:00:01:01:00','gw_dpid':2, 'gw_conn_port':3},
+                      {'user_ip':'10.0.1.1','user_mac':'00:00:00:01:01:01','gw_dpid':2, 'gw_conn_port':4} ]
+    #userinfo_list = [ {'user_ip':'10.0.0.2','user_mac':'00:00:00:01:00:02','gw_dpid':1, 'gw_conn_port':1},
+    #                  {'user_ip':'10.0.0.1','user_mac':'00:00:00:01:00:01','gw_dpid':2, 'gw_conn_port':3} ]
     #
     for userinfo in userinfo_list:
       self.welcome_user(user_ip = userinfo['user_ip'],
@@ -708,14 +707,14 @@ class Scheduler(object):
     sching_opter.solve()
   
   def test(self, num_session):
-    userinfo_list = [ {'user_ip':'10.0.2.0','user_mac':'00:00:00:01:02:00','gw_dpid':1,'gw_conn_port':3},
-                      {'user_ip':'10.0.2.1','user_mac':'00:00:00:01:02:01','gw_dpid':1,'gw_conn_port':4},
-                      {'user_ip':'10.0.2.2','user_mac':'00:00:00:01:02:02','gw_dpid':1,'gw_conn_port':5},
-                      {'user_ip':'10.0.1.0','user_mac':'00:00:00:01:01:00','gw_dpid':2,'gw_conn_port':3},
-                      {'user_ip':'10.0.1.1','user_mac':'00:00:00:01:01:00','gw_dpid':2,'gw_conn_port':4},
-                      {'user_ip':'10.0.1.2','user_mac':'00:00:00:01:01:01','gw_dpid':2,'gw_conn_port':5},
-                      {'user_ip':'10.0.2.20','user_mac':'00:00:00:01:02:20','gw_dpid':11,'gw_conn_port':2},
-                      {'user_ip':'10.0.1.20','user_mac':'00:00:00:01:01:20','gw_dpid':21,'gw_conn_port':2} ]
+    userinfo_list = [ {'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':1, 'gw_conn_port':3},
+                      {'user_ip':'10.0.2.1', 'user_mac':'00:00:00:01:02:01', 'gw_dpid':1, 'gw_conn_port':4},
+                      {'user_ip':'10.0.2.2', 'user_mac':'00:00:00:01:02:02', 'gw_dpid':1, 'gw_conn_port':5},
+                      {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':2, 'gw_conn_port':3},
+                      {'user_ip':'10.0.1.1', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':2, 'gw_conn_port':4},
+                      {'user_ip':'10.0.1.2', 'user_mac':'00:00:00:01:01:01', 'gw_dpid':2, 'gw_conn_port':5},
+                      {'user_ip':'10.0.2.20', 'user_mac':'00:00:00:01:02:20', 'gw_dpid':11, 'gw_conn_port':2},
+                      {'user_ip':'10.0.1.20', 'user_mac':'00:00:00:01:01:20', 'gw_dpid':21, 'gw_conn_port':2} ]
     #
     for userinfo in userinfo_list:
       self.welcome_user(user_ip = userinfo['user_ip'],
@@ -724,11 +723,11 @@ class Scheduler(object):
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
     #datasize (MB) slack_metric (ms)
-    req_dict_list = [ {'datasize':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'datasize':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'datasize':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'datasize':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
-                      {'datasize':100, 'slack_metric':300, 'func_list':['fft','upsampleplot'], 'parism_level':1, 'par_share':[1]},
+    req_dict_list = [ {'datasize':100, 'slack_metric':300, 'func_list':['fft','upsampleplot']},
+                      {'datasize':100, 'slack_metric':300, 'func_list':['fft','upsampleplot']},
+                      {'datasize':100, 'slack_metric':300, 'func_list':['fft','upsampleplot']},
+                      {'datasize':100, 'slack_metric':300, 'func_list':['fft','upsampleplot']},
+                      {'datasize':100, 'slack_metric':300, 'func_list':['fft','upsampleplot']},
                     ]
     app_pref_dict_list = [
                           {'m_p': 0.5,'m_u': 0.5,'x_p': 0,'x_u': 0},

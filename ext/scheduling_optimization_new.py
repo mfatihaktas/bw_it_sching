@@ -405,7 +405,7 @@ class SchingOptimizer:
       #
       s_path_info = self.sid_res_dict[s_id]['path_info']
       tobeproced_datasize = s_datasize*max(sn_list) #MB
-      tobeproced_data_transt = tobeproced_datasize*8/(BWREGCONST_INGRAB*bw) + self.s_proct.get((s_id, 0)) #sec
+      tobeproced_data_transt = tobeproced_datasize*8/(BWREGCONST_INGRAB*bw) + self.s_proct.get((s_id, 0)).value #sec
       #
       self.session_res_alloc_dict['s-wise'][s_id] = {
         'bw':bw, 'proc':proc, 'dur':dur,
