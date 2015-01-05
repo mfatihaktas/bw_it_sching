@@ -133,15 +133,15 @@ class Scheduler(object):
                           c_addr = info_dict['acterl_addr'] )
     self.dtsuser_intf = DTSUserCommIntf()
     #
-    #self.exp()
-    
     self.couplinginfo_dict = {}
     self.starting_time = time.time()
     #
     self.sid_schregid_dict = {}
     self.schingid_rescapalloc_dict = {}
     self.geninfo_dict = {}
-  
+    #
+    # self.exp()
+    
   def recv_from_user(self, userinfo_dict, msg):
     user_ip = userinfo_dict['user_ip']
     #reg everytime, in case the user is new
@@ -322,25 +322,25 @@ class Scheduler(object):
     #
     self.users_beingserved_dict.update({user_ip:{'gw_dpid':gw_dpid,
                                                  'gw_conn_port':gw_conn_port,
-                                                 'mac': user_mac } })
-    print 'welcome user:: ip=%s, mac=%s, gw_dpid=%s, gw_conn_port=%s' % (user_ip,user_mac,gw_dpid,gw_conn_port)
+                                                 'mac': user_mac } } )
+    logging.info('welcome user:: ip=%s, mac=%s, gw_dpid=%s, gw_conn_port=%s', user_ip, user_mac, gw_dpid, gw_conn_port)
     return True
   
   #not used now, for future
   def bye_user(self, user_ip):
     if not self.did_user_joindts(user_ip):
-      print 'user_ip=%s is not joined' % user_ip
+      logging.error('bye_user:: user_ip=%s is not joined.', user_ip)
       return False
     #
     del self.users_beingserved_dict[user_ip]
-    print 'bye user: ip=%s' % user_ip
+    logging.info('bye user:: bye ip=%s', user_ip)
     return True
   
   def welcome_session(self, p_c_ip_list, req_dict, app_pref_dict):
     #sch_req_id: should be unique for every sch_session
     [p_ip, c_ip] = p_c_ip_list
     if not (self.did_user_joindts(p_ip) and self.did_user_joindts(c_ip) ):
-      print 'nonjoined user in sching_req'
+      logging.error('welcome_session:: nonjoined user in sching_req.')
       return -1
     #
     p_c_gwtag_list = ['s'+str(self.users_beingserved_dict[p_ip]['gw_dpid']),
@@ -369,19 +369,17 @@ class Scheduler(object):
     del self.sessionsbeingserved_dict[sch_req_id]
     del self.sid_res_dict[sch_req_id]
     #
-    print 'bye_session:: bye sch_req_id=%s, session_info=\n%s' % (sch_req_id, pprint.pformat(self.sessionspreserved_dict[sch_req_id]))
-
+    logging.info('bye_session:: bye sch_req_id=%s, session_info=\n%s', sch_req_id, pprint.pformat(self.sessionspreserved_dict[sch_req_id]) )
+  
   ###################################  Sching rel methods  ###########################################
   def update_sid_res_dict(self):
-    """
-    Network resources will be only the ones on the session_shortest path.
-    It resources need to lie on the session_shortest path.
-    """
-    #TODO: sessions whose resources are already specified no need for putting them in the loop
+    # Network resources will be only the ones on the session_shortest path.
+    # It resources need to lie on the session_shortest path.
+    # TODO: sessions whose resources are already specified no need for putting them in the loop
     for s_id in self.sessionsbeingserved_dict:
       p_c_gwdpid_list = self.sessionsbeingserved_dict[s_id]['p_c_gwtag_list']
       s_all_paths = self.gm.give_all_paths(p_c_gwdpid_list[0], p_c_gwdpid_list[1])
-      #TODO: pick a path using heuristic
+      # TODO: pick a path using heuristic
       s_path = s_all_paths[0]
       logging.debug('update_sid_res_dict:: s_id=%s, path=\n%s', s_id, pprint.pformat(s_path))
       #
@@ -409,7 +407,7 @@ class Scheduler(object):
       outdict[i] = indict[k]
       if flag:
         self.sid_schregid_dict[i]=k
-      #
+      
       i += 1
     #
     return outdict
@@ -677,13 +675,12 @@ class Scheduler(object):
 
   def exp(self):
     print '*** exp::'
-    userinfo_list = [ {'user_ip':'10.0.2.0','user_mac':'00:00:00:01:02:00','gw_dpid':1, 'gw_conn_port':3},
-                      {'user_ip':'10.0.2.1','user_mac':'00:00:00:01:02:01','gw_dpid':1, 'gw_conn_port':4},
-                      {'user_ip':'10.0.1.0','user_mac':'00:00:00:01:01:00','gw_dpid':2, 'gw_conn_port':3},
-                      {'user_ip':'10.0.1.1','user_mac':'00:00:00:01:01:01','gw_dpid':2, 'gw_conn_port':4} ]
-    #userinfo_list = [ {'user_ip':'10.0.0.2','user_mac':'00:00:00:01:00:02','gw_dpid':1, 'gw_conn_port':1},
-    #                  {'user_ip':'10.0.0.1','user_mac':'00:00:00:01:00:01','gw_dpid':2, 'gw_conn_port':3} ]
-    #
+    userinfo_list = [ {'user_ip':'10.0.1.0','user_mac':'00:00:00:01:01:00','gw_dpid':12, 'gw_conn_port':2} ]
+    # userinfo_list = [ {'user_ip':'10.0.2.0','user_mac':'00:00:00:01:02:00','gw_dpid':1, 'gw_conn_port':3},
+    #                   {'user_ip':'10.0.2.1','user_mac':'00:00:00:01:02:01','gw_dpid':1, 'gw_conn_port':4},
+    #                   {'user_ip':'10.0.1.0','user_mac':'00:00:00:01:01:00','gw_dpid':2, 'gw_conn_port':3},
+    #                   {'user_ip':'10.0.1.1','user_mac':'00:00:00:01:01:01','gw_dpid':2, 'gw_conn_port':4} ]
+    
     for userinfo in userinfo_list:
       self.welcome_user(user_ip = userinfo['user_ip'],
                         user_mac = userinfo['user_mac'],

@@ -52,8 +52,8 @@ def solve(self):
 
 class SchingOptimizer:
   def __init__(self, sessions_beingserved_dict, actual_res_dict, sid_res_dict):
-    logging.basicConfig(filename='logs/schinglog',filemode='w',level=logging.DEBUG)
-    # logging.basicConfig(level=logging.INFO)
+    # logging.basicConfig(filename='logs/schinglog',filemode='w',level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     self.logger = logging.getLogger('SchingOptimizer')
     #
     self.sessions_beingserved_dict = sessions_beingserved_dict
@@ -372,7 +372,7 @@ class SchingOptimizer:
       return eval('self.%s[%s,%s].value' % (name,i,j) )
 
   def grab_sching_result(self):
-    ###S-WISE
+    ### S-WISE
     for s_id in range(self.N):
       s_req_dict = self.sessions_beingserved_dict[s_id]['req_dict']
       (s_datasize, s_slack) = (
@@ -397,12 +397,12 @@ class SchingOptimizer:
       '''
       #
       sn_list = [float(self.s_n[s_id, k].value)**2 for k in range(len(s_req_dict['func_list']) ) ]
-      #
+      
       trans_t = self.r_hard_vector.get((s_id, 0)).value
       tt = self.get_var_val('tt', (s_id, 0))
       [s_itwalk_dict, s_walk_list] = self.get_session_itwalk_dict__walk_list(s_id)
-      #ittime = self.it_time__basedon_itwalk_dict(s_itwalk_dict)
-      #
+      # ittime = self.it_time__basedon_itwalk_dict(s_itwalk_dict)
+      
       s_path_info = self.sid_res_dict[s_id]['path_info']
       tobeproced_datasize = s_datasize*max(sn_list) #MB
       tobeproced_data_transt = tobeproced_datasize*8/(BWREGCONST_INGRAB*bw) + self.s_proct.get((s_id, 0)).value #sec
@@ -418,8 +418,8 @@ class SchingOptimizer:
         'x_u': s_x_u,
         'x_p': s_x_p,
         'sn_list': sn_list,
-        'slack-tt': abs(s_slack-tt),
-        'tt-transt': abs(tt-trans_t),
+        'slack-tt': abs(s_slack - tt),
+        'tt-transt': abs(tt - trans_t),
         'itwalk_dict': s_itwalk_dict,
         'walk_list': s_walk_list,
         's_txt': self.s_txt.get((s_id, 0)).value,
@@ -429,17 +429,18 @@ class SchingOptimizer:
         'tobeproced_datasize': tobeproced_datasize,
         'tobeproced_data_transt': tobeproced_data_transt 
       }
-    ###RES-WISE
+    
+    ### RES-WISE
     r_bw_in_row = self.r_bw.agg_to_row()
-    #For network links
+    # For network links
     for l_id in range(self.num_link):
-      #link_cap total usage
+      # link_cap total usage
       dict_ = {}
       try:
         dict_['bw'] = r_bw_in_row.get((0, l_id)).value
       except AttributeError:
         dict_['bw'] = r_bw_in_row.get((0, l_id))
-      #link_cap-session portion alloc
+      # link_cap-session portion alloc
       bw_salloc_dict = {}
       for s_id, e in enumerate(self.r_bw.get_column(s_id)):
         try:
@@ -450,19 +451,23 @@ class SchingOptimizer:
       dict_['bw_salloc_dict'] = bw_salloc_dict
       self.session_res_alloc_dict['res-wise'][l_id] = dict_
       #
-    #For it-resources
+    # For it-resources
     for itr_id in range(self.num_itr):
       # calculation of actual storage space
       # dur_vector = [e.value for e in self.r_dur[:, itr_id]]
       # bw_vector = [e.value for e in self.s_bw]
       # self.r_stor_actual[itr_id] = np.dot(dur_vector, bw_vector)*0.001
       
-      r_proc_itrid_column = [e.value for e in self.r_proc[:, itr_id]]
+      r_proc_itrid_column, proc_salloc_dict = [], {}
+      for s_id in range(self.N):
+        r_proc_sid_itrid_val = self.r_proc[s_id, itr_id].value
+        r_proc_itrid_column.append(r_proc_sid_itrid_val)
+        proc_salloc_dict[s_id] = r_proc_sid_itrid_val
       # res_cap total usage and res_cap-session portion alloc
       self.session_res_alloc_dict['res-wise'][itr_id + self.num_link] = {
         # r_dur_itrid_column = [e.value for e in self.r_dur[:, itr_id]]
         'proc': sum(r_proc_itrid_column),
-        'proc_salloc_dict': {s_id: e for s_id, e in enumerate(r_proc_itrid_column)}
+        'proc_salloc_dict': proc_salloc_dict
         # 'dur': sum(r_dur_itrid_column),
         # 'dur_salloc_dict': {s_id:e.value for s_id, e in enumerate(r_dur_itrid_column)}
         # 'stor_actual': float(self.r_stor_actual[itr_id]),
@@ -470,8 +475,6 @@ class SchingOptimizer:
       }
     # General info about sching decision
     self.session_res_alloc_dict['general']['ll_index'] = self.ll_index
-    #
-    return True
   
   def get_session_itwalk_dict__walk_list(self, s_id):
     def add_nlisttoitr_list(s_id, proc, n_list, itr_info_dict):
@@ -659,73 +662,66 @@ class SchingOptimizer:
       path_info_dict['fair_bw'] = s_fair_bw
   
   def solve(self):
-    while (1):
-      (self.scal_var).value = 100
-      #
-      # self.logger.debug('------------------------------')
-      # self.logger.debug('F0()= %s', self.F0())
-      # self.logger.debug('F0().is_convex()= %s', self.F0().is_convex())
-      # self.logger.debug('F1()= %s', self.F1())
-      # self.logger.debug('F1().is_concave()= %s', self.F1().is_concave())
-      # self.logger.debug('F()=%s', self.F())
-      # self.logger.debug('F().is_convex()= %s', self.F().is_convex())
-      # self.logger.debug('------------------------------')
-      
-      # self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-      # constraint0_txt_list = ['%s' % c for c in self.constraint0()]
-      # tt_epigraph_form_constraint_txt_list = ['%s' % c for c in self.tt_epigraph_form_constraint()]
-      # res_cap_constraint_txt_list = ['%s' % c for c in self.res_cap_constraint()]
-      # r_bwprocdur_sparsity_constraint_txt_list = ['%s' % c for c in self.r_bwprocdur_sparsity_constraint()]
-      # s_n_sparsity_constraint_txt_list = ['%s' % c for c in self.s_n_sparsity_constraint()]
-      
-      # self.logger.debug('constraint0=\n%s', pprint.pformat(constraint0_txt_list ) )
-      # self.logger.debug('self.tt_epigraph_form_constraint()=\n%s', pprint.pformat(tt_epigraph_form_constraint_txt_list) )
-      # self.logger.debug('res_cap_constraint=\n%s', pprint.pformat(res_cap_constraint_txt_list) )
-      # self.logger.debug('r_bwprocdur_sparsity_constraint=\n%s', pprint.pformat(r_bwprocdur_sparsity_constraint_txt_list) )
-      # self.logger.debug('s_n_sparsity_constraint=\n%s', pprint.pformat(s_n_sparsity_constraint_txt_list) )
-      # self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-      
-      p = cp.Problem(cp.Minimize(self.F()),
-                    self.constraint0() + \
-                    self.tt_epigraph_form_constraint() + \
-                    self.res_cap_constraint() + \
-                    self.r_bwprocdur_sparsity_constraint()  + \
-                    self.s_n_sparsity_constraint() )
-      # p = cp.Problem(cp.Minimize(cp.max_entries(self.tt)),
-      #               [self.tt >= 0] + \
-      #               self.constraint0() + \
-      #               self.tt_epigraph_form_constraint() + \
-      #               self.res_cap_constraint() + \
-      #               self.r_bwprocdur_sparsity_constraint()  + \
-      #               self.s_n_sparsity_constraint() )
-      # print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
-      # print 'p.variables:\n', p.variables
-      # print 'p.parameters:\n', p.parameters
-      # print 'p.constraints:\n', p.constraints
-      # print 'p.is_dcp(): ', p.is_dcp()
-      # print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
-      
-      # p.options['abstol'] = 1e-4
-      # p.options['realtol'] = 1e-4
-      # p.options['maxiters'] = 200
-      # p.options['use_correction'] = False
-      # p.options['maxiters'] = 500
-      # p.options['feastol'] = 1e-4
-      t_s = time.time()
-      print 'solving...' 
-      # opts = {'maxiters': 500}
-      # p.solve(solver=cp.CVXOPT, verbose=True, solver_specific_opts=opts.items())
-      # p.solve(solver=cp.CVXOPT, verbose=True)
-      p.solve()
-      print 'solved.took %s secs' % (time.time() - t_s)
-      print 'p.status=%s' % p.status
-      print 'p.value=%s' % p.value
-      
-      if p.status == 'solver_error':
-        self.logger.error('solve:: solver failed!')
-        continue
-      
-      if self.grab_sching_result():
-        break
-      #
+    (self.scal_var).value = 100
+    
+    # self.logger.debug('------------------------------')
+    # self.logger.debug('F0()= %s', self.F0())
+    # self.logger.debug('F0().is_convex()= %s', self.F0().is_convex())
+    # self.logger.debug('F1()= %s', self.F1())
+    # self.logger.debug('F1().is_concave()= %s', self.F1().is_concave())
+    # self.logger.debug('F()=%s', self.F())
+    # self.logger.debug('F().is_convex()= %s', self.F().is_convex())
+    # self.logger.debug('------------------------------')
+    
+    # self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+    # constraint0_txt_list = ['%s' % c for c in self.constraint0()]
+    # tt_epigraph_form_constraint_txt_list = ['%s' % c for c in self.tt_epigraph_form_constraint()]
+    # res_cap_constraint_txt_list = ['%s' % c for c in self.res_cap_constraint()]
+    # r_bwprocdur_sparsity_constraint_txt_list = ['%s' % c for c in self.r_bwprocdur_sparsity_constraint()]
+    # s_n_sparsity_constraint_txt_list = ['%s' % c for c in self.s_n_sparsity_constraint()]
+    
+    # self.logger.debug('constraint0=\n%s', pprint.pformat(constraint0_txt_list ) )
+    # self.logger.debug('self.tt_epigraph_form_constraint()=\n%s', pprint.pformat(tt_epigraph_form_constraint_txt_list) )
+    # self.logger.debug('res_cap_constraint=\n%s', pprint.pformat(res_cap_constraint_txt_list) )
+    # self.logger.debug('r_bwprocdur_sparsity_constraint=\n%s', pprint.pformat(r_bwprocdur_sparsity_constraint_txt_list) )
+    # self.logger.debug('s_n_sparsity_constraint=\n%s', pprint.pformat(s_n_sparsity_constraint_txt_list) )
+    # self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+    
+    p = cp.Problem(cp.Minimize(self.F()),
+                   self.constraint0() + \
+                   self.tt_epigraph_form_constraint() + \
+                   self.res_cap_constraint() + \
+                   self.r_bwprocdur_sparsity_constraint()  + \
+                   self.s_n_sparsity_constraint() )
+    # p = cp.Problem(cp.Minimize(cp.max_entries(self.tt)),
+    #               [self.tt >= 0] + \
+    #               self.constraint0() + \
+    #               self.tt_epigraph_form_constraint() + \
+    #               self.res_cap_constraint() + \
+    #               self.r_bwprocdur_sparsity_constraint()  + \
+    #               self.s_n_sparsity_constraint() )
+    # print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
+    # print 'p.variables:\n', p.variables
+    # print 'p.parameters:\n', p.parameters
+    # print 'p.constraints:\n', p.constraints
+    # print 'p.is_dcp(): ', p.is_dcp()
+    # print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
+    
+    # p.options['abstol'] = 1e-4
+    # p.options['realtol'] = 1e-4
+    # p.options['maxiters'] = 200
+    # p.options['use_correction'] = False
+    # p.options['maxiters'] = 500
+    # p.options['feastol'] = 1e-4
+    t_s = time.time()
+    print 'solving...' 
+    # opts = {'maxiters': 500}
+    # p.solve(solver=cp.CVXOPT, verbose=True, solver_specific_opts=opts.items())
+    # p.solve(solver=cp.CVXOPT, verbose=True)
+    p.solve()
+    print 'solved.took %s secs' % (time.time() - t_s)
+    print 'p.status= %s' % p.status
+    print 'p.value= %s' % p.value
+    
+    self.grab_sching_result()
     #

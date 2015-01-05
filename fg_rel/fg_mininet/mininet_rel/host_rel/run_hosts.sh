@@ -20,67 +20,67 @@ CR3_LPORT=6002
 ###
 C1D=1
 P1D=2
-P1_REQDICT='{"data_size":100,"slack_metric":300,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P1_REQDICT='{"datasize":10,"slack_metric":30,"func_list":["fft","upsampleplot"]}'
 P1_APPPREFDICT='{"m_p":0.5,"m_u":0.5,"x_p":0,"x_u":0}'
 P1_CLIP=10.0.1.0
 
 C2D=1
 P2D=4
-P2_REQDICT='{"data_size":100,"slack_metric":300,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P2_REQDICT='{"datasize":100,"slack_metric":300,"func_list":["fft","upsampleplot"]}'
 P2_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 P2_CLIP=10.0.1.1
 
 C3D=1
 P3D=6
-P3_REQDICT='{"data_size":100,"slack_metric":300,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P3_REQDICT='{"datasize":100,"slack_metric":300,"func_list":["fft","upsampleplot"]}'
 P3_APPPREFDICT='{"m_p":2,"m_u":2,"x_p":0,"x_u":0}'
 P3_CLIP=10.0.1.2
 
 C4D=1
 P4D=20
-P4_REQDICT='{"data_size":100,"slack_metric":200,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P4_REQDICT='{"datasize":100,"slack_metric":200,"func_list":["fft","upsampleplot"]}'
 P4_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 P4_CLIP=10.0.1.3
 
 C5D=1
 P5D=100
-P5_REQDICT='{"data_size":40,"slack_metric":120,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P5_REQDICT='{"datasize":40,"slack_metric":120,"func_list":["fft","upsampleplot"]}'
 P5_APPPREFDICT='{"m_p":0.5,"m_u":0.5,"x_p":0,"x_u":0}'
 P5_CLIP=10.0.1.4
 
 C6D=1
 P6D=110
-P6_REQDICT='{"data_size":40,"slack_metric":120,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P6_REQDICT='{"datasize":40,"slack_metric":120,"func_list":["fft","upsampleplot"]}'
 P6_APPPREFDICT='{"m_p":2,"m_u":2,"x_p":0,"x_u":0}'
 P6_CLIP=10.0.1.5
 
 C7D=1
 P7D=120
-P7_REQDICT='{"data_size":20,"slack_metric":400,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P7_REQDICT='{"datasize":20,"slack_metric":400,"func_list":["fft","upsampleplot"]}'
 P7_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 P7_CLIP=10.0.1.6
 
 C8D=1
 P8D=130
-P8_REQDICT='{"data_size":80,"slack_metric":150,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P8_REQDICT='{"datasize":80,"slack_metric":150,"func_list":["fft","upsampleplot"]}'
 P8_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 P8_CLIP=10.0.1.7
 
 C9D=1
 P9D=235
-P9_REQDICT='{"data_size":20,"slack_metric":200,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P9_REQDICT='{"datasize":20,"slack_metric":200,"func_list":["fft","upsampleplot"]}'
 P9_APPPREFDICT='{"m_p":0.5,"m_u":0.5,"x_p":0,"x_u":0}'
 P9_CLIP=10.0.1.8
 
 C10D=1
 P10D=240
-P10_REQDICT='{"data_size":20,"slack_metric":200,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P10_REQDICT='{"datasize":20,"slack_metric":200,"func_list":["fft","upsampleplot"]}'
 P10_APPPREFDICT='{"m_p":2,"m_u":2,"x_p":0,"x_u":0}'
 P10_CLIP=10.0.1.9
 
 C11D=1
 P11D=245
-P11_REQDICT='{"data_size":20,"slack_metric":50,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
+P11_REQDICT='{"datasize":20,"slack_metric":50,"func_list":["fft","upsampleplot"]}'
 P11_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 P11_CLIP=10.0.1.10
 
@@ -89,14 +89,15 @@ MINHTBDIR='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
 if [ $1  = 'p' ]; then
   python producer.py --intf=p-eth0 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=10.0.0.1 \
                      --proto=tcp --tx_type=file --file_url=ltx.dat --kstardata_url=... --logto=console --nodename=p \
-                     --req_dict='{"data_size":1,"slack_metric":10,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}' \
+                     --req_dict='{"datasize":1,"slack_metric":10,"func_list":["fft","upsampleplot"]}' \
                      --app_pref_dict='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}' \
                      --htbdir='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
 elif [ ${sel:0:2}  = 'ps' ]; then
   i=${sel:2:1}
   dstipvar='PS'$i'_DSTIP'
   dstportvar='PS'$i'_DSTPORT'
-  python sender.py --dst_ip=${!dstipvar} --dst_lport=${!dstportvar} --datasize=$DS --proto=tcp --tx_type=kstardata2 --file_url=ltx.dat --logto=console --kstardata_url=/home/ubuntu/large_ecei_data.bp
+  python sender.py --dst_ip=${!dstipvar} --dst_lport=${!dstportvar} --datasize=$DS --proto=tcp --tx_type=kstardata2 \
+                   --file_url=ltx.dat --logto=console --kstardata_url=/home/ubuntu/large_ecei_data.bp
 elif [ ${sel:0:1}  = 'p' ]; then
   i=${sel:1}
   dvar='P'$i'D'
@@ -106,11 +107,12 @@ elif [ ${sel:0:1}  = 'p' ]; then
   appprefvar='P'$i'_APPPREFDICT'
   clipvar='P'$i'_CLIP'
   python producer.py --intf=$sel'-eth0' --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 --cl_ip=${!clipvar} \
-                     --proto=tcp --tx_type=fastdata --file_url=ltx1.dat --kstardata_url=/home/ubuntu/large_ecei_data.bp --logto=file --nodename=$sel \
-                     --req_dict=${!reqdictvar} --app_pref_dict=${!appprefvar} --htbdir=$MINHTBDIR
+                     --proto=tcp --tx_type=fastdata --file_url=ltx1.dat --kstardata_url=/home/ubuntu/large_ecei_data.bp \
+                     --logto=file --nodename=$sel --req_dict=${!reqdictvar} --app_pref_dict=${!appprefvar} \
+                     --htbdir=$MINHTBDIR
 elif [ $1  = 'c' ]; then
-  python consumer.py --intf=lo --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 --dtsl_port=7000 \
-                     --proto=tcp --rx_type=kstardata --logto=console --nodename=mfa
+  python consumer.py --intf=lo --cl_port_list=6000,6001,6002 --dtst_port=7000 --dtsl_ip=10.0.0.255 \
+                     --dtsl_port=7000 --proto=tcp --rx_type=kstardata --logto=console --nodename=mfa
 elif [ ${sel:0:2}  = 'cr' ]; then
   i=${sel:2:1}
   lportvar='CR'$i'_LPORT'
@@ -140,13 +142,13 @@ elif [ $1  = 'k' ]; then
   #sudo rm -r /tmp/upsampleplot6*; mkdir /tmp/upsampleplot6000; mkdir /tmp/upsampleplot6001
   #sudo rm /tmp/fft*; sudo rm /tmp/upsampleplot*
   sudo pkill -f sleep
-  echo 'sleep are killed'
+  echo 'sleeps are killed'
   sudo pkill -f transit
-  echo 'transit are killed'
+  echo 'transits are killed'
   sudo pkill -f producer
-  echo 'producer are killed'
+  echo 'producers are killed'
   sudo pkill -f consumer
-  echo 'consumer are killed'
+  echo 'consumers are killed'
   sudo pkill -f run_hosts
   echo 'run_hosts are killed'
   #sudo pkill -f eceiproc

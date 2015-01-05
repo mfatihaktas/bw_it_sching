@@ -29,7 +29,7 @@ class DTSUserCommIntf(object):
     #
   
   def relsend_to_user(self, user_ip, msg):
-    ''' reliable send over udp with stop-and-wait arq '''
+    # Reliable send over udp with stop-and-wait arq
     self.send_to_user(user_ip, msg)
     #
     userinfo_dict = self.usersinfo_dict[user_ip]
@@ -59,7 +59,7 @@ class DTSUserCommIntf(object):
                                     msg_str =  json.dumps(msg_tobeacked) )
     userinfo_dict['msg_tobeacked'] = msg_tobeacked
     userinfo_dict['state'] = 1
-    self.logger.debug('send_to_use r:: sent to user_ip=%s, type=%s, seq_num=%s', user_ip, type_, userinfo_dict['seq_num'])
+    self.logger.debug('send_to_user:: sent to user_ip=%s, type=%s, seq_num=%s', user_ip, type_, userinfo_dict['seq_num'])
     #
     timeout_timer = threading.Timer(interval = self.timeout,
                                     function = self.handle_timeout,
@@ -78,15 +78,11 @@ class DTSUserCommIntf(object):
   
   #######  
   def pass_to_dts(self, user_ip, msg): #msg is json in str
-    print '***pass_to_dts::'
-    print 'msg=%s' % msg
-    print '***'
+    self.logger.debug('pass_to_dts:: msg= \n%s', msg)
     msg_ = self.check_msg('recv', json.loads(msg))
     if msg_ == None:
       self.logger.error('pass_to_dts:: msg is not proto-good')
       return
-    #
-    self.logger.debug('pass_to_dts:: dts recved from user_ip=%s', user_ip)
     #
     self.handle_rxfromuser(user_ip, msg_)
     
@@ -122,7 +118,6 @@ class DTSUserCommIntf(object):
         self.logger.error('handle_rxfromuser:: for user_ip=%s, nonack is rxed when state=%s', user_ip, state)
         helper_queue.put('failed')
     #
-    #self.logger.debug('handle_rxfromuser:: method returns.')
   
   def ack_user(self, user_ip, seq_num):
     msg_ack = json.dumps({'type': 'ack',

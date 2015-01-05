@@ -18,12 +18,12 @@ def get_addr(lintf):
 BWREGCONST=1.05
 CHUNKSTRSIZE=24*8*9*10+50
 class Producer(object):
-  def __init__(self, intf, pl_port, dtsl_ip, dtsl_port, cl_ip, proto,tx_type, file_url, kstardata_url,
+  def __init__(self, intf, dtst_port, dtsl_ip, dtsl_port, cl_ip, proto,tx_type, file_url, kstardata_url,
                req_dict,app_pref_dict, htbdir, logto):
     self.logto = logto
     self.intf = intf
     self.pl_ip = get_addr(intf)
-    self.pl_port = pl_port
+    self.dtst_port = dtst_port
     self.dtsl_ip = dtsl_ip
     self.dtsl_port = dtsl_port
     self.cl_ip = cl_ip
@@ -38,8 +38,8 @@ class Producer(object):
     '''0:start, 1:joined to dts, 2:sch_reply is recved'''
     self.state = 0
     self.userdts_intf = UserDTSCommIntf(sctag = 'p-dts',
-                                        user_addr = (self.pl_ip,self.pl_port),
-                                        dts_addr = (self.dtsl_ip,self.dtsl_port),
+                                        user_addr = (self.pl_ip, self.dtst_port),
+                                        dts_addr = (self.dtsl_ip, self.dtsl_port),
                                         _recv_callback = self._handle_recvfromdts )
     #for htb_queue conf - bw shaping
     self.ktif = 230 #kernel timer interrupt frequency (Hz)
@@ -56,17 +56,17 @@ class Producer(object):
     self.schingreplyrecved_time = 0
     #
     self.stpdst_txintereqtime_dict = {}
-    self.stxtokenq_dict = {}
+    self.stpdst_txtokenq_dict = {}
     self.sdone_dict = {}
     self.stopflag = False
     
   ########################  _handle_***  ########################
   def welcome_s(self, sch_req_id, data_):
     if self.state != 2:
-      logging.error('welcome_s: unexpected cur_state=%s', self.state)
+      logging.error('welcome_s:: unexpected cur_state=%s', self.state)
       return
     #
-    datasize = float(self.req_dict['data_size'])
+    datasize = float(self.req_dict['datasize'])
     bw = float(data_['bw'])
     stpdst = int(data_['tp_dst'])
     #
@@ -75,15 +75,15 @@ class Producer(object):
     self.stpdst_txintereqtime_dict[stpdst] = float(float(modeltxt)/nchunks)
     
     stxtokenq = Queue.Queue(1)
-    self.stxtokenq_dict[stpdst] = stxtokenq
+    self.stpdst_txtokenq_dict[stpdst] = stxtokenq
     self.sdone_dict[stpdst] = False
     threading.Thread(target = self.manage_stxtokenq,
                      kwargs = {'stpdst': stpdst } ).start()
     logging.debug('welcome_s:: stpdst=%s, datasize=%s, bw=%s, modeltxt=%s', stpdst, datasize, bw, modeltxt)
     #self.init_htbconf(pl, p_bw, p_tp_dst)
     
-    self.qtosender = [Queue.Queue(0) for i in range(pl)]
-    self.qfromsender = [Queue.Queue(0) for i in range(pl)]
+    self.qtosender = Queue.Queue(0)
+    self.qfromsender = Queue.Queue(0)
     
     to_addr = (self.cl_ip, stpdst)
     
@@ -101,20 +101,19 @@ class Producer(object):
     #
     self.sinfo_dict[sch_req_id] = {'qfromsender': self.qfromsender,
                                    'qtosender': self.qtosender,
-                                   'pl': pl,
                                    'stpdst': stpdst }
   
   def manage_stxtokenq(self, stpdst):
-    stxtokenq = self.stxtokenq_dict[stpdst]
+    stxtokenq = self.stpdst_txtokenq_dict[stpdst]
     while not self.sdone_dict[stpdst]:
       try:
         stxtokenq.put(CHUNKSTRSIZE, False)
       except Queue.Full:
         pass
-      #self.logger.debug('manage_stxtokenq_%s:: sleeping for %ssecs', stpdst, self.stpdst_procintereqtime_dict[stpdst])
+      #logging.debug('manage_stxtokenq_%s:: sleeping for %ssecs', stpdst, self.stpdst_procintereqtime_dict[stpdst])
       time.sleep(self.stpdst_txintereqtime_dict[stpdst])
     #
-    self.logger.debug('manage_stxtokenq_%s:: stoppped by STOP flag!', stpdst)
+    logging.debug('manage_stxtokenq_%s:: stoppped by STOP flag!', stpdst)
   
   def waitfor_sessiontoend(self, sch_req_id):
     sinfo_dict = {'sch_req_id': sch_req_id}
@@ -312,12 +311,6 @@ class Producer(object):
     logging.info('close:: all sender threads joined, closed.')
   ##############################################################################
   def test(self):
-    """
-    pl = 2
-    p_bw = ['1', '2']
-    p_tp_dst = ['6000','6001']
-    self.init_htbconf(pl, p_bw, p_tp_dst)
-    """
     self.send_join_req()
     """
     self.state = 1
@@ -326,7 +319,7 @@ class Producer(object):
     #self.state = 1
   
 def main(argv):
-  intf = pl_port = dtsl_ip = dtsl_port = cl_ip = proto = tx_type = file_url = kstardata_url = logto = nodename = None
+  intf = dtst_port = dtsl_ip = dtsl_port = cl_ip = proto = tx_type = file_url = kstardata_url = logto = nodename = None
   req_dict = app_pref_dict = htbdir = None
   try:
     opts, args = getopt.getopt(argv,'',['intf=','dtst_port=','dtsl_ip=','dtsl_port=', 'cl_ip=','proto=','tx_type=','file_url=', 'kstardata_url=', 'logto=','nodename=','req_dict=','app_pref_dict=', 'htbdir='])
@@ -338,7 +331,7 @@ def main(argv):
     if opt == '--intf':
       intf = arg
     elif opt == '--dtst_port':
-      pl_port = int(arg)
+      dtst_port = int(arg)
     elif opt == '--dtsl_ip':
       dtsl_ip = arg
     elif opt == '--dtsl_port':
@@ -380,7 +373,7 @@ def main(argv):
     raise CommandLineOptionError('Unexpected logto', logto)
   #
   p = Producer(intf = intf,
-               pl_port = pl_port,
+               dtst_port = dtst_port,
                dtsl_ip = dtsl_ip,
                dtsl_port = dtsl_port,
                cl_ip = cl_ip,

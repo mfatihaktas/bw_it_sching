@@ -75,13 +75,13 @@ class SchController(object):
                                      'slack-tt': sessionpreserved['slack-tt'],
                                      'slack-transtime': sessionpreserved['slack-transtime'],
                                      'app_pref_dict': sessionpreserved['app_pref_dict'] }
-      idealtrans_time = sessionpreserved['trans_time'] + sessionpreserved['schedtime_list'][-1] - sessionpreserved['schedtime_list'][0]#sec
-      couplingdoneinfo['overall']['slackmetric_list'] = sessionpreserved['slackmetric_list']
-      couplingdoneinfo['overall']['schedtime_list'] = sessionpreserved['schedtime_list']
+      idealtrans_time = sessionpreserved['trans_time'] + sessionpreserved['sched_time_list'][-1] - sessionpreserved['sched_time_list'][0]#sec
+      couplingdoneinfo['overall']['slack_metric_list'] = sessionpreserved['slack_metric_list']
+      couplingdoneinfo['overall']['sched_time_list'] = sessionpreserved['sched_time_list']
       couplingdoneinfo['overall']['bw_list'] = sessionpreserved['bw_list']
       couplingdoneinfo['overall']['datasize_list'] = sessionpreserved['datasize_list']
-      couplingdoneinfo['overall']['tobeproceddatasize_list'] = sessionpreserved['tobeproceddatasize_list']
-      couplingdoneinfo['overall']['tobeproceddata_transt_list'] = sessionpreserved['tobeproceddata_transt_list']
+      couplingdoneinfo['overall']['tobeproced_datasize_list'] = sessionpreserved['tobeproced_datasize_list']
+      couplingdoneinfo['overall']['tobeproced_data_transt_list'] = sessionpreserved['tobeproced_data_transt_list']
       
       couplingdur_relerr = 100*float(coupling_dur - idealtrans_time)/idealtrans_time
       

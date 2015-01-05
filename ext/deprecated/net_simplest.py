@@ -64,7 +64,7 @@ if __name__ == '__main__':
   #
   net.start()
   #
-  run_tnodes([t11, t21, t31])
+  run_tnodes([t11])
   #
   CLI( net )
   net.stop()
