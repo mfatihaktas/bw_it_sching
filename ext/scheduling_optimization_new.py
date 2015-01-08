@@ -11,8 +11,8 @@ from expr_matrix import Expr as expr
 
 BWREGCONST = 1 #0.9 #0.95
 BWREGCONST_INGRAB = 1 #0.9 #0.95
-SLACKFEASIBILITYCONST = 1.1 #1
-IT_HOPE_OVERHEAD = 1.1
+SLACKFEASIBILITYCONST = 1 #1.1
+IT_HOPE_OVERHEAD = 1 #1.1
 
 '''
 class SchingOptimizer:
@@ -42,7 +42,7 @@ def grab_sching_result(self):
 def get_session_itwalk_dict__walk_list(self, s_id):
 def it_time__basedon_itwalk_dict(self, itwalk_dict):
 def print_sching_optimizer(self):
-def feasibilize_schinginfo(self):
+def feasibilize_sessions_reqs(self):
 def get_sching_result(self):
 def add_sessionpathlinks_with_ids(self):
 def add_sessionpathitrs_with_ids(self):
@@ -73,8 +73,8 @@ class SchingOptimizer:
     #
     self.add_sessionpathlinks_with_ids()
     self.add_sessionpathitrs_with_ids()
-    #To deal with FEASIBILITY (due to small slackmetric) problems
-    self.feasibilize_schinginfo()
+    # To deal with FEASIBILITY (due to small slackmetric) problems
+    self.feasibilize_sessions_reqs()
     self.print_sching_optimizer()
     # scalarization factor
     self.scal_var = cp.Parameter(name='scal_var', sign='positive')
@@ -154,7 +154,7 @@ class SchingOptimizer:
       l_ = self.txprocdurtrans_time_model(s_id = s_id,
                                           datasize = s_req_dict['datasize'],
                                           comp_list = [self.func_compconstant_dict[func] for func in s_req_dict['func_list']],
-                                          num_itres = len(self.sid_res_dict[s_id]['path_info']['itr_list']) )
+                                          num_itres = len(self.sid_res_dict[s_id]['path_info']['itr_on_path_list']) )
       self.s_txt.set_((s_id, 0), l_[0])
       self.s_proct.set_((s_id, 0), l_[1])
       #self.s_durt.set_((s_id, 0), l_[2])
@@ -581,14 +581,14 @@ class SchingOptimizer:
     self.logger.info('actual_res_dict=\n%s', pprint.pformat(self.actual_res_dict))
     self.logger.info('sid_res_dict=\n%s', pprint.pformat(self.sid_res_dict))
   
-  def feasibilize_schinginfo(self):
+  def feasibilize_sessions_reqs(self):
     def tx_time_calc(ds, bw):
       return ds*1/(BWREGCONST*bw) # sec
     #
     self.add_path_sharing_info()
     # Find out the min slack metric requirement for the requirements of a session
     # to be feasible for the resource allocation optimization process.
-    for s_id in range(0, self.N):
+    for s_id in range(self.N):
       s_req_dict = self.sessions_beingserved_dict[s_id]['req_dict']
       bw = self.sid_res_dict[s_id]['path_info']['fair_bw']
       tx_t = tx_time_calc(ds = s_req_dict['datasize'], 
@@ -608,7 +608,7 @@ class SchingOptimizer:
     for s_id in self.sid_res_dict:
       path_info_dict = self.sid_res_dict[s_id]['path_info']
       linkid_list = []
-      for ne_tuple in path_info_dict['net_edge_list']:
+      for ne_tuple in path_info_dict['edge_on_path_list']:
         l_id = self.actual_res_dict['res_id_map'][net_edge(pre=ne_tuple[0], post=ne_tuple[1])]
         linkid_list.append(l_id)
       
@@ -619,7 +619,7 @@ class SchingOptimizer:
     for s_id in self.sid_res_dict:
       itrid_list = []
       path_info_dict = self.sid_res_dict[s_id]['path_info']
-      for itr in path_info_dict['itr_list']:
+      for itr in path_info_dict['itr_on_path_list']:
         itr_id = self.actual_res_dict['res_id_map'][itr]
         itrid_list.append(itr_id)
       
@@ -634,8 +634,8 @@ class SchingOptimizer:
         link_tuple = (res.pre, res.post)
         link_counter = 0
         # Every session is counted as num_available_paths user for the resource
-        for s_id in range(0, self.N):
-          if link_tuple in self.sid_res_dict[s_id]['path_info']['net_edge_list']:
+        for s_id in range(self.N):
+          if link_tuple in self.sid_res_dict[s_id]['path_info']['edge_on_path_list']:
             link_counter += 1
         
         id_info_map[res_id_map[res]].update({'num_user':link_counter})
@@ -658,7 +658,7 @@ class SchingOptimizer:
     # the bw, fair_bw of each session can be set to accordingly
     for s_id in range(self.N):
       path_info_dict = self.sid_res_dict[s_id]['path_info']
-      s_fair_bw = give_fair_bw_share(path_info_dict['net_edge_list'])
+      s_fair_bw = give_fair_bw_share(path_info_dict['edge_on_path_list'])
       path_info_dict['fair_bw'] = s_fair_bw
   
   def solve(self):

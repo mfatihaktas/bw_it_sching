@@ -19,4 +19,3 @@ r_proc = N x num_itr
 r_dur = N x num_itr
 
 f1=fft  f2=upsampleplot
-

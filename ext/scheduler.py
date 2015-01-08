@@ -99,7 +99,7 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    net_xml_file_url =  "net_xmls/net_resubmit_exp.xml" #"net_xmls/net_1p_singletr.xml" #"net_xmls/grenet_multipaths.xml" #"net_xmls/grenet_gbit_1p_singletr.xml" #"net_xmls/grenet_1p_singletr.xml"
+    net_xml_file_url = "net_xmls/net_mesh_topo.xml" #"net_xmls/net_resubmit_exp.xml" #"net_xmls/net_1p_singletr.xml" #"net_xmls/grenet_multipaths.xml" #"net_xmls/grenet_gbit_1p_singletr.xml" #"net_xmls/grenet_1p_singletr.xml"
     if not is_scheduler_run:
       net_xml_file_url = "ext/" + net_xml_file_url
     
@@ -254,7 +254,7 @@ class Scheduler(object):
                                         req_dict = data_['req_dict'],
                                         app_pref_dict = data_['app_pref_dict'] )
       if sch_req_id  != -1:
-        #TODO: for now ...
+        # TODO: for now ...
         self.do_sching()
       else:
         msg = {'type':'sching_reply',
@@ -373,33 +373,27 @@ class Scheduler(object):
   
   ###################################  Sching rel methods  ###########################################
   def update_sid_res_dict(self):
-    # Network resources will be only the ones on the session_shortest path.
-    # It resources need to lie on the session_shortest path.
-    # TODO: sessions whose resources are already specified no need for putting them in the loop
     for s_id in self.sessionsbeingserved_dict:
-      p_c_gwdpid_list = self.sessionsbeingserved_dict[s_id]['p_c_gwtag_list']
-      s_all_paths = self.gm.give_all_paths(p_c_gwdpid_list[0], p_c_gwdpid_list[1])
-      # TODO: pick a path using heuristic
-      s_path = s_all_paths[0]
-      logging.debug('update_sid_res_dict:: s_id=%s, path=\n%s', s_id, pprint.pformat(s_path))
-      #
-      net_edge_list = self.gm.pathlist_to_netedgelist(s_path)
-      itr_list = self.gm.give_itreslist_on_path(s_path)
-      if not (s_id in self.sid_res_dict):
+      if not s_id in self.sid_res_dict:
+        p_c_gwtag_list = self.sessionsbeingserved_dict[s_id]['p_c_gwtag_list']
+        [path, edge_on_path_list, itr_on_path_list] = \
+          self.gm.get_path__edge__itr_on_path_list(p_c_gwtag_list[0], p_c_gwtag_list[1])
+        logging.debug('update_sid_res_dict:: s_id=%s, path=\n%s', s_id, path)
+        
         self.sid_res_dict[s_id] = {'s_info':{}, 'path_info':{}}
-      self.sid_res_dict[s_id]['path_info'].update(
-        {'path': s_path,
-         'net_edge_list': net_edge_list,
-         'itr_list': itr_list } )
-  '''
-  def update_sid_schregid_dict(self):
-    self.sid_schregid_dict = {}
+        self.sid_res_dict[s_id]['path_info'].update(
+          {'path': path,
+           'edge_on_path_list': edge_on_path_list,
+           'itr_on_path_list': itr_on_path_list } )
     #
-    i = 0
-    for k in self.sessionsbeingserved_dict:
-      self.sid_schregid_dict[i] = k
-      i += 1
-  '''
+    
+  # def update_sid_schregid_dict(self):
+  #   self.sid_schregid_dict = {}
+  #   #
+  #   i = 0
+  #   for k in self.sessionsbeingserved_dict:
+  #     self.sid_schregid_dict[i] = k
+  #     i += 1
   def give_incintkeyform(self, flag, indict):
     outdict = {}
     i = 0
@@ -440,7 +434,7 @@ class Scheduler(object):
       #
     logging.info('do_sching:: sching_id=%s started;', sching_id)
     self.update_sid_res_dict()
-    #self.update_sid_schregid_dict()
+    # self.update_sid_schregid_dict()
     sching_opter = SchingOptimizer(self.give_incintkeyform(flag=True,
                                                            indict=self.sessionsbeingserved_dict),
                                    self.actual_res_dict,
@@ -477,7 +471,7 @@ class Scheduler(object):
     # self.perf_plotter.save_sching_result(g_info_dict = self.alloc_dict['general'],
     #                                     s_info_dict = self.alloc_dict['s-wise'],
     #                                     res_info_dict = self.alloc_dict['res-wise'])
-    #Convert sching decs to rules
+    # Convert sching decs to rules
     for s_id in range(self.N):
       s_allocinfo_dict = self.alloc_dict['s-wise'][s_id]
       
@@ -590,7 +584,7 @@ class Scheduler(object):
       for j in range(head_i + 1, tail_i - 1): #sws in [head_sw, tail_sw)
         sw_str = swalk_chop[j]
         sw = self.gm.get_node(sw_str)
-        forward_edge = self.gm.get_edge(sw_str, swalk_chop[j + 1])
+        forward_edge = self.gm.get_edge((sw_str, swalk_chop[j + 1]))
         chop_walk_rule_list.append({'conn': [sw['dpid'], head_ip],
                                     'typ': 'forward',
                                     'wc': [head_ip, to_ip, 6, -1, int(s_tp_dst)],
@@ -599,7 +593,7 @@ class Scheduler(object):
       for j in range(head_i + 2, tail_i): #sws in (head_sw-tail_sw]
         sw_str = swalk_chop[j]
         sw = self.gm.get_node(sw_str)
-        backward_edge = self.gm.get_edge(swalk_chop[j-1], sw_str)
+        backward_edge = self.gm.get_edge((swalk_chop[j-1], sw_str))
         chop_walk_rule_list.append({'conn': [sw['dpid'], tail_ip],
                                     'typ': 'forward',
                                     'wc': [tail_ip, head_ip, 6, int(s_tp_dst), -1],
@@ -617,7 +611,7 @@ class Scheduler(object):
            'wc': [head_ip, to_ip, 6, -1, int(s_tp_dst)],
            'rule': [totail_swportname, duration] } )
       else: # tail is another itres        
-        tail_edge = self.gm.get_edge(tailsw_str, tail_str)
+        tail_edge = self.gm.get_edge((tailsw_str, tail_str))
         totail_swportname = tail_edge['pre_dev']
         chop_walk_rule_list.append(
           {'conn': [tailsw['dpid'], head_ip],
@@ -662,7 +656,7 @@ class Scheduler(object):
         tohead_swportname = get_touser_swportname(dpid = p_info_dict['gw_dpid'],
                                                   port = p_info_dict['gw_conn_port'])
       else: # head is another itres
-        headedge = self.gm.get_edge(head_str, headsw_str)
+        headedge = self.gm.get_edge((head_str, headsw_str))
         tohead_swportname = headedge['pre_dev']
       #
       chop_walk_rule_list.append({'conn':[headsw['dpid'],tail_ip],
@@ -704,14 +698,22 @@ class Scheduler(object):
     sching_opter.solve()
   
   def test(self, num_session):
-    userinfo_list = [ {'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':1, 'gw_conn_port':3},
-                      {'user_ip':'10.0.2.1', 'user_mac':'00:00:00:01:02:01', 'gw_dpid':1, 'gw_conn_port':4},
-                      {'user_ip':'10.0.2.2', 'user_mac':'00:00:00:01:02:02', 'gw_dpid':1, 'gw_conn_port':5},
-                      {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':2, 'gw_conn_port':3},
-                      {'user_ip':'10.0.1.1', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':2, 'gw_conn_port':4},
-                      {'user_ip':'10.0.1.2', 'user_mac':'00:00:00:01:01:01', 'gw_dpid':2, 'gw_conn_port':5},
-                      {'user_ip':'10.0.2.20', 'user_mac':'00:00:00:01:02:20', 'gw_dpid':11, 'gw_conn_port':2},
-                      {'user_ip':'10.0.1.20', 'user_mac':'00:00:00:01:01:20', 'gw_dpid':21, 'gw_conn_port':2} ]
+    # For net_mesh_topo.xml
+    userinfo_list = [ {'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':21, 'gw_conn_port':3},
+                      {'user_ip':'10.0.2.1', 'user_mac':'00:00:00:01:02:01', 'gw_dpid':21, 'gw_conn_port':4},
+                      {'user_ip':'10.0.2.2', 'user_mac':'00:00:00:01:02:02', 'gw_dpid':21, 'gw_conn_port':5},
+                      {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':11, 'gw_conn_port':3},
+                      {'user_ip':'10.0.1.1', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':11, 'gw_conn_port':4},
+                      {'user_ip':'10.0.1.2', 'user_mac':'00:00:00:01:01:01', 'gw_dpid':11, 'gw_conn_port':5} ]
+    # For net_resubmit_exp.xml
+    # userinfo_list = [ {'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':1, 'gw_conn_port':3},
+    #                   {'user_ip':'10.0.2.1', 'user_mac':'00:00:00:01:02:01', 'gw_dpid':1, 'gw_conn_port':4},
+    #                   {'user_ip':'10.0.2.2', 'user_mac':'00:00:00:01:02:02', 'gw_dpid':1, 'gw_conn_port':5},
+    #                   {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':2, 'gw_conn_port':3},
+    #                   {'user_ip':'10.0.1.1', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':2, 'gw_conn_port':4},
+    #                   {'user_ip':'10.0.1.2', 'user_mac':'00:00:00:01:01:01', 'gw_dpid':2, 'gw_conn_port':5},
+    #                   {'user_ip':'10.0.2.20', 'user_mac':'00:00:00:01:02:20', 'gw_dpid':11, 'gw_conn_port':2},
+    #                   {'user_ip':'10.0.1.20', 'user_mac':'00:00:00:01:01:20', 'gw_dpid':21, 'gw_conn_port':2} ]
     #
     for userinfo in userinfo_list:
       self.welcome_user(user_ip = userinfo['user_ip'],
@@ -743,10 +745,26 @@ class Scheduler(object):
                            req_dict = req_dict_list[int(i%5)],
                            app_pref_dict = app_pref_dict_list[int(i%5)] )
     #
-    #self.run_sching()
+    # self.run_sching()
     self.do_sching()
     
-is_scheduler_run = False
+    # net_edge_list = self.gm.path_to_netedgelist(s_path)
+    # itr_list = self.gm.get_itrlist_on_path(s_path)
+    # if not (s_id in self.sid_res_dict):
+    #   self.sid_res_dict[s_id] = {'s_info':{}, 'path_info':{}}
+    # self.sid_res_dict[s_id]['path_info'].update(
+    #   {'path': s_path,
+    #   'edge_on_path_list': net_edge_list,
+    #   'itr_on_path_list': itr_list } )
+    #
+    
+    # for s_id in range(self.N):
+    #   p_c_gwtag_list = self.sessionsbeingserved_dict[s_id]['p_c_gwtag_list']
+    #   [path, edge_on_path_list, itr_on_path_list] = \
+    #     self.gm.get_path__edge__itr_on_path_list(p_c_gwtag_list[0], p_c_gwtag_list[1])
+    #   self.gm.add_user_to_edge__itr_list(edge_on_path_list, itr_on_path_list)
+    #   print 'test:: s_id= %s, path= %s' % (s_id, path)
+    
 def main():
   global is_scheduler_run
   is_scheduler_run = True
@@ -754,7 +772,7 @@ def main():
                   sching_logto = 'console',
                   data_over_tp = 'tcp')
   
-  sch.test(num_session = 2)
+  sch.test(num_session = 5)
   #
   raw_input('Enter')
   
