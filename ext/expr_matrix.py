@@ -1,5 +1,5 @@
 
-def sumlist(l):
+def sum_list(l):
   sum_ = None
   for i,e in enumerate(l):
     if i == 0:
@@ -45,13 +45,13 @@ class Expr:
   def agg_to_column(self):
     cexpr = Expr((self.r, 1))
     for i in range(self.r):
-      cexpr.set_((i,0), sumlist(self.get_row(i)) )
+      cexpr.set_((i,0), sum_list(self.get_row(i)) )
     return cexpr
   
   def agg_to_row(self):
     rexpr = Expr((1, self.c))
     for j in range(self.c):
-      rexpr.set_((0,j), sumlist(self.get_column(j)) )
+      rexpr.set_((0,j), sum_list(self.get_column(j)) )
     return rexpr
   
   def __str__(self):

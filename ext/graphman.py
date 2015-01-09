@@ -194,15 +194,18 @@ class GraphMan(object):
     for itr in itr_list:
       self.rm_user_from_itr(itr)
     
-  def get_path_fair_bw(self, edge_on_path_list):
-    path_fair_bw = float('Inf')
+  def get_path_bw__fair_bw(self, edge_on_path_list):
+    path_bw, path_fair_bw = float('Inf'), float('Inf')
     for edge in edge_on_path_list:
       edge_ = self.g[edge[0]][edge[1]]
+      edge_bw = float(edge_['bw'])
+      if path_bw > edge_bw:
+        path_bw = edge_bw
       edge_fair_bw = edge_['fair_bw']
       if path_fair_bw > edge_fair_bw:
         path_fair_bw = edge_fair_bw
     #
-    return path_fair_bw
+    return [path_bw, path_fair_bw]
   
   def get_path_fair_proc_cap(self, itr_on_path_list):
     path_fair_proc_cap, path_to_be_fair_proc_cap = 0, 0
@@ -213,7 +216,7 @@ class GraphMan(object):
     #
     return [path_fair_proc_cap, path_to_be_fair_proc_cap]
   
-  def get_path__edge__itr_on_path_list(self, src, trgt):
+  def get_path__edge__itr_on_path_list__fair_bw_dict(self, src, trgt):
     all_paths_list = self.get_all_paths_list(src, trgt)
     # print 'get_path__edge__itr_on_path_list:: all_paths_list= \n%s' % pprint.pformat(all_paths_list)
     
@@ -233,7 +236,10 @@ class GraphMan(object):
                                 'edge_on_path_list': self.path_to_edge_list(path_),
                                 'itr_on_path_list': self.get_itr_on_path_list(path_) }
         path_info_ = path_info_dict[i_]
-        path_fair_bw_list.append(self.get_path_fair_bw(path_info_['edge_on_path_list']) )
+        [path_bw, path_fair_bw] = self.get_path_bw__fair_bw(path_info_['edge_on_path_list'])
+        path_info_['bw'] = path_bw
+        path_info_['fair_bw'] = path_fair_bw
+        path_fair_bw_list.append(path_fair_bw)
         path_fair_proc_cap_list.append(self.get_path_fair_proc_cap(path_info_['itr_on_path_list']) )
       # cv: Coeff of variance
       # path_info['path_fair_bw_list'] = path_fair_bw_list
@@ -261,6 +267,6 @@ class GraphMan(object):
     # print '----------------------'
     
     path_info = path_info_dict[min_to_be_fair_total_cv_i]
-    return [path_info['path'], path_info['edge_on_path_list'], path_info['itr_on_path_list']]
+    return path_info
   
   

@@ -7,7 +7,9 @@ import sys,pprint,time,logging
 from collections import namedtuple
 import __builtin__
 #
+from expr_matrix import sum_list
 from expr_matrix import Expr as expr
+
 
 BWREGCONST = 1 #0.9 #0.95
 BWREGCONST_INGRAB = 1 #0.9 #0.95
@@ -46,14 +48,13 @@ def feasibilize_sessions_reqs(self):
 def get_sching_result(self):
 def add_sessionpathlinks_with_ids(self):
 def add_sessionpathitrs_with_ids(self):
-def add_path_sharing_info(self):
 def solve(self):
 '''
 
 class SchingOptimizer:
   def __init__(self, sessions_beingserved_dict, actual_res_dict, sid_res_dict):
     # logging.basicConfig(filename='logs/schinglog',filemode='w',level=logging.DEBUG)
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     self.logger = logging.getLogger('SchingOptimizer')
     #
     self.sessions_beingserved_dict = sessions_beingserved_dict
@@ -67,8 +68,8 @@ class SchingOptimizer:
     self.num_itr = self.k - self.num_link
     # func_compconstant_dict; key:function, val:comp_constant (2-8)
     self.func_compconstant_dict = {
-      'fft': 5,
-      'upsampleplot': 75
+      'fft': 1,
+      'upsampleplot': 1
     }
     #
     self.add_sessionpathlinks_with_ids()
@@ -111,7 +112,6 @@ class SchingOptimizer:
     self.s_pen_vector = expr((self.N, 1))
     self.s_util_vector = expr((self.N, 1))
     self.fill__r_hardsoft__s_penutil_vectors()
-    # self.print_sching_optimizer()
     # To keep SCHING DECISION in a dict
     self.session_res_alloc_dict = {'general':{},'s-wise': {}, 'res-wise': {}}
 
@@ -206,8 +206,7 @@ class SchingOptimizer:
     for i in range(self.max_numitfuncs):
       tempexpr.set_((i, 0), self.s_n[s_id, i])
     #
-    totaln = sum(tempexpr.get_column(0))
-    return totaln
+    return sum_list(tempexpr.get_column(0))
     #TODO: next line is causing s_n.value to be None after solution. Report as bug !
     #return sum(self.s_n[s_id, :])*self.r_soft_grain
 
@@ -259,33 +258,9 @@ class SchingOptimizer:
       self.logger.error('F1:: erronous N = %s', self.N)
     
   def F(self):
-    return self.F0() - self.scal_var*self.F1()
-  ###
-  '''
-  def r_stor__r_durXs_bw_map(self):
-    def norm2_square(l):
-      #l: python list
-      size = len(l)
-      if size == 0:
-        self.logger.error('r_stor__r_durXs_bw_map:: list is empty')
-        sys.exit(0)
-      #
-      l_ = [None]*size
-      for i in range(size):
-        l_[i] = cp.square(l[i])
-      return self.sumlist(l_)
-    # itr_storage requirement modeling for self.r_storstaging
-    for i in range(0, self.num_itr):
-      #dur_vector = self.r_dur2.get_column(i) #list, 1xN
-      bw_vector = self.a.get_row(0) #list, 1xN
-      #(|x|^2+|y|^2)/2 >= |x|.|y| >= <x,y>: actual_dur
-      upper_bound = (float)(0.001/2)*( norm2_square(bw_vector)+norm2_square(dur_vector) )
-      self.r_stor.set_((0,i), upper_bound)
-      
-      #(0.001/2)*( square(norm2(bw_vector))+square(norm2(dur_vector)) )
-      #(0.001/2)*( power_pos(norm2(bw_vector), 2)+power_pos(norm2(dur_vector), 2) )
-    self.logger.debug('r_stor__r_durXs_bw_map:: r_stor=\n%s', self.r_stor)
-  '''
+    # return self.F0() - self.scal_var*self.F1()
+    return self.F0() - (self.F1())
+  
   #####################################  Constraint functions  #######################################
   def tt_epigraph_form_constraint(self):
     # trans_time_i <= tt_i ; i=0,1,2,3,...,N-1
@@ -300,9 +275,9 @@ class SchingOptimizer:
     return [self.s_bw >= 0] + \
            [self.r_proc >= 0] + \
            [self.s_n >= 0] + \
-           [self.s_n <= 1] + \
-           [self.tt >= 0] + \
-           s_n_consts
+           [self.tt >= 0] #+ \
+          # s_n_consts
+          # [self.s_n <= 1] + \
            #[self.r_dur >= 0] + \
   
   def res_cap_constraint(self):
@@ -315,10 +290,10 @@ class SchingOptimizer:
     # for resource proc and stor
     r_proc_agged_row = []
     for itr_id in range(self.num_itr):
-      colsum = 0
+      col_sum = 0
       for s_id in range(self.N):
-        colsum += self.r_proc[s_id, itr_id]
-      r_proc_agged_row.append(colsum)
+        col_sum += self.r_proc[s_id, itr_id]
+      r_proc_agged_row.append(col_sum)
       
     r_proc_cap_list = []
     # r_stor_cap_list = []
@@ -405,7 +380,7 @@ class SchingOptimizer:
       
       s_path_info = self.sid_res_dict[s_id]['path_info']
       tobeproced_datasize = s_datasize*max(sn_list) #MB
-      tobeproced_data_transt = tobeproced_datasize*8/(BWREGCONST_INGRAB*bw) + self.s_proct.get((s_id, 0)).value #sec
+      tobeproced_data_transt = 8*tobeproced_datasize/(BWREGCONST_INGRAB*bw) + self.s_proct.get((s_id, 0)).value #sec
       #
       self.session_res_alloc_dict['s-wise'][s_id] = {
         'bw':bw, 'proc':proc, 'dur':dur,
@@ -509,47 +484,33 @@ class SchingOptimizer:
       #
       return [walk_list, itr_list_]
     #
+    path_info_dict = self.sid_res_dict[s_id]['path_info']
     req_dict = self.sessions_beingserved_dict[s_id]['req_dict']
     func_list = req_dict['func_list']
-    n_list = [(float(self.s_n[s_id, k].value)**2) for k in range(len(req_dict['func_list']))]
+    n_list = [(float(self.s_n[s_id, k].value)**2) for k in range(len(req_dict['func_list']) )]
     #
     itwalk_dict = {'itr_info_dict':{}, 'info':{}}
     itr_info_dict = itwalk_dict['itr_info_dict']
     info_dict = itwalk_dict['info']
     
     proc, dur = 0, 0
-    for itr_id in range(0, self.num_itr):
+    for itr in path_info_dict['itr_on_path_list']:
+      itr_id = self.actual_res_dict['res_id_map'][itr] - self.ll_index - 1
       itr_proc = float(self.r_proc[s_id, itr_id].value)
-      if itr_proc > 0: # Caused problem since session can directly go to c!
-        proc += itr_proc
-        itr_id_ = itr_id + self.ll_index + 1
-        itr_tag = self.actual_res_dict['id_info_map'][itr_id_]['tag']
-        try:
-          itr_info_dict[itr_tag].update({'proc': itr_proc})
-        except KeyError:
-          itr_info_dict[itr_tag] = {'proc': itr_proc}
+      itr_info_dict[itr] = {'proc': itr_proc}
+      proc += itr_proc
       
-      # itr_dur = float(self.r_dur[s_id, t_id].value)
-      # if itr_dur > 1:
-      #   dur += itr_dur
-      #   t_id_ = t_id + self.ll_index + 1
-      #   itr_tag = self.actual_res_dict['id_info_map'][t_id_]['tag']
-      #   try:
-      #     itr_info_dict[itr_tag].update({'dur': itr_dur})
-      #   except KeyError:
-      #     itr_info_dict[itr_tag] = {'dur': itr_dur}
-      #
     info_dict['proc'] = proc
     info_dict['dur'] = dur
     info_dict['datasize'] = float(req_dict['datasize'])
-    info_dict['bw'] = self.s_bw[s_id, 0].value
+    info_dict['bw'] = float(self.s_bw[s_id, 0].value)
     info_dict['itfunc_dict'] = {func_list[i]:n for i,n in enumerate(n_list)}
     
     add_nlisttoitr_list(s_id = s_id, proc = proc,
                         n_list = n_list,
                         itr_info_dict = itr_info_dict )
     [walk_list, orded_itr_list] = itr_list__to__walk_list__ordered_itr_list(
-      net_path_list = self.sid_res_dict[s_id]['path_info']['path'],
+      net_path_list =path_info_dict['path'],
       itr_list = [t for t in itr_info_dict] )
     #
     return [itwalk_dict, walk_list]
@@ -576,118 +537,86 @@ class SchingOptimizer:
   
   # print info about optimization session
   def print_sching_optimizer(self):
-    self.logger.info('Optimizer is created with the follows;')
+    self.logger.info('Optimizer is created with the follows:')
     self.logger.info('sessions_beingserved_dict=\n%s', pprint.pformat(self.sessions_beingserved_dict))
     self.logger.info('actual_res_dict=\n%s', pprint.pformat(self.actual_res_dict))
     self.logger.info('sid_res_dict=\n%s', pprint.pformat(self.sid_res_dict))
   
   def feasibilize_sessions_reqs(self):
-    def tx_time_calc(ds, bw):
-      return ds*1/(BWREGCONST*bw) # sec
-    #
-    self.add_path_sharing_info()
+    def calc_tx_time(datasize, bw):
+      return (8*datasize)/(BWREGCONST*bw) # sec
     # Find out the min slack metric requirement for the requirements of a session
     # to be feasible for the resource allocation optimization process.
     for s_id in range(self.N):
       s_req_dict = self.sessions_beingserved_dict[s_id]['req_dict']
       bw = self.sid_res_dict[s_id]['path_info']['fair_bw']
-      tx_t = tx_time_calc(ds = s_req_dict['datasize'], 
+      if bw == 0:
+        bw = self.sid_res_dict[s_id]['path_info']['bw']
+      
+      tx_t = calc_tx_time(datasize = s_req_dict['datasize'],
                           bw = bw )
       min_trans_t = tx_t*SLACKFEASIBILITYCONST
-      slack = s_req_dict['slack_metric']
+      slack_metric = s_req_dict['slack_metric']
       #
-      if slack < min_trans_t:
-        self.logger.warning('S%s\'s slack_metric is not feasible!\nChanged from:%sms to:%sms', s_id, slack, min_trans_t)
+      if slack_metric < min_trans_t:
+        self.logger.warning('S%s\'s slack_metric is not feasible!\nChanged from:%sms to:%sms', s_id, slack_metric, min_trans_t)
         s_req_dict['slack_metric'] = min_trans_t
   
   def get_sching_result(self):
     return self.session_res_alloc_dict
   
+  # TODO does the following two also for each session
   def add_sessionpathlinks_with_ids(self):
     net_edge = namedtuple("net_edge", ["pre", "post"])
-    for s_id in self.sid_res_dict:
+    for s_id in range(self.N):
       path_info_dict = self.sid_res_dict[s_id]['path_info']
-      linkid_list = []
-      for ne_tuple in path_info_dict['edge_on_path_list']:
-        l_id = self.actual_res_dict['res_id_map'][net_edge(pre=ne_tuple[0], post=ne_tuple[1])]
-        linkid_list.append(l_id)
-      
-      path_info_dict.update({'linkid_list': linkid_list})
+      if not 'linkid_list' in path_info_dict:
+        linkid_list = []
+        for ne_tuple in path_info_dict['edge_on_path_list']:
+          linkid_list.append(self.actual_res_dict['res_id_map'][net_edge(pre=ne_tuple[0], post=ne_tuple[1])] )
+        
+        path_info_dict.update({'linkid_list': linkid_list})
     #
   
   def add_sessionpathitrs_with_ids(self):
-    for s_id in self.sid_res_dict:
+    for s_id in range(self.N):
       itrid_list = []
       path_info_dict = self.sid_res_dict[s_id]['path_info']
-      for itr in path_info_dict['itr_on_path_list']:
-        itr_id = self.actual_res_dict['res_id_map'][itr]
-        itrid_list.append(itr_id)
-      
-      path_info_dict.update({'itrid_list':itrid_list})
+      if not 'itrid_list' in path_info_dict:
+        for itr in path_info_dict['itr_on_path_list']:
+          itr_id = self.actual_res_dict['res_id_map'][itr]
+          itrid_list.append(itr_id)
+        
+        path_info_dict.update({'itrid_list':itrid_list})
     #
   
-  def add_path_sharing_info(self):
-    id_info_map = self.actual_res_dict['id_info_map']
-    res_id_map = self.actual_res_dict['res_id_map']
-    for res in res_id_map:
-      try:
-        link_tuple = (res.pre, res.post)
-        link_counter = 0
-        # Every session is counted as num_available_paths user for the resource
-        for s_id in range(self.N):
-          if link_tuple in self.sid_res_dict[s_id]['path_info']['edge_on_path_list']:
-            link_counter += 1
-        
-        id_info_map[res_id_map[res]].update({'num_user':link_counter})
-      except AttributeError: #res is not a link
-        pass
-    # Returning fair bw share for the path
-    def give_fair_bw_share(net_edge_list):
-      bw_ = float('Inf')
-      for net_edge in net_edge_list:
-        l_info = id_info_map[res_id_map[net_edge]]
-        l_bw = l_info['bw_cap']/l_info['num_user']
-        if l_bw < bw_:
-          bw_ = l_bw
-      
-      return bw_
-    # 
-    # Add fair bw allocation between sessions
-    # (Currently) fair_bw of a session: Sum of fair_bw share from each session path
-    # TODO: If there is supposed to be superority of a particular session over 
-    # the bw, fair_bw of each session can be set to accordingly
-    for s_id in range(self.N):
-      path_info_dict = self.sid_res_dict[s_id]['path_info']
-      s_fair_bw = give_fair_bw_share(path_info_dict['edge_on_path_list'])
-      path_info_dict['fair_bw'] = s_fair_bw
-  
   def solve(self):
-    (self.scal_var).value = 100
+    (self.scal_var).value = 1
     
-    # self.logger.debug('------------------------------')
-    # self.logger.debug('F0()= %s', self.F0())
-    # self.logger.debug('F0().is_convex()= %s', self.F0().is_convex())
-    # self.logger.debug('F1()= %s', self.F1())
-    # self.logger.debug('F1().is_concave()= %s', self.F1().is_concave())
-    # self.logger.debug('F()=%s', self.F())
-    # self.logger.debug('F().is_convex()= %s', self.F().is_convex())
-    # self.logger.debug('------------------------------')
+    self.logger.debug('------------------------------')
+    self.logger.debug('F0()= %s', self.F0())
+    self.logger.debug('F0().is_convex()= %s', self.F0().is_convex())
+    self.logger.debug('F1()= %s', self.F1())
+    self.logger.debug('F1().is_concave()= %s', self.F1().is_concave())
+    self.logger.debug('F()= %s', self.F())
+    self.logger.debug('F().is_convex()= %s', self.F().is_convex())
+    self.logger.debug('------------------------------')
     
-    # self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-    # constraint0_txt_list = ['%s' % c for c in self.constraint0()]
-    # tt_epigraph_form_constraint_txt_list = ['%s' % c for c in self.tt_epigraph_form_constraint()]
-    # res_cap_constraint_txt_list = ['%s' % c for c in self.res_cap_constraint()]
-    # r_bwprocdur_sparsity_constraint_txt_list = ['%s' % c for c in self.r_bwprocdur_sparsity_constraint()]
-    # s_n_sparsity_constraint_txt_list = ['%s' % c for c in self.s_n_sparsity_constraint()]
+    self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+    constraint0_txt_list = ['%s' % c for c in self.constraint0()]
+    tt_epigraph_form_constraint_txt_list = ['%s' % c for c in self.tt_epigraph_form_constraint()]
+    res_cap_constraint_txt_list = ['%s' % c for c in self.res_cap_constraint()]
+    r_bwprocdur_sparsity_constraint_txt_list = ['%s' % c for c in self.r_bwprocdur_sparsity_constraint()]
+    s_n_sparsity_constraint_txt_list = ['%s' % c for c in self.s_n_sparsity_constraint()]
     
-    # self.logger.debug('constraint0=\n%s', pprint.pformat(constraint0_txt_list ) )
-    # self.logger.debug('self.tt_epigraph_form_constraint()=\n%s', pprint.pformat(tt_epigraph_form_constraint_txt_list) )
-    # self.logger.debug('res_cap_constraint=\n%s', pprint.pformat(res_cap_constraint_txt_list) )
-    # self.logger.debug('r_bwprocdur_sparsity_constraint=\n%s', pprint.pformat(r_bwprocdur_sparsity_constraint_txt_list) )
-    # self.logger.debug('s_n_sparsity_constraint=\n%s', pprint.pformat(s_n_sparsity_constraint_txt_list) )
-    # self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+    self.logger.debug('constraint0=\n%s', pprint.pformat(constraint0_txt_list ) )
+    self.logger.debug('self.tt_epigraph_form_constraint()=\n%s', pprint.pformat(tt_epigraph_form_constraint_txt_list) )
+    self.logger.debug('res_cap_constraint=\n%s', pprint.pformat(res_cap_constraint_txt_list) )
+    self.logger.debug('r_bwprocdur_sparsity_constraint=\n%s', pprint.pformat(r_bwprocdur_sparsity_constraint_txt_list) )
+    self.logger.debug('s_n_sparsity_constraint=\n%s', pprint.pformat(s_n_sparsity_constraint_txt_list) )
+    self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
     
-    p = cp.Problem(cp.Minimize(self.F()),
+    p = cp.Problem(cp.Minimize(self.F0()),
                    self.constraint0() + \
                    self.tt_epigraph_form_constraint() + \
                    self.res_cap_constraint() + \
@@ -715,10 +644,10 @@ class SchingOptimizer:
     # p.options['feastol'] = 1e-4
     t_s = time.time()
     print 'solving...' 
-    # opts = {'maxiters': 500}
-    # p.solve(solver=cp.CVXOPT, verbose=True, solver_specific_opts=opts.items())
+    opts = {'max_iters': 500}
+    p.solve(solver=cp.CVXOPT, verbose=True, **opts)
     # p.solve(solver=cp.CVXOPT, verbose=True)
-    p.solve()
+    # p.solve()
     print 'solved.took %s secs' % (time.time() - t_s)
     print 'p.status= %s' % p.status
     print 'p.value= %s' % p.value
