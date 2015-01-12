@@ -70,20 +70,20 @@ class RuleParser (object):
         new_job_info = ET.SubElement(new_itjob, 'job_info')
         ji_dict = itjobrule['assigned_job']
         new_job_info.set('proc', str(ji_dict['proc']))
-        new_job_info.set('data_to_ip', itjobrule['consumer_ip'])
+        new_job_info.set('data_to_ip', itjobrule['to_ip'])
         new_job_info.set('proto', str(itjobrule['proto']))
-        new_job_info.set('s_tp', str(itjobrule['session_tp']))
+        new_job_info.set('s_tp', str(itjobrule['s_tp_dst']))
         new_job_info.set('datasize', str(itjobrule['datasize']))
         new_job_info.set('bw', str(itjobrule['bw']))
         for itfunc,n in ji_dict['itfunc_dict'].items():
           new_itfunc = ET.SubElement(new_job_info, 'func')
-          new_itfunc.set('n',str(n))
-          new_itfunc.set('tag',itfunc)
+          new_itfunc.set('n', str(n))
+          new_itfunc.set('tag', itfunc)
         #
         new_walkinfo = ET.SubElement(new_itjob, 'walkinfo')
-        new_walkinfo.set('swdev_to_node',itjobrule['swdev_to_tpr'])
-        new_walkinfo.set('node_ip',itjobrule['tpr_ip'])
-        new_walkinfo.set('node_mac',itjobrule['tpr_mac'])
+        new_walkinfo.set('swdev_to_node', itjobrule['swdev_to_itr'])
+        new_walkinfo.set('node_ip', itjobrule['itr_ip'])
+        new_walkinfo.set('node_mac', itjobrule['itr_mac'])
     self.itjobrule_root.append((new_session))
     self.indent(self.itjobrule_root,0)
     """
@@ -234,28 +234,28 @@ def main():
   itjob_rule ={'1': [{'assigned_job': {'comp': 2.8333333331303283,
                                        'itfunc_dict': {'f1': 2, 'f2': 0.8333333331303283},
                                        'proc': 288.9353187878799},
-                      'consumer_ip': '10.0.0.1',
-                      'session_tp': 6000,
-                      'swdev_to_tpr': 's1-eth4',
-                      'tpr_ip': '10.0.0.11',
-                      'tpr_mac': '00:00:00:00:01:01'}],
+                      'to_ip': '10.0.0.1',
+                      's_tp_dst': 6000,
+                      'swdev_to_itr': 's1-eth4',
+                      'itr_ip': '10.0.0.11',
+                      'itr_mac': '00:00:00:00:01:01'}],
                '2': [{'assigned_job': {'comp': 2.8333333331303283,
                                        'itfunc_dict': {'f2': 0.3333333337393434,
                                                        'f3': 2.499999999390985},
                                        'proc': 288.9353187878799},
-                      'consumer_ip': '10.0.0.1',
-                      'session_tp': 6000,
-                      'swdev_to_tpr': 's2-eth4',
-                      'tpr_ip': '10.0.0.21',
-                      'tpr_mac': '00:00:00:00:02:01'}],
+                      'to_ip': '10.0.0.1',
+                      's_tp_dst': 6000,
+                      'swdev_to_itr': 's2-eth4',
+                      'itr_ip': '10.0.0.21',
+                      'itr_mac': '00:00:00:00:02:01'}],
                '3': [{'assigned_job': {'comp': 2.8333333331303283,
                                        'itfunc_dict': {'f2': 2.8333333331303283},
                                        'proc': 288.9353187878799},
-                      'consumer_ip': '10.0.0.1',
-                      'session_tp': 6000,
-                      'swdev_to_tpr': 's3-eth3',
-                      'tpr_ip': '10.0.0.31',
-                      'tpr_mac': '00:00:00:00:03:01'}]}
+                      'to_ip': '10.0.0.1',
+                      's_tp_dst': 6000,
+                      'swdev_to_itr': 's3-eth3',
+                      'itr_ip': '10.0.0.31',
+                      'itr_mac': '00:00:00:00:03:01'}]}
   s_id = '0'
   my_p.modify_scheditjobxmlfile_by_itjobrule(s_id, itjob_rule)
   itjobrule = my_p.get_itjobruledict_forsession(s_id)

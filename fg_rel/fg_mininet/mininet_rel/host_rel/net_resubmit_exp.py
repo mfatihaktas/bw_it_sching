@@ -107,13 +107,9 @@ if __name__ == '__main__':
   net = Mininet( topo=MyTopo(), link=TCLink, controller=RemoteController)
   net.addController('r0', controller=RemoteController, ip='10.39.1.172', port=6633)
   
-  p1,p2,p3 = net.getNodeByName('p1', 'p2', 'p3')
-  p4,p5,p6 = net.getNodeByName('p4', 'p5', 'p6')
-  p7,p8,p9,p10,p11 = net.getNodeByName('p7', 'p8', 'p9', 'p10', 'p11')
-  c1,c2,c3 = net.getNodeByName('c1', 'c2', 'c3')
-  c4,c5,c6 = net.getNodeByName('c4', 'c5', 'c6')
-  c7,c8,c9,c10,c11 = net.getNodeByName('c7', 'c8', 'c9', 'c10', 'c11')
-  t11, t21, t31 = net.getNodeByName('t11','t21','t31')
+  p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11 = net.getNodeByName('p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11')
+  c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11 = net.getNodeByName('c1','c2','c3','c4','c5','c6','c7','c8','c9','c10','c11')
+  t11,t21,t31 = net.getNodeByName('t11','t21','t31')
   #
   p1.setMAC(mac='00:00:00:01:02:00')
   p2.setMAC(mac='00:00:00:01:02:01')
@@ -142,7 +138,7 @@ if __name__ == '__main__':
   t11.setMAC(mac='00:00:00:00:01:01')
   t21.setMAC(mac='00:00:00:00:02:01')
   t31.setMAC(mac='00:00:00:00:03:01')
-  #To fix "network is unreachable"
+  # To fix "network is unreachable"
   p1.setDefaultRoute(intf='p1-eth0')
   p2.setDefaultRoute(intf='p2-eth0')
   p3.setDefaultRoute(intf='p3-eth0')

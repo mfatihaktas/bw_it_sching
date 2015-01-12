@@ -644,15 +644,8 @@ class ItServHandler(threading.Thread):
     return (chunk, chunksize-CHUNKHSIZE, uptofunc_list)
   
 #############################  Class Transit  ##################################
-func_comp_dict = {'f0':0.5,
-                  'f1':1,
-                  'f2':2,
-                  'f3':3,
-                  'f4':4,
-                  'fft':5,
-                  'upsample':8,
-                  'plot':8,
-                  'upsampleplot':75 }
+func_comp_dict = {'fft':1,
+                  'upsampleplot':5 }
 
 def proc_time_model(datasize, func_n_dict, proc_cap):
   pm = 0

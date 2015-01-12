@@ -239,10 +239,10 @@ class GraphMan(object):
         path_info_['fair_bw'] = path_fair_bw
         path_fair_bw_list.append(path_fair_bw)
         path_fair_proc_cap_list.append(self.get_path_fair_proc_cap(path_info_['itr_on_path_list']) )
-      # cv: Coeff of variance
       # path_info['path_fair_bw_list'] = path_fair_bw_list
       # path_info['path_fair_proc_cap_list']= path_fair_proc_cap_list
       
+      # cv: Coeff of variance
       path_fair_bw_array = np.array(path_fair_bw_list)
       path_info['to_be_fair_bw_cv'] = float(np.std(path_fair_bw_array) / np.mean(path_fair_bw_array) )
       path_fair_proc_cap_array = np.array(path_fair_proc_cap_list)
@@ -251,8 +251,10 @@ class GraphMan(object):
       
       self.rm_user_from_edge__itr_list(path_info['edge_on_path_list'], path_info['itr_on_path_list'])
     #
+    # print 'get_path__edge__itr_on_path_list:: path_info_dict= %s' % pprint.pformat(path_info_dict)
+    
     min_to_be_fair_total_cv = float('Inf')
-    min_to_be_fair_total_cv_i = None
+    min_to_be_fair_total_cv_i = 0
     for i, path_info in path_info_dict.items():
       to_be_fair_total_cv = path_info['to_be_fair_total_cv']
       if min_to_be_fair_total_cv > to_be_fair_total_cv:

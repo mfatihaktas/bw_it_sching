@@ -99,7 +99,7 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    net_xml_file_url = "net_xmls/net_mesh_topo.xml" #"net_xmls/net_resubmit_exp.xml" #"net_xmls/net_1p_singletr.xml" #"net_xmls/grenet_multipaths.xml" #"net_xmls/grenet_gbit_1p_singletr.xml" #"net_xmls/grenet_1p_singletr.xml"
+    net_xml_file_url = "net_xmls/net_simpler.xml" #"net_xmls/net_simplest.xml" #"net_xmls/net_mesh_topo.xml" #"net_xmls/net_resubmit_exp.xml" #"net_xmls/net_1p_singletr.xml" #"net_xmls/grenet_multipaths.xml" #"net_xmls/grenet_gbit_1p_singletr.xml" #"net_xmls/grenet_1p_singletr.xml"
     if not is_scheduler_run:
       net_xml_file_url = "ext/" + net_xml_file_url
     
@@ -108,11 +108,11 @@ class Scheduler(object):
     self.gm = GraphMan()
     self.init_network_from_xml()
     # self.gm.print_graph()
-    #Useful state variables
+    # Useful state variables
     self.last_sching_id_given = -1
     self.last_sch_req_id_given = -1
     self.last_tp_dst_given = info_dict['base_sport']-1
-    #Scher state dicts
+    # Scher state dicts
     self.num_dstusers = 0
     self.users_beingserved_dict = {} #user_ip:{'gw_dpid':<>, 'gw_conn_port':<> ...}
     #
@@ -122,9 +122,9 @@ class Scheduler(object):
     self.sessionspreserved_dict = {}
     self.sid_res_dict = {}
     self.actual_res_dict = self.gm.get_actual_resource_dict()
-    #for perf plotting
-    #self.perf_plotter = PerfPlotter(self.actual_res_dict)
-    #for control_comm
+    # for perf plotting
+    # self.perf_plotter = PerfPlotter(self.actual_res_dict)
+    # for control_comm
     self.cci = ControlCommIntf()
     self.cci.reg_commpair(sctag = 'scher-acter',
                           proto = 'tcp',
@@ -280,10 +280,10 @@ class Scheduler(object):
   ####################  scher_state_management  methods  #######################
   def init_network_from_xml(self):
     node_edge_lst = self.xml_parser.give_node_and_edge_list_from_xml()
-    #print 'node_lst:'
-    #pprint.pprint(node_edge_lst['node_lst'])
-    #print 'edge_lst:'
-    #pprint.pprint(node_edge_lst['edge_lst'])
+    # print 'node_lst:'
+    # pprint.pprint(node_edge_lst['node_lst'])
+    # print 'edge_lst:'
+    # pprint.pprint(node_edge_lst['edge_lst'])
     self.gm.graph_add_nodes(node_edge_lst['node_lst'])
     self.gm.graph_add_edges(node_edge_lst['edge_lst'])
   
@@ -492,9 +492,9 @@ class Scheduler(object):
       s_info = self.sessionsbeingserved_dict[self.sid_schregid_dict[s_id]]
       s_info['slack-tt'] = s_allocinfo_dict['slack-tt']
       s_info['slack-transtime'] = abs(s_allocinfo_dict['trans_time']-s_info['req_dict']['slack_metric'])
-      logging.info('for s_id= %s;', s_id)
-      # logging.debug('walk_rule_list= \n%s', pprint.pformat(walk_rule_list) )
-      # logging.debug('itjob_rule_dict= \n%s', pprint.pformat(itjob_rule_dict) )
+      logging.debug('for s_id= %s;', s_id)
+      logging.debug('walk_rule_list= \n%s', pprint.pformat(walk_rule_list) )
+      logging.debug('itjob_rule_dict= \n%s', pprint.pformat(itjob_rule_dict) )
       # Dispatching rule to actuator_actuator
       if s_info['sching_job_done'] == False:
         type_toacter = 's_sching_req'
@@ -511,7 +511,7 @@ class Scheduler(object):
     logging.info('do_sching:: sching_id=%s done.', sching_id)
   
   def get_overtcp_session_walk_rule_list__itjob_rule_dict(self, s_id, s_walk_list, s_itwalk_dict):
-    def get_touser_swportname(dpid, port):
+    def get_port_name(dpid, port):
       return 's' + str(dpid) + '-eth' + str(port)
     #
     def chop_swalk_into_tcppaths():
@@ -547,12 +547,10 @@ class Scheduler(object):
     #
     chopped_swalk_list = chop_swalk_into_tcppaths()
     #
-    # print '---> for s_id=%s' % (s_id)
-    # print 's_itwalk_dict='
-    # pprint.pprint(s_itwalk_dict)
-    # print 's_walk_list=', s_walk_list
-    # print 'chopped_swalk_list='
-    # pprint.pprint(chopped_swalk_list)
+    print '---> for s_id= %s' % (s_id)
+    print 's_itwalk_dict= \n%s' % pprint.pformat(s_itwalk_dict)
+    print 's_walk_list= \n%s' % s_walk_list
+    print 'chopped_swalk_list= \n%s' % pprint.pformat(chopped_swalk_list)
     itjob_rule_dict = {}
     walk_rule_list = []
     
@@ -561,41 +559,43 @@ class Scheduler(object):
     p_c_ip_list = s_info_dict['p_c_ip_list']
     
     duration = 0
-    from_ip = p_c_ip_list[0]
-    to_ip = p_c_ip_list[1]
+    [from_ip, to_ip] = p_c_ip_list
     p_info_dict = self.users_beingserved_dict[from_ip]
     c_info_dict = self.users_beingserved_dict[to_ip]
-    from_mac = p_info_dict['mac']
-    to_mac = c_info_dict['mac']
+    [from_mac, to_mac] = [p_info_dict['mac'], c_info_dict['mac']]
     #
+    first_itr_done = False
     uptoitrjob_list = []
     #
-    for i, swalk_chop in list(enumerate(chopped_swalk_list)):
+    for i, swalk_chop in enumerate(chopped_swalk_list):
       chop_walk_rule_list = []
       head_i, tail_i = 0, len(swalk_chop) - 1
       head_str, tail_str = swalk_chop[head_i], swalk_chop[tail_i]
       head_ip, tail_ip = None, None
       try:
         chop_head = self.gm.get_node(head_str)
-        head_ip = chop_head['ip']
+        head_ip, head_mac = chop_head['ip'], chop_head['mac']
       except KeyError: #head_str = 'p'
-        head_ip = from_ip
+        head_ip, head_mac = from_ip, from_mac
       try:
         chop_tail = self.gm.get_node(tail_str)
         tail_ip, tail_mac = chop_tail['ip'], chop_tail['mac']
       except KeyError: #tail_str = 'c'
         tail_ip, tail_mac = to_ip, to_mac
       # Extract forward route from head to tail
-      for j in range(head_i + 1, tail_i - 1): #sws in [head_sw, tail_sw)
+      for j in range(head_i+1, tail_i-1): #sws in [head_sw, tail_sw)
         sw_str = swalk_chop[j]
         sw = self.gm.get_node(sw_str)
-        forward_edge = self.gm.get_edge((sw_str, swalk_chop[j + 1]))
+        forward_edge = self.gm.get_edge((sw_str, swalk_chop[j+1]))
+        tail_ip_ = tail_ip
+        if head_str == 'p':
+          tail_ip_ = to_ip
         chop_walk_rule_list.append({'conn': [sw['dpid'], head_ip],
                                     'typ': 'forward',
-                                    'wc': [head_ip, to_ip, 6, -1, int(s_tp_dst)],
+                                    'wc': [head_ip, tail_ip_, 6, -1, int(s_tp_dst)],
                                     'rule': [forward_edge['pre_dev'], duration] })
       # Extract backward route from tail to head
-      for j in range(head_i + 2, tail_i): #sws in (head_sw-tail_sw]
+      for j in range(head_i+2, tail_i): #sws in (head_sw-tail_sw]
         sw_str = swalk_chop[j]
         sw = self.gm.get_node(sw_str)
         backward_edge = self.gm.get_edge((swalk_chop[j-1], sw_str))
@@ -603,71 +603,71 @@ class Scheduler(object):
                                     'typ': 'forward',
                                     'wc': [tail_ip, head_ip, 6, int(s_tp_dst), -1],
                                     'rule': [backward_edge['post_dev'], duration] })
-      # Extract modify_forward route to tail, and fill up itjob_rule
-      tailsw_str = swalk_chop[tail_i-1]
-      tailsw = self.gm.get_node(tailsw_str)
-      totail_swportname = None
+      # Extract forward (if tail is itr) or modify_forward (if tail is c)
+      # Tail
+      tail_sw_str = swalk_chop[tail_i-1]
+      tail_sw = self.gm.get_node(tail_sw_str)
+      to_tail_sw_port_name, type_, rule_list = None, None, None
+      tail_ip_ = tail_ip
       if tail_str == 'c':
-        totail_swportname = get_touser_swportname(dpid = c_info_dict['gw_dpid'],
-                                                  port = c_info_dict['gw_conn_port'])
-        chop_walk_rule_list.append(
-          {'conn': [tailsw['dpid'], head_ip],
-           'typ': 'forward',
-           'wc': [head_ip, to_ip, 6, -1, int(s_tp_dst)],
-           'rule': [totail_swportname, duration] } )
-      else: # tail is another itres        
-        tail_edge = self.gm.get_edge((tailsw_str, tail_str))
-        totail_swportname = tail_edge['pre_dev']
-        chop_walk_rule_list.append(
-          {'conn': [tailsw['dpid'], head_ip],
-            'typ': 'mod_nw_dst__forward',
-            'wc': [head_ip, to_ip, 6, -1, int(s_tp_dst)],
-            'rule': [tail_ip, tail_mac, totail_swportname, duration] } )
-        # Fill up it_job_rule for the itres
-        assigned_job = s_itwalk_dict['itr_info_dict'][tail_str]
-        if not (tailsw['dpid'] in itjob_rule_dict):
-          itjob_rule_dict[tailsw['dpid']] = [{
-            'proto': 6,
-            'tpr_ip': tail_ip,
-            'tpr_mac': tail_mac,
-            'swdev_to_tpr': totail_swportname,
-            'assigned_job': assigned_job,
-            'uptoitrjob_list': copy.copy(uptoitrjob_list),
-            'session_tp': int(s_tp_dst),
-            'consumer_ip': to_ip,
-            'datasize': s_itwalk_dict['info']['datasize'],
-            'bw': s_itwalk_dict['info']['bw'] }]
-        else:
-          itjob_rule_dict[tailsw['dpid']].append( {
-            'proto': 6,
-            'tpr_ip': tail_ip,
-            'tpr_mac': tail_mac,
-            'swdev_to_tpr': totail_swportname,
-            'assigned_job': assigned_job,
-            'uptoitrjob_list': copy.copy(uptoitrjob_list),
-            'session_tp': int(s_tp_dst),
-            'consumer_ip': to_ip,
-            'datasize': s_itwalk_dict['info']['datasize'],
-            'bw': s_itwalk_dict['info']['bw'] } )
+        to_tail_sw_port_name = get_port_name(dpid = c_info_dict['gw_dpid'],
+                                             port = c_info_dict['gw_conn_port'])
+        type_ = 'forward'
+        rule_list = [to_tail_sw_port_name, duration]
+      else: # itr
+        to_tail_sw_port_name = self.gm.get_edge((tail_sw_str, tail_str))['pre_dev']
+        if first_itr_done:
+          type_ = 'forward'
+          rule_list = [to_tail_sw_port_name, duration]
+        else: # first itr
+          type_ = 'mod_nw_dst__forward'
+          rule_list = [tail_ip, tail_mac, to_tail_sw_port_name, duration]
+          first_itr_done = True
+          tail_ip_ = to_ip
         #
+      chop_walk_rule_list.append({
+        'conn': [tail_sw['dpid'], head_ip],
+        'typ': type_,
+        'wc': [head_ip, tail_ip_, 6, -1, int(s_tp_dst)],
+        'rule': rule_list })
+      # Extract backward (if head is itr) or modify_backward (if head is p) route to head
+      head_sw_str = swalk_chop[head_i + 1]
+      head_sw = self.gm.get_node(head_sw_str)
+      to_head_sw_port_name, type_, rule_list = None, None, None
+      if head_str == 'p':
+        to_head_sw_port_name = get_port_name(dpid = p_info_dict['gw_dpid'],
+                                             port = p_info_dict['gw_conn_port'])
+        type_ = 'mod_nw_src__forward'
+        rule_list = [to_ip, to_mac, to_head_sw_port_name, duration]
+      else: # head is itr
+        head_edge = self.gm.get_edge((head_str, head_sw_str))
+        to_head_sw_port_name = head_edge['pre_dev']
+        type_ = 'forward'
+        rule_list = [to_head_sw_port_name, duration]
+        # Fill up it_job_rule for the itr
+        assigned_job = s_itwalk_dict['itr_info_dict'][head_str]
+        if not (tail_sw['dpid'] in itjob_rule_dict):
+          itjob_rule_dict[head_sw['dpid']] = []
+        itjob_rule_dict[head_sw['dpid']].append({
+          'proto': 6,
+          'itr_ip': head_ip,
+          'itr_mac': head_mac,
+          'swdev_to_itr': to_head_sw_port_name,
+          'assigned_job': assigned_job,
+          'uptoitrjob_list': copy.copy(uptoitrjob_list),
+          's_tp_dst': int(s_tp_dst),
+          'to_ip': tail_ip,
+          'datasize': s_itwalk_dict['info']['datasize'],
+          'bw': s_itwalk_dict['info']['bw'] })
+          #
         uptoitrjob_list.append(assigned_job)
       #
-      
-      # Extract modify_backward route to head
-      headsw_str = swalk_chop[head_i + 1]
-      headsw = self.gm.get_node(headsw_str)
-      tohead_swportname = None
-      if head_str == 'p':
-        tohead_swportname = get_touser_swportname(dpid = p_info_dict['gw_dpid'],
-                                                  port = p_info_dict['gw_conn_port'])
-      else: # head is another itres
-        headedge = self.gm.get_edge((head_str, headsw_str))
-        tohead_swportname = headedge['pre_dev']
+      chop_walk_rule_list.append({
+        'conn': [head_sw['dpid'], tail_ip],
+        'typ': type_,
+        'wc': [tail_ip, head_ip, 6, int(s_tp_dst), -1],
+        'rule': rule_list })
       #
-      chop_walk_rule_list.append({'conn':[headsw['dpid'],tail_ip],
-                      'typ':'mod_nw_src__forward',
-                      'wc':[tail_ip,head_ip,6,int(s_tp_dst),-1],
-                      'rule':[to_ip, to_mac, tohead_swportname, duration] })
       walk_rule_list += chop_walk_rule_list
       
     return [walk_rule_list, itjob_rule_dict]
@@ -703,13 +703,16 @@ class Scheduler(object):
     sching_opter.solve()
   
   def test(self, num_session):
+    # For net_simpler.xml
+    userinfo_list = [{'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':1, 'gw_conn_port':3},
+                      {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':2, 'gw_conn_port':3} ]
     # For net_mesh_topo.xml
-    userinfo_list = [{'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':21, 'gw_conn_port':3},
-                      {'user_ip':'10.0.2.1', 'user_mac':'00:00:00:01:02:01', 'gw_dpid':21, 'gw_conn_port':4},
-                      {'user_ip':'10.0.2.2', 'user_mac':'00:00:00:01:02:02', 'gw_dpid':21, 'gw_conn_port':5},
-                      {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':11, 'gw_conn_port':3},
-                      {'user_ip':'10.0.1.1', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':11, 'gw_conn_port':4},
-                      {'user_ip':'10.0.1.2', 'user_mac':'00:00:00:01:01:01', 'gw_dpid':11, 'gw_conn_port':5} ]
+    # userinfo_list = [{'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':21, 'gw_conn_port':3},
+    #                   {'user_ip':'10.0.2.1', 'user_mac':'00:00:00:01:02:01', 'gw_dpid':21, 'gw_conn_port':4},
+    #                   {'user_ip':'10.0.2.2', 'user_mac':'00:00:00:01:02:02', 'gw_dpid':21, 'gw_conn_port':5},
+    #                   {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':11, 'gw_conn_port':3},
+    #                   {'user_ip':'10.0.1.1', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':11, 'gw_conn_port':4},
+    #                   {'user_ip':'10.0.1.2', 'user_mac':'00:00:00:01:01:01', 'gw_dpid':11, 'gw_conn_port':5} ]
     # For net_resubmit_exp.xml
     # userinfo_list = [{'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':11, 'gw_conn_port':3},
     #                 {'user_ip':'10.0.2.1', 'user_mac':'00:00:00:01:02:01', 'gw_dpid':11, 'gw_conn_port':4},
@@ -725,16 +728,16 @@ class Scheduler(object):
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
     #datasize (MB) slack_metric (ms)
-    req_dict_list = [ {'datasize':100, 'slack_metric':10, 'func_list':['fft','upsampleplot']},
-                      {'datasize':100, 'slack_metric':10, 'func_list':['fft','upsampleplot']},
-                      {'datasize':100, 'slack_metric':10, 'func_list':['fft','upsampleplot']},
+    req_dict_list = [ {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
+                      {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
+                      {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
                       {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
                       {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
                     ]
     app_pref_dict_list = [
-                          {'m_p': 0.5,'m_u': 0.5,'x_p': 0,'x_u': 0},
-                          {'m_p': 5,'m_u': 5,'x_p': 0,'x_u': 0},
-                          {'m_p': 50,'m_u': 50,'x_p': 0,'x_u': 0},
+                          {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
+                          {'m_p': 0,'m_u': 50,'x_p': 0,'x_u': 0},
+                          {'m_p': 50,'m_u': 0,'x_p': 0,'x_u': 0},
                           {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
                           {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
                          ]
@@ -767,7 +770,8 @@ class Scheduler(object):
     #     self.gm.get_path__edge__itr_on_path_list(p_c_gwtag_list[0], p_c_gwtag_list[1])
     #   self.gm.add_user_to_edge__itr_list(edge_on_path_list, itr_on_path_list)
     #   print 'test:: s_id= %s, path= %s' % (s_id, path)
-    
+
+is_scheduler_run = False
 def main():
   global is_scheduler_run
   is_scheduler_run = True
@@ -775,7 +779,7 @@ def main():
                   sching_logto = 'console',
                   data_over_tp = 'tcp')
   
-  sch.test(num_session = 3)
+  sch.test(num_session = 1)
   #
   raw_input('Enter')
   

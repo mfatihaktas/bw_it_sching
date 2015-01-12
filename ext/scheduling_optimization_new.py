@@ -69,8 +69,7 @@ class SchingOptimizer:
     # func_compconstant_dict; key:function, val:comp_constant (2-8)
     self.func_compconstant_dict = {
       'fft': 1,
-      'upsampleplot': 1
-    }
+      'upsampleplot': 5 }
     #
     self.add_sessionpathlinks_with_ids()
     self.add_sessionpathitrs_with_ids()
@@ -358,7 +357,7 @@ class SchingOptimizer:
                          0 ) #self.s_dur.get((s_id,0)).value )
       # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
       # print 'self.s_n[s_id, :].value=%s' % self.s_n[s_id, :].value
-      # #print 'sn_list=%s' % [n.value for n in self.s_n[s_id, :]]
+      # print 'sn_list=%s' % [n.value for n in self.s_n[s_id, :]]
       # print 'bw=%s, proc=%s, dur=%s' % (bw, proc, dur)
       # print 'trans_t=%s' % self.s_transt.get((s_id, 0)).value
       # print 'tt=%s' % self.get_var_val('tt', (s_id, 0))
@@ -464,7 +463,7 @@ class SchingOptimizer:
         lasti_conn_sw = len(walk_list) - walk_list[::-1].index(conn_sw) - 1
         walk_list.insert(lasti_conn_sw + 1, itr)
         walk_list.insert(lasti_conn_sw + 2, conn_sw)
-      # Wxtract it_order info from walk_list
+      # Extract it_order info from walk_list
       itr_list_, i_list = [], []
       i_itr_dict = {}
       for itr in itr_list:
@@ -513,12 +512,12 @@ class SchingOptimizer:
     ds = itwalk_dict['info']['datasize']
     itr_info_dict = itwalk_dict['itr_info_dict']
     for itres, job in itr_info_dict.items():
-      #staging time
+      # staging time
       try:
         it_time += job['dur']
       except KeyError:
         pass
-      #procing time
+      # procing time
       try:
         pc = job['comp'] #pinfo_dict['p_info']['totalcomp']
         it_time += (ds/64)*pc /job['proc'] #sec
@@ -527,7 +526,7 @@ class SchingOptimizer:
     #
     return it_time
   
-  # print info about optimization session
+  # Print info about optimization session
   def print_sching_optimizer(self):
     self.logger.info('Optimizer is created with the follows:')
     self.logger.info('sessions_beingserved_dict=\n%s', pprint.pformat(self.sessions_beingserved_dict))
@@ -585,28 +584,28 @@ class SchingOptimizer:
   def solve(self):
     (self.scal_var).value = 1
     
-    self.logger.debug('------------------------------')
-    self.logger.debug('F0()= %s', self.F0())
-    self.logger.debug('F0().is_convex()= %s', self.F0().is_convex())
-    self.logger.debug('F1()= %s', self.F1())
-    self.logger.debug('F1().is_concave()= %s', self.F1().is_concave())
-    self.logger.debug('F()= %s', self.F())
-    self.logger.debug('F().is_convex()= %s', self.F().is_convex())
-    self.logger.debug('------------------------------')
+    # self.logger.debug('------------------------------')
+    # self.logger.debug('F0()= %s', self.F0())
+    # self.logger.debug('F0().is_convex()= %s', self.F0().is_convex())
+    # self.logger.debug('F1()= %s', self.F1())
+    # self.logger.debug('F1().is_concave()= %s', self.F1().is_concave())
+    # self.logger.debug('F()= %s', self.F())
+    # self.logger.debug('F().is_convex()= %s', self.F().is_convex())
+    # self.logger.debug('------------------------------')
     
     # self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-    constraint0_txt_list = ['%s' % c for c in self.constraint0()]
-    tt_epigraph_form_constraint_txt_list = ['%s' % c for c in self.tt_epigraph_form_constraint()]
-    res_cap_constraint_txt_list = ['%s' % c for c in self.res_cap_constraint()]
-    r_bwprocdur_sparsity_constraint_txt_list = ['%s' % c for c in self.r_bwprocdur_sparsity_constraint()]
-    s_n_sparsity_constraint_txt_list = ['%s' % c for c in self.s_n_sparsity_constraint()]
+    # constraint0_txt_list = ['%s' % c for c in self.constraint0()]
+    # tt_epigraph_form_constraint_txt_list = ['%s' % c for c in self.tt_epigraph_form_constraint()]
+    # res_cap_constraint_txt_list = ['%s' % c for c in self.res_cap_constraint()]
+    # r_bwprocdur_sparsity_constraint_txt_list = ['%s' % c for c in self.r_bwprocdur_sparsity_constraint()]
+    # s_n_sparsity_constraint_txt_list = ['%s' % c for c in self.s_n_sparsity_constraint()]
     
-    self.logger.debug('constraint0=\n%s', pprint.pformat(constraint0_txt_list ) )
-    self.logger.debug('self.tt_epigraph_form_constraint()=\n%s', pprint.pformat(tt_epigraph_form_constraint_txt_list) )
-    self.logger.debug('res_cap_constraint=\n%s', pprint.pformat(res_cap_constraint_txt_list) )
-    self.logger.debug('r_bwprocdur_sparsity_constraint=\n%s', pprint.pformat(r_bwprocdur_sparsity_constraint_txt_list) )
-    self.logger.debug('s_n_sparsity_constraint=\n%s', pprint.pformat(s_n_sparsity_constraint_txt_list) )
-    self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+    # self.logger.debug('constraint0=\n%s', pprint.pformat(constraint0_txt_list ) )
+    # self.logger.debug('self.tt_epigraph_form_constraint()=\n%s', pprint.pformat(tt_epigraph_form_constraint_txt_list) )
+    # self.logger.debug('res_cap_constraint=\n%s', pprint.pformat(res_cap_constraint_txt_list) )
+    # self.logger.debug('r_bwprocdur_sparsity_constraint=\n%s', pprint.pformat(r_bwprocdur_sparsity_constraint_txt_list) )
+    # self.logger.debug('s_n_sparsity_constraint=\n%s', pprint.pformat(s_n_sparsity_constraint_txt_list) )
+    # self.logger.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
     
     p = cp.Problem(cp.Minimize(self.F()),
                    self.constraint0() + \

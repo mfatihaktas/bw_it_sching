@@ -1,7 +1,7 @@
 <!--
 ..S20[eth1].....[eth1]  S1  [eth2]....[eth1] S10 [ethX]..
      [eth2]           [eth3]          [eth2]
-       |                |               ||
+       |                |               |
         `.......[eth2][eth1][eth3].....'
 ..S21[eth1].....[eth4]  S2  [eth5]....[eth1] S11 [ethX]..
      [eth2]           [eth6]                [eth2]

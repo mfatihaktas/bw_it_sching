@@ -13,20 +13,17 @@
 9    240   20       200         2            2    2    0    0
 10   245   20       50          2            1    1    0    0
 
-
-P1D=2
-P1_REQDICT='{"data_size":100,"slack_metric":400,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
-P1_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
-P1_CLIP=10.0.1.0
-
-C2D=1
-P2D=7
-P2_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
-P2_APPPREFDICT='{"m_p":0.5,"m_u":0.5,"x_p":0,"x_u":0}'
-P2_CLIP=10.0.1.1
-
-C3D=1
-P3D=12
-P3_REQDICT='{"data_size":10,"slack_metric":30,"func_list":["fft","upsampleplot"],"parism_level":1,"par_share":[1]}'
-P3_APPPREFDICT='{"m_p":2,"m_u":2,"x_p":0,"x_u":0}'
-P3_CLIP=10.0.1.2
+# High m_p: Demand for bw
+# High m_u: Demand for itproc
+#num time datasize slackmetric funclistlen  m_p  m_u  x_p  x_u 
+0    2     100      400         2            1    1    0    0
+1    7     10       30          2            50   0    0    0
+2    12    10       30          2            0    50   0    0
+3    20    100      200         2            1    1    0    0
+4    100   40       120         2            50   0    0    0
+5    110   40       120         2            0    50   0    0
+6    120   20       400         2            0    50   0    0
+7    130   80       150         2            1    1    0    0
+8    235   20       200         2            50   0    0    0
+9    240   20       200         2            0    50   0    0
+10   245   20       50          2            1    1    0    0

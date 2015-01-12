@@ -130,7 +130,8 @@ class Actuator (object):
                                 'reply':'done'} })
       self.cci.send_to_client('acter-scher', msg)
     #
-  #Since the SW rules are set proactively, only acks are expected
+  
+  # Since the SW rules are set proactively, only acks are expected
   def _handle_PacketIn (self, event):
     eth_packet = event.parsed
     ip_packet = eth_packet.find('ipv4')
