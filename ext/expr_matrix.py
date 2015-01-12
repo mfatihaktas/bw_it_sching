@@ -1,11 +1,15 @@
 
 def sum_list(l):
-  sum_ = None
-  for i,e in enumerate(l):
-    if i == 0:
-      sum_ = e
-    else:
-      sum_ += e
+  sum_ = 0
+  i = 0
+  for e in l:
+    if e != 0:
+      if i == 0:
+        sum_ = e
+      else:
+        sum_ += e
+      i += 1
+    #
   return sum_
 
 class Expr:

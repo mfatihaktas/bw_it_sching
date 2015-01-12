@@ -208,13 +208,11 @@ class GraphMan(object):
     return [path_bw, path_fair_bw]
   
   def get_path_fair_proc_cap(self, itr_on_path_list):
-    path_fair_proc_cap, path_to_be_fair_proc_cap = 0, 0
+    path_fair_proc_cap = 0
     for itr in itr_on_path_list:
-      itr_ = self.g.node[itr]
-      itr_fair_proc_cap = itr_['fair_proc_cap']
-      path_fair_proc_cap += itr_fair_proc_cap
+      path_fair_proc_cap += self.g.node[itr]['fair_proc_cap']
     #
-    return [path_fair_proc_cap, path_to_be_fair_proc_cap]
+    return path_fair_proc_cap
   
   def get_path__edge__itr_on_path_list__fair_bw_dict(self, src, trgt):
     all_paths_list = self.get_all_paths_list(src, trgt)
@@ -266,7 +264,6 @@ class GraphMan(object):
     # print 'get_path__edge__itr_on_path_list:: path_info_dict= \n%s' % pprint.pformat(path_info_dict)
     # print '----------------------'
     
-    path_info = path_info_dict[min_to_be_fair_total_cv_i]
-    return path_info
+    return path_info_dict[min_to_be_fair_total_cv_i]
   
   

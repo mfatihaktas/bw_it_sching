@@ -99,7 +99,7 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    net_xml_file_url = "net_xmls/net_resubmit_exp.xml" #"net_xmls/net_mesh_topo.xml" #"net_xmls/net_1p_singletr.xml" #"net_xmls/grenet_multipaths.xml" #"net_xmls/grenet_gbit_1p_singletr.xml" #"net_xmls/grenet_1p_singletr.xml"
+    net_xml_file_url = "net_xmls/net_mesh_topo.xml" #"net_xmls/net_resubmit_exp.xml" #"net_xmls/net_1p_singletr.xml" #"net_xmls/grenet_multipaths.xml" #"net_xmls/grenet_gbit_1p_singletr.xml" #"net_xmls/grenet_1p_singletr.xml"
     if not is_scheduler_run:
       net_xml_file_url = "ext/" + net_xml_file_url
     
@@ -364,10 +364,10 @@ class Scheduler(object):
   
   def bye_session(self, sch_req_id):
     self.N -= 1
-    session_info_dict = self.sessionsbeingserved_dict[sch_req_id]
     # Send sessions whose "sching job" is done is sent to pre_served category
-    self.sessionspreserved_dict[sch_req_id] = session_info_dict
-    self.gm.rm_user_from_edge__itr_list(session_info_dict['edge_on_path_list'], session_info_dict['itr_on_path_list'])
+    self.sessionspreserved_dict[sch_req_id] = self.sessionsbeingserved_dict[sch_req_id]
+    path_info = self.sid_res_dict[sch_req_id]['path_info']
+    self.gm.rm_user_from_edge__itr_list(path_info['edge_on_path_list'], path_info['itr_on_path_list'])
     del self.sessionsbeingserved_dict[sch_req_id]
     del self.sid_res_dict[sch_req_id]
     #
@@ -377,16 +377,18 @@ class Scheduler(object):
   def update_sid_res_dict(self):
     for s_id in self.sessionsbeingserved_dict:
       if not s_id in self.sid_res_dict:
-        session_info_dict = self.sessionsbeingserved_dict[s_id]
-        p_c_gwtag_list = session_info_dict['p_c_gwtag_list']
+        p_c_gwtag_list = self.sessionsbeingserved_dict[s_id]['p_c_gwtag_list']
         path_info = self.gm.get_path__edge__itr_on_path_list__fair_bw_dict(p_c_gwtag_list[0], p_c_gwtag_list[1])
-        session_info_dict.update(
-          {'edge_on_path_list': path_info['edge_on_path_list'],
-           'itr_on_path_list': path_info['itr_on_path_list'] })
-        logging.debug('update_sid_res_dict:: s_id=%s, path=\n%s', s_id, path_info['path'])
-        self.gm.add_user_to_edge__itr_list(path_info['edge_on_path_list'], path_info['itr_on_path_list'])
-        
         self.sid_res_dict[s_id] = {'path_info': path_info}
+        self.gm.add_user_to_edge__itr_list(path_info['edge_on_path_list'], path_info['itr_on_path_list'])
+        logging.debug('update_sid_res_dict:: s_id=%s, path=\n%s', s_id, path_info['path'])
+        
+        for s_id_ in self.sid_res_dict:
+          path_info_ = self.sid_res_dict[s_id_]['path_info']
+          [path_bw_, path_fair_bw_] = self.gm.get_path_bw__fair_bw(path_info_['edge_on_path_list'])
+          path_info_['bw'] = path_bw_
+          path_info_['fair_bw'] = path_fair_bw_
+        
     #
     
   # def update_sid_schregid_dict(self):
@@ -702,19 +704,19 @@ class Scheduler(object):
   
   def test(self, num_session):
     # For net_mesh_topo.xml
-    # userinfo_list = [{'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':21, 'gw_conn_port':3},
-    #                  {'user_ip':'10.0.2.1', 'user_mac':'00:00:00:01:02:01', 'gw_dpid':20, 'gw_conn_port':4},
-    #                  {'user_ip':'10.0.2.2', 'user_mac':'00:00:00:01:02:02', 'gw_dpid':21, 'gw_conn_port':5},
-    #                  {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':11, 'gw_conn_port':3},
-    #                  {'user_ip':'10.0.1.1', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':10, 'gw_conn_port':4},
-    #                  {'user_ip':'10.0.1.2', 'user_mac':'00:00:00:01:01:01', 'gw_dpid':11, 'gw_conn_port':5} ]
+    userinfo_list = [{'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':21, 'gw_conn_port':3},
+                      {'user_ip':'10.0.2.1', 'user_mac':'00:00:00:01:02:01', 'gw_dpid':21, 'gw_conn_port':4},
+                      {'user_ip':'10.0.2.2', 'user_mac':'00:00:00:01:02:02', 'gw_dpid':21, 'gw_conn_port':5},
+                      {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':11, 'gw_conn_port':3},
+                      {'user_ip':'10.0.1.1', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':11, 'gw_conn_port':4},
+                      {'user_ip':'10.0.1.2', 'user_mac':'00:00:00:01:01:01', 'gw_dpid':11, 'gw_conn_port':5} ]
     # For net_resubmit_exp.xml
-    userinfo_list = [{'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':11, 'gw_conn_port':3},
-                     {'user_ip':'10.0.2.1', 'user_mac':'00:00:00:01:02:01', 'gw_dpid':11, 'gw_conn_port':4},
-                     {'user_ip':'10.0.2.2', 'user_mac':'00:00:00:01:02:02', 'gw_dpid':11, 'gw_conn_port':5},
-                     {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':12, 'gw_conn_port':3},
-                     {'user_ip':'10.0.1.1', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':12, 'gw_conn_port':4},
-                     {'user_ip':'10.0.1.2', 'user_mac':'00:00:00:01:01:01', 'gw_dpid':12, 'gw_conn_port':5} ]
+    # userinfo_list = [{'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':11, 'gw_conn_port':3},
+    #                 {'user_ip':'10.0.2.1', 'user_mac':'00:00:00:01:02:01', 'gw_dpid':11, 'gw_conn_port':4},
+    #                 {'user_ip':'10.0.2.2', 'user_mac':'00:00:00:01:02:02', 'gw_dpid':11, 'gw_conn_port':5},
+    #                 {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':12, 'gw_conn_port':3},
+    #                 {'user_ip':'10.0.1.1', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':12, 'gw_conn_port':4},
+    #                 {'user_ip':'10.0.1.2', 'user_mac':'00:00:00:01:01:01', 'gw_dpid':12, 'gw_conn_port':5} ]
     #
     for userinfo in userinfo_list:
       self.welcome_user(user_ip = userinfo['user_ip'],
@@ -723,16 +725,16 @@ class Scheduler(object):
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
     #datasize (MB) slack_metric (ms)
-    req_dict_list = [ {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
-                      {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
-                      {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
+    req_dict_list = [ {'datasize':100, 'slack_metric':10, 'func_list':['fft','upsampleplot']},
+                      {'datasize':100, 'slack_metric':10, 'func_list':['fft','upsampleplot']},
+                      {'datasize':100, 'slack_metric':10, 'func_list':['fft','upsampleplot']},
                       {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
                       {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
                     ]
     app_pref_dict_list = [
                           {'m_p': 0.5,'m_u': 0.5,'x_p': 0,'x_u': 0},
-                          {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
-                          {'m_p': 2,'m_u': 2,'x_p': 0,'x_u': 0},
+                          {'m_p': 5,'m_u': 5,'x_p': 0,'x_u': 0},
+                          {'m_p': 50,'m_u': 50,'x_p': 0,'x_u': 0},
                           {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
                           {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
                          ]
@@ -773,7 +775,7 @@ def main():
                   sching_logto = 'console',
                   data_over_tp = 'tcp')
   
-  sch.test(num_session = 2)
+  sch.test(num_session = 3)
   #
   raw_input('Enter')
   
