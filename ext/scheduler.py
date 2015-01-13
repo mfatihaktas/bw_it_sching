@@ -99,11 +99,11 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    net_xml_file_url = "net_xmls/net_simpler.xml" #"net_xmls/net_simplest.xml" #"net_xmls/net_mesh_topo.xml" #"net_xmls/net_resubmit_exp.xml" #"net_xmls/net_1p_singletr.xml" #"net_xmls/grenet_multipaths.xml" #"net_xmls/grenet_gbit_1p_singletr.xml" #"net_xmls/grenet_1p_singletr.xml"
+    self.net_xml_file_url = "net_xmls/net_mesh_topo.xml" #"net_xmls/net_simpler.xml" #"net_xmls/net_simplest.xml"  #"net_xmls/net_resubmit_exp.xml"
     if not is_scheduler_run:
-      net_xml_file_url = "ext/" + net_xml_file_url
+      self.net_xml_file_url = "ext/" + self.net_xml_file_url
     
-    self.xml_parser = XMLParser(net_xml_file_url, str(xml_net_num))
+    self.xml_parser = XMLParser(self.net_xml_file_url, str(xml_net_num))
     #
     self.gm = GraphMan()
     self.init_network_from_xml()
@@ -279,13 +279,11 @@ class Scheduler(object):
     
   ####################  scher_state_management  methods  #######################
   def init_network_from_xml(self):
-    node_edge_lst = self.xml_parser.give_node_and_edge_list_from_xml()
-    # print 'node_lst:'
-    # pprint.pprint(node_edge_lst['node_lst'])
-    # print 'edge_lst:'
-    # pprint.pprint(node_edge_lst['edge_lst'])
-    self.gm.graph_add_nodes(node_edge_lst['node_lst'])
-    self.gm.graph_add_edges(node_edge_lst['edge_lst'])
+    [node_list, edge_list] = self.xml_parser.get_node__edge_list()
+    # print 'node_list= %s' % pprint.pformat(node_edge_list['node_list'])
+    # print 'edge_list= %s' % pprint.pformat(node_edge_list['edge_list'])
+    self.gm.graph_add_nodes(node_list)
+    self.gm.graph_add_edges(edge_list)
   
   def print_scher_state(self):
     print '<---------------------------------------->'
@@ -422,7 +420,7 @@ class Scheduler(object):
 
     for sch_req_id, sinfo in self.sessionsbeingserved_dict.items():
       if 'sched_time_list' in sinfo:
-        elapsed_time = (time.time() - self.starting_time - sinfo['sched_time_list'][-1])
+        elapsed_time = time.time() - self.starting_time - sinfo['sched_time_list'][-1]
         # elapsed_datasize = sinfo['req_dict']['datasize']*elapsed_time/ #MB
         # elapsed_datasize = sinfo['req_dict']['datasize'] - float(sinfo['bw_list'][-1]*elapsed_time)/8 #MB
         elapsed_datasize = None
@@ -439,12 +437,12 @@ class Scheduler(object):
     logging.info('do_sching:: sching_id=%s started;', sching_id)
     self.update_sid_res_dict()
     # self.update_sid_schregid_dict()
-    self.gm.print_graph()
-    sching_opter = SchingOptimizer(self.give_incintkeyform(flag=True,
-                                                           indict=self.sessionsbeingserved_dict),
+    # self.gm.print_graph()
+    sching_opter = SchingOptimizer(self.give_incintkeyform(flag = True,
+                                                           indict = self.sessionsbeingserved_dict),
                                    self.actual_res_dict,
-                                   self.give_incintkeyform(flag=False,
-                                                           indict=self.sid_res_dict) )
+                                   self.give_incintkeyform(flag = False,
+                                                           indict = self.sid_res_dict) )
     sching_opter.solve()
     #
     self.alloc_dict = sching_opter.get_sching_result()
@@ -492,9 +490,9 @@ class Scheduler(object):
       s_info = self.sessionsbeingserved_dict[self.sid_schregid_dict[s_id]]
       s_info['slack-tt'] = s_allocinfo_dict['slack-tt']
       s_info['slack-transtime'] = abs(s_allocinfo_dict['trans_time']-s_info['req_dict']['slack_metric'])
-      logging.debug('for s_id= %s;', s_id)
-      logging.debug('walk_rule_list= \n%s', pprint.pformat(walk_rule_list) )
-      logging.debug('itjob_rule_dict= \n%s', pprint.pformat(itjob_rule_dict) )
+      # logging.debug('for s_id= %s;', s_id)
+      # logging.debug('walk_rule_list= \n%s', pprint.pformat(walk_rule_list) )
+      # logging.debug('itjob_rule_dict= \n%s', pprint.pformat(itjob_rule_dict) )
       # Dispatching rule to actuator_actuator
       if s_info['sching_job_done'] == False:
         type_toacter = 's_sching_req'
@@ -508,7 +506,7 @@ class Scheduler(object):
       self.cci.send_to_client('scher-acter', msg)
       #
     #  
-    logging.info('do_sching:: sching_id=%s done.', sching_id)
+    logging.info('do_sching:: sching_id= %s done.', sching_id)
   
   def get_overtcp_session_walk_rule_list__itjob_rule_dict(self, s_id, s_walk_list, s_itwalk_dict):
     def get_port_name(dpid, port):
@@ -547,10 +545,10 @@ class Scheduler(object):
     #
     chopped_swalk_list = chop_swalk_into_tcppaths()
     #
-    print '---> for s_id= %s' % (s_id)
-    print 's_itwalk_dict= \n%s' % pprint.pformat(s_itwalk_dict)
-    print 's_walk_list= \n%s' % s_walk_list
-    print 'chopped_swalk_list= \n%s' % pprint.pformat(chopped_swalk_list)
+    # print '---> for s_id= %s' % (s_id)
+    # print 's_itwalk_dict= \n%s' % pprint.pformat(s_itwalk_dict)
+    # print 's_walk_list= \n%s' % s_walk_list
+    # print 'chopped_swalk_list= \n%s' % pprint.pformat(chopped_swalk_list)
     itjob_rule_dict = {}
     walk_rule_list = []
     
@@ -583,6 +581,7 @@ class Scheduler(object):
       except KeyError: #tail_str = 'c'
         tail_ip, tail_mac = to_ip, to_mac
       # Extract forward route from head to tail
+      # print 'extracting forward route >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
       for j in range(head_i+1, tail_i-1): #sws in [head_sw, tail_sw)
         sw_str = swalk_chop[j]
         sw = self.gm.get_node(sw_str)
@@ -590,15 +589,18 @@ class Scheduler(object):
         tail_ip_ = tail_ip
         if head_str == 'p':
           tail_ip_ = to_ip
+        # print 'sw_str= %s, swalk_chop[j+1]= %s, forward_edge= %s' % (sw_str, swalk_chop[j+1], pprint.pformat(forward_edge) )
         chop_walk_rule_list.append({'conn': [sw['dpid'], head_ip],
                                     'typ': 'forward',
                                     'wc': [head_ip, tail_ip_, 6, -1, int(s_tp_dst)],
                                     'rule': [forward_edge['pre_dev'], duration] })
       # Extract backward route from tail to head
+      # print 'extracting backward route >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
       for j in range(head_i+2, tail_i): #sws in (head_sw-tail_sw]
         sw_str = swalk_chop[j]
         sw = self.gm.get_node(sw_str)
         backward_edge = self.gm.get_edge((swalk_chop[j-1], sw_str))
+        # print 'swalk_chop[j-1]= %s, sw_str= %s, backward_edge= %s' % (swalk_chop[j-1], sw_str, pprint.pformat(backward_edge) )
         chop_walk_rule_list.append({'conn': [sw['dpid'], tail_ip],
                                     'typ': 'forward',
                                     'wc': [tail_ip, head_ip, 6, int(s_tp_dst), -1],
@@ -625,6 +627,7 @@ class Scheduler(object):
           first_itr_done = True
           tail_ip_ = to_ip
         #
+      # print 'tail_sw_str= %s, tail_str= %s, to_tail_sw_port_name= %s' % (tail_sw_str, tail_str, to_tail_sw_port_name)
       chop_walk_rule_list.append({
         'conn': [tail_sw['dpid'], head_ip],
         'typ': type_,
@@ -640,7 +643,7 @@ class Scheduler(object):
         type_ = 'mod_nw_src__forward'
         rule_list = [to_ip, to_mac, to_head_sw_port_name, duration]
       else: # head is itr
-        head_edge = self.gm.get_edge((head_str, head_sw_str))
+        head_edge = self.gm.get_edge((head_sw_str, head_str))
         to_head_sw_port_name = head_edge['pre_dev']
         type_ = 'forward'
         rule_list = [to_head_sw_port_name, duration]
@@ -662,6 +665,7 @@ class Scheduler(object):
           #
         uptoitrjob_list.append(assigned_job)
       #
+      # print 'head_str= %s, head_sw_str= %s, to_head_sw_port_name= %s' % (head_str, head_sw_str, to_head_sw_port_name)
       chop_walk_rule_list.append({
         'conn': [head_sw['dpid'], tail_ip],
         'typ': type_,
@@ -703,23 +707,24 @@ class Scheduler(object):
     sching_opter.solve()
   
   def test(self, num_session):
-    # For net_simpler.xml
-    userinfo_list = [{'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':1, 'gw_conn_port':3},
-                      {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':2, 'gw_conn_port':3} ]
-    # For net_mesh_topo.xml
-    # userinfo_list = [{'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':21, 'gw_conn_port':3},
-    #                   {'user_ip':'10.0.2.1', 'user_mac':'00:00:00:01:02:01', 'gw_dpid':21, 'gw_conn_port':4},
-    #                   {'user_ip':'10.0.2.2', 'user_mac':'00:00:00:01:02:02', 'gw_dpid':21, 'gw_conn_port':5},
-    #                   {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':11, 'gw_conn_port':3},
-    #                   {'user_ip':'10.0.1.1', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':11, 'gw_conn_port':4},
-    #                   {'user_ip':'10.0.1.2', 'user_mac':'00:00:00:01:01:01', 'gw_dpid':11, 'gw_conn_port':5} ]
-    # For net_resubmit_exp.xml
-    # userinfo_list = [{'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':11, 'gw_conn_port':3},
-    #                 {'user_ip':'10.0.2.1', 'user_mac':'00:00:00:01:02:01', 'gw_dpid':11, 'gw_conn_port':4},
-    #                 {'user_ip':'10.0.2.2', 'user_mac':'00:00:00:01:02:02', 'gw_dpid':11, 'gw_conn_port':5},
-    #                 {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':12, 'gw_conn_port':3},
-    #                 {'user_ip':'10.0.1.1', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':12, 'gw_conn_port':4},
-    #                 {'user_ip':'10.0.1.2', 'user_mac':'00:00:00:01:01:01', 'gw_dpid':12, 'gw_conn_port':5} ]
+    userinfo_list = None
+    if self.net_xml_file_url == 'net_xmls/net_simpler.xml':
+      userinfo_list = [{'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':1, 'gw_conn_port':3},
+                       {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':2, 'gw_conn_port':3} ]
+    elif self.net_xml_file_url == 'net_xmls/net_mesh_topo.xml':
+      userinfo_list = [{'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':20, 'gw_conn_port':3},
+                       {'user_ip':'10.0.2.1', 'user_mac':'00:00:00:01:02:01', 'gw_dpid':20, 'gw_conn_port':4},
+                       {'user_ip':'10.0.2.2', 'user_mac':'00:00:00:01:02:02', 'gw_dpid':20, 'gw_conn_port':5},
+                       {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':10, 'gw_conn_port':3},
+                       {'user_ip':'10.0.1.1', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':10, 'gw_conn_port':4},
+                       {'user_ip':'10.0.1.2', 'user_mac':'00:00:00:01:01:01', 'gw_dpid':10, 'gw_conn_port':5} ]
+    elif self.net_xml_file_url == 'net_xmls/net_resubmit_exp.xml':
+      userinfo_list = [{'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':11, 'gw_conn_port':3},
+                       {'user_ip':'10.0.2.1', 'user_mac':'00:00:00:01:02:01', 'gw_dpid':11, 'gw_conn_port':4},
+                       {'user_ip':'10.0.2.2', 'user_mac':'00:00:00:01:02:02', 'gw_dpid':11, 'gw_conn_port':5},
+                       {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':12, 'gw_conn_port':3},
+                       {'user_ip':'10.0.1.1', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':12, 'gw_conn_port':4},
+                       {'user_ip':'10.0.1.2', 'user_mac':'00:00:00:01:01:01', 'gw_dpid':12, 'gw_conn_port':5} ]
     #
     for userinfo in userinfo_list:
       self.welcome_user(user_ip = userinfo['user_ip'],

@@ -1089,7 +1089,6 @@ def main(argv):
     logging.basicConfig(level=logging.DEBUG)
   else:
     raise CommandLineOptionError('Unexpected logto', logto)
-  logger = logging.getLogger('t')
   #
   tl_ip = get_addr(intf)
   tr = Transit(nodename = nodename,
@@ -1100,7 +1099,7 @@ def main(argv):
                dtsl_ip = dtsl_ip,
                dtsl_port = dtsl_port,
                trans_type = trans_type,
-               logger = logger )
+               logger = logging.getLogger('t') )
   #
   if nodename == 't': # or nodename == 't11':
     tr.test()

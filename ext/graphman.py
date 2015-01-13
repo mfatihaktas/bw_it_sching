@@ -125,7 +125,13 @@ class GraphMan(object):
                             'weight': int(edge[2]['delay']) }.items() ) )
       
   def get_edge(self, edge_tuple):
-    return self.g[edge_tuple[0]][edge_tuple[1]]
+    edge_dict = self.g[edge_tuple[0]][edge_tuple[1]]
+    if edge_dict['pre_node'] != edge_tuple[0]:
+      pre_dev, pre_node = edge_dict['pre_dev'], edge_dict['pre_node']
+      edge_dict['pre_dev'], edge_dict['pre_node'] = edge_dict['post_dev'], edge_dict['post_node']
+      edge_dict['post_dev'], edge_dict['post_node'] = pre_dev, pre_node
+      
+    return edge_dict
   
   def get_node(self, node):
     return self.g.node[node]

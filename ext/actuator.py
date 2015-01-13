@@ -32,7 +32,7 @@ info_dict = {'lscher_addr':('127.0.0.1', 7999),
              'schert_tp': 7001,
              's_entry_dur': [0, 0] }
 
-ruleparser = RuleParser('ext/schedwalks.xml', 'ext/scheditjobs.xml')
+rule_parser = RuleParser('ext/schedwalks.xml', 'ext/scheditjobs.xml')
 
 '''
 class Actuator (object):
@@ -43,7 +43,7 @@ class Actuator (object):
   def _handle_PacketIn (self, event)
   def _handle_ConnectionUp(self, event)
   def _handle_FlowStatsReceived (self, event)
-  def dev_name_to_id(self, dev_name)
+  def dev_name_to_port(self, dev_name)
   def _handle_sendtoitr(self, walk_to_itr_info, msg_str)
   def _handle_recvfromitr(self, msg)
 ###  install_*** methods
@@ -105,8 +105,8 @@ class Actuator (object):
       print 'walk_rule_list= \n%s' % pprint.pformat(walk_rule_list)
       print 'itjob_rule_dict= \n%s' % pprint.pformat(itjob_rule_dict)
       #
-      ruleparser.modify_schedwalkxmlfile_by_walkrule(str(s_id), walk_rule_list)
-      ruleparser.modify_scheditjobxmlfile_by_itjobrule(str(s_id), itjob_rule_dict)
+      rule_parser.modify_schedwalkxmlfile_by_walkrule(str(s_id), walk_rule_list)
+      rule_parser.modify_scheditjobxmlfile_by_itjobrule(str(s_id), itjob_rule_dict)
       if _install_schrules_proactively:
         if type_ == 's_sching_req':
           self.install_proactive_schedwalk(s_id)
@@ -172,7 +172,7 @@ class Actuator (object):
     print "FlowStatsReceived from ",dpidToStr(event.connection.dpid), ": ",stats
   
   # Of course works only for mininet networks
-  def dev_name_to_id(self, dev_name):
+  def dev_name_to_port(self, dev_name):
     eth_part = dev_name.split('-', 1)[1]
     return int(eth_part.strip('eth'))
   
@@ -181,7 +181,7 @@ class Actuator (object):
     # print '_handle_sendtoitr:: dpid_conn_dict= \n%s' % pprint.pprint(self.dpid_conn_dict)
     conn = self.dpid_conn_dict[sw_dpid]
     self.send_udp_packet_out(conn = conn,
-                             fw_port = self.dev_name_to_id(str(walk_to_itr_info['swdev_to_itr']) ),
+                             fw_port = self.dev_name_to_port(str(walk_to_itr_info['swdev_to_itr']) ),
                              payload = msg_str,
                              tp_src = info_dict['scherl_tp'],
                              tp_dst = info_dict['schert_tp'],
@@ -197,7 +197,7 @@ class Actuator (object):
   
   #########################  install_*** methods  #######################
   def install_proactive_scheditjob(self, type_toitr, s_id):
-    itjob_rule_dict = ruleparser.get_itjobruledict_forsession(str(s_id))
+    itjob_rule_dict = rule_parser.get_itjobruledict_forsession(str(s_id))
     print 'itjob_rule_dict= \n%s' % pprint.pformat(itjob_rule_dict)
     for dpid in itjob_rule_dict:
       itr_info_list = itjob_rule_dict[dpid]
@@ -227,8 +227,8 @@ class Actuator (object):
     print 'install_proactive_scheditjob:: installed for s_id=%s; type_toitr=%s' % (s_id, type_toitr)
   
   def install_proactive_schedwalk(self, s_id):
-    [walk_rule_dict, hmfromdpid_dict] = ruleparser.get_walkruledict_forsession(str(s_id))
-    #print 'walkruledict= \n%s' % pprint.pformat(walk_rule_dict)
+    [walk_rule_dict, hmfromdpid_dict] = rule_parser.get_walkruledict_forsession(str(s_id))
+    # print 'walkruledict= \n%s' % pprint.pformat(walk_rule_dict)
     #print 'hmfromdpid_dict= \n%s' % pprint.pformat(hmfromdpid_dict)
     
     for conn in core.openflow.connections:
@@ -254,7 +254,7 @@ class Actuator (object):
                                    nw_proto = wc_dict['nw_proto'],
                                    tp_src = wc_dict['tp_src'],
                                    tp_dst = wc_dict['tp_dst'],
-                                   fport = self.dev_name_to_id(rule_dict['fport']),
+                                   fport = self.dev_name_to_port(rule_dict['fport']),
                                    duration = info_dict['s_entry_dur'] )
           #self.send_stat_req(conn)
         elif typ == 'mod_nw_src__forward':
@@ -267,7 +267,7 @@ class Actuator (object):
                                               tp_dst = wc_dict['tp_dst'],
                                               new_src = rule_dict['new_src_ip'],
                                               new_dl_src = rule_dict['new_src_mac'],
-                                              fport = self.dev_name_to_id(rule_dict['fport']),
+                                              fport = self.dev_name_to_port(rule_dict['fport']),
                                               duration = info_dict['s_entry_dur'] )
           #self.send_stat_req(conn)
         elif typ == 'mod_nw_dst__forward':
@@ -280,7 +280,7 @@ class Actuator (object):
                                               tp_dst = wc_dict['tp_dst'],
                                               new_dst = rule_dict['new_dst_ip'],
                                               new_dl_dst = rule_dict['new_dst_mac'],
-                                              fport = self.dev_name_to_id(rule_dict['fport']),
+                                              fport = self.dev_name_to_port(rule_dict['fport']),
                                               duration = info_dict['s_entry_dur'] )
         counter += 1
       #
