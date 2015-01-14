@@ -35,6 +35,7 @@ class ThreadedUDPRequestHandler(SocketServer.BaseRequestHandler):
 #########################  TCP Server-Handler  ###########################
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
   def __init__(self, sctag, _callback, server_address, client_address, RequestHandlerClass):
+    self.allow_reuse_address = True
     SocketServer.TCPServer.__init__(self, server_address, RequestHandlerClass)
     self.client_address = client_address
     self._callback = _callback

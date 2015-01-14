@@ -50,7 +50,6 @@ class Consumer(object):
         logging.info('_handle_recvfromdts:: couldnot join to dts :(')
     elif type_ == 'sching_reply':
       self.welcome_s(data_)
-      
     
   def welcome_s(self, data_):
     sch_req_id = data_['sch_req_id']

@@ -133,7 +133,6 @@ class Receiver(threading.Thread):
       return
     #
     #self.f_obj = open(self.file_url, 'w')
-    
     self.rx_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self.rx_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     self.rx_sock.bind(self.laddr)
@@ -145,7 +144,7 @@ class Receiver(threading.Thread):
     while 1:
       data = sc.recv(KSTAR_CHUNKSTRSIZE)
       datasize = len(data)
-      #logging.info('rx_kstardata:: lport=%s; rxed datasize=%sB', self.laddr[1], datasize)
+      logging.info('rx_kstardata:: lport=%s; rxed datasize=%sB', self.laddr[1], datasize)
       #
       if self.recvstart_time == 0:
         self.recvstart_time = time.time()

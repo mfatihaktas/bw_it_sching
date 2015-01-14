@@ -99,7 +99,7 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    self.net_xml_file_url = "net_xmls/net_simpler.xml" #"net_xmls/net_mesh_topo.xml" #"net_xmls/net_simplest.xml"  #"net_xmls/net_resubmit_exp.xml"
+    self.net_xml_file_url = "net_xmls/net_simpler.xml" #"net_xmls/net_simpler.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
     if not is_scheduler_run:
       self.net_xml_file_url = "ext/" + self.net_xml_file_url
     
@@ -165,7 +165,6 @@ class Scheduler(object):
     return self.geninfo_dict
   ###################################  _handle_*** methods  ##########################################
   def _handle_recvfromacter(self, msg):
-    #msg = [type_, data_]l
     [type_, data_] = msg
     if type_ == 's_sching_reply' or type_ == 'res_sching_reply':
       reply = data_['reply']
@@ -181,43 +180,40 @@ class Scheduler(object):
                        'gw_conn_port': user_info['gw_conn_port'] }
       if reply == 'done':
         s_info['sching_job_done'] = True
-        #get s_alloc_info
         s_alloc_info = self.alloc_dict['s-wise'][s_id]
-        #
+        
         type_touser = None
         if type_ == 's_sching_reply':
           type_touser = 'sching_reply'
         elif type_ == 'res_sching_reply':
           type_touser = 'resching_reply'
-        #to producer
-        msg = {'type':type_touser,
-               'data':{'sch_req_id': sch_req_id,
-                       'bw':s_alloc_info['bw'],
-                       'tp_dst':s_info['tp_dst'] } }
-        if self.dtsuser_intf.relsend_to_user(user_ip = p_ip,
-                                             msg = msg ) == 0:
-          print 'Couldnt send msg=%s, \nuserinfo_dict=%s' % (pprint.pformat(msg), pprint.pformat(userinfo_dict))
-        else:
-          print 'sent msg=%s' % pprint.pformat(msg)
-        #to consumer
-        if type_ == 's_sching_reply': #no need to resend for resching
-          msg = {'type':type_touser,
-                 'data':{'sch_req_id': sch_req_id,
-                         'tp_dst':s_info['tp_dst'] } }
-          if self.dtsuser_intf.relsend_to_user(user_ip = c_ip,
-                                               msg = msg ) == 0:
-            print 'Couldnt send msg=%s, \nuserinfo_dict=%s' % (pprint.pformat(msg), pprint.pformat(userinfo_dict))
+        # to consumer
+        if type_ == 's_sching_reply': # no need to resend for resching
+          msg = {'type': type_touser,
+                 'data': {'sch_req_id': sch_req_id,
+                          'tp_dst': s_info['tp_dst'] } }
+          if self.dtsuser_intf.relsend_to_user(user_ip = c_ip, msg = msg ) == 0:
+            logging.error('_handle_recvfromacter:: could not send msg=%s, \nuserinfo_dict=%s', pprint.pformat(msg), pprint.pformat(userinfo_dict) )
           else:
-            print 'sent msg=%s' % pprint.pformat(msg)
+            logging.debug('_handle_recvfromacter:: sent msg=%s' % pprint.pformat(msg) )
+        # to producer
+        msg = {'type': type_touser,
+               'data': {'sch_req_id': sch_req_id,
+                        'bw': s_alloc_info['bw'],
+                        'tp_dst': s_info['tp_dst'] } }
+        if self.dtsuser_intf.relsend_to_user(user_ip = p_ip, msg = msg ) == 0:
+          logging.error('_handle_recvfromacter:: could not send msg=%s, \nuserinfo_dict=%s', pprint.pformat(msg), pprint.pformat(userinfo_dict) )
+        else:
+          logging.debug('_handle_recvfromacter:: sent msg=%s', pprint.pformat(msg) )
       else:
         logging.error('_handle_recvfromacter:: Unexpected reply=%s', reply)
         msg = {'type':'sching_reply',
                'data':'sorry' }
         if self.dtsuser_intf.relsend_to_user(user_ip = p_ip,
                                              msg = msg ) == 0:
-          print 'Couldnt send msg=%s, \nuserinfo_dict=%s' % (pprint.pformat(msg), pprint.pformat(userinfo_dict))
+          logging.error('_handle_recvfromacter:: could not send msg=%s, \nuserinfo_dict=%s', pprint.pformat(msg), pprint.pformat(userinfo_dict) )
         else:
-          print 'sent msg=%s' % pprint.pformat(msg)
+          logging.debug('_handle_recvfromacter:: sent msg=%s', pprint.pformat(msg) )
       #
     #
 
@@ -226,9 +222,7 @@ class Scheduler(object):
     
   def _handle_recvfromuser(self, userinfo_dict, msg_):
     user_ip = userinfo_dict['user_ip']
-    #
     [type_, data_] = msg_
-    #
     if type_ == 'join_req':
       if self.welcome_user(user_ip = user_ip,
                            user_mac = userinfo_dict['user_mac'],
@@ -238,17 +232,17 @@ class Scheduler(object):
                'data':'welcome' }
         if self.dtsuser_intf.relsend_to_user(user_ip = user_ip,
                                              msg = msg ) == 0:
-          print 'Couldnt send msg=%s, \nuserinfo_dict=%s' % (pprint.pformat(msg), pprint.pformat(userinfo_dict))
+          logging.error('_handle_recvfromuser:: could not send msg=%s, \nuserinfo_dict=%s', pprint.pformat(msg), pprint.pformat(userinfo_dict) )
         else:
-          print 'sent msg=%s' % pprint.pformat(msg)
+          logging.debug('_handle_recvfromuser:: sent msg=%s', pprint.pformat(msg) )
       else:
         msg = {'type':'join_reply',
                'data':'sorry' }
         if self.dtsuser_intf.relsend_to_user(user_ip = user_ip,
                                              msg = msg ) == 0:
-          print 'Couldnt send msg=%s, \nuserinfo_dict=%s' % (pprint.pformat(msg), pprint.pformat(userinfo_dict))
+          logging.error('_handle_recvfromuser:: could not send msg=%s, \nuserinfo_dict=%s', pprint.pformat(msg), pprint.pformat(userinfo_dict) )
         else:
-          print 'sent msg=%s' % pprint.pformat(msg)
+          logging.debug('_handle_recvfromuser:: sent msg=%s', pprint.pformat(msg) )
     elif type_ == 'sching_req':
       sch_req_id = self.welcome_session(p_c_ip_list = [user_ip, data_['c_ip']],
                                         req_dict = data_['req_dict'],
@@ -261,9 +255,9 @@ class Scheduler(object):
                'data':'sorry' }
         if self.dtsuser_intf.relsend_to_user(user_ip = user_ip,
                                              msg = msg ) == 0:
-          print 'Couldnt send msg=%s, \nuserinfo_dict=%s' % (pprint.pformat(msg), pprint.pformat(userinfo_dict))
+          logging.error('_handle_recvfromuser:: could not send msg=%s, \nuserinfo_dict=%s', pprint.pformat(msg), pprint.pformat(userinfo_dict) )
         else:
-          print 'sent msg=%s' % pprint.pformat(msg)
+          logging.debug('_handle_recvfromuser:: sent msg=%s', pprint.pformat(msg) )
     elif type_ == 'session_done':
       sch_req_id = int(data_['sch_req_id'])
       del data_['sch_req_id']

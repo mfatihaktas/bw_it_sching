@@ -99,7 +99,7 @@ class PipeServer(threading.Thread):
     self.open_socket()
     self.logger.debug('run:: serversock_stpdst=%s is opened; waiting for client.', self.stpdst)
     try:
-      (sclient_sock,sclient_addr) = self.server_sock.accept()
+      (sclient_sock, sclient_addr) = self.server_sock.accept()
       self.sstarted = True
     except Exception, e:
       self.logger.error('Most likely transit.py is terminated with ctrl-c')
@@ -312,8 +312,7 @@ class ItServHandler(threading.Thread):
     self.procwrsize_dict = {'fft': {'wsize': CHUNKSIZE,
                                     'rsize': CHUNKSIZE },
                             'upsampleplot': {'wsize': CHUNKSIZE,
-                                             'rsize': CHUNKSIZE }
-                           }
+                                             'rsize': CHUNKSIZE } }
     #
     self.jobtobedone_dict = None
     self.uptorecvsize_dict = {}
@@ -327,7 +326,7 @@ class ItServHandler(threading.Thread):
   def init_itjobdicts(self):
     self.jobtobedone_dict = self.itwork_dict['jobtobedone']
     for ftag,datasize in self.jobtobedone_dict.items():
-        self.jobremaining[ftag] = datasize*(1024**2) #B
+        self.jobremaining[ftag] = int(datasize)*(1024**2) #B
     #
     self.logger.debug('init_itjobdicts:: jobremaining=\n%s', pprint.pformat(self.jobremaining))
   
@@ -440,7 +439,6 @@ class ItServHandler(threading.Thread):
       (data, datasize, uptofunc_list) = self.pop_from_pipe()
       datasize_t = copy.copy(datasize)
       self.active_last_time = time.time()
-      
       if data == None:
         if datasize == 0: #failed
           pass
@@ -461,10 +459,9 @@ class ItServHandler(threading.Thread):
           sys.exit(2)
       else:
         itfunc_list = self.get_itfunclist_overnextchunk()
-        #print 'itfunc_list=%s' % pprint.pformat(itfunc_list)
-        self.logger.debug('run:: datasize=%s popped. uptofunc_list=%s', datasize, uptofunc_list)
+        self.logger.debug('run:: datasize= %s popped. \nuptofunc_list= %s, itfunc_list= %s', datasize, uptofunc_list, itfunc_list)
         if len(itfunc_list) == 0:
-          if (not self.nodename[0] == 't'):
+          if (self.nodename[0] != 't'):
             #self.forward_data(data = self.addheader(data, itfunc_list),
             #                  datasize = getsizeof(data) )
             self.forwardq.put(self.addheader(data, itfunc_list) )
@@ -529,7 +526,7 @@ class ItServHandler(threading.Thread):
     header = json.dumps(itfunc_list)
     padding_length = CHUNKHSIZE - len(header)
     header += ' '*padding_length
-    data = header+data
+    data = header + data
     #
     return data
   
