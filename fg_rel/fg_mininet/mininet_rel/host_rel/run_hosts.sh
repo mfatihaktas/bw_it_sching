@@ -20,13 +20,13 @@ CR3_LPORT=6002
 ###
 C1D=1
 P1D=2
-P1_REQDICT='{"datasize":10,"slack_metric":30,"func_list":["fft","upsampleplot"]}'
+P1_REQDICT='{"datasize":20,"slack_metric":30,"func_list":["fft","upsampleplot"]}'
 P1_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 P1_CLIP=10.0.1.0
 
 C2D=1
-P2D=31
-P2_REQDICT='{"datasize":10,"slack_metric":30,"func_list":["fft","upsampleplot"]}'
+P2D=10
+P2_REQDICT='{"datasize":20,"slack_metric":30,"func_list":["fft","upsampleplot"]}'
 P2_APPPREFDICT='{"m_p":50,"m_u":0,"x_p":0,"x_u":0}'
 P2_CLIP=10.0.1.1
 
