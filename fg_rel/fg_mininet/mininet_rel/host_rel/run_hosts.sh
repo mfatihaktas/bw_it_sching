@@ -20,45 +20,69 @@ CR3_LPORT=6002
 ###
 C1D=1
 P1D=2
-P1_REQDICT='{"datasize":20,"slack_metric":10,"func_list":["fft","upsampleplot"]}'
-P1_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
+P1_REQDICT='{"datasize":100,"slack_metric":150,"func_list":["fft","upsampleplot"]}'
+P1_APPPREFDICT='{"m_p":1,"m_u":10,"x_p":0,"x_u":0}'
 P1_CLIP=10.0.1.0
 
 C2D=1
-P2D=5
-P2_REQDICT='{"datasize":20,"slack_metric":30,"func_list":["fft","upsampleplot"]}'
-P2_APPPREFDICT='{"m_p":1,"m_u":10,"x_p":0,"x_u":0}'
+P2D=10
+P2_REQDICT='{"datasize":10,"slack_metric":30,"func_list":["fft","upsampleplot"]}'
+P2_APPPREFDICT='{"m_p":10,"m_u":0,"x_p":0,"x_u":0}'
 P2_CLIP=10.0.1.1
 
 C3D=1
-P3D=15
-P3_REQDICT='{"datasize":20,"slack_metric":30,"func_list":["fft","upsampleplot"]}'
-P3_APPPREFDICT='{"m_p":10,"m_u":0,"x_p":0,"x_u":0}'
+P3D=20
+P3_REQDICT='{"datasize":10,"slack_metric":30,"func_list":["fft","upsampleplot"]}'
+P3_APPPREFDICT='{"m_p":1,"m_u":10,"x_p":0,"x_u":0}'
 P3_CLIP=10.0.1.2
 
 C4D=1
-P4D=100
+P4D=30
 P4_REQDICT='{"datasize":100,"slack_metric":200,"func_list":["fft","upsampleplot"]}'
 P4_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 P4_CLIP=10.0.1.3
 
 C5D=1
-P5D=305
+P5D=100
 P5_REQDICT='{"datasize":40,"slack_metric":120,"func_list":["fft","upsampleplot"]}'
-P5_APPPREFDICT='{"m_p":50,"m_u":0,"x_p":0,"x_u":0}'
+P5_APPPREFDICT='{"m_p":10,"m_u":0,"x_p":0,"x_u":0}'
 P5_CLIP=10.0.1.4
 
 C6D=1
-P6D=330
+P6D=110
 P6_REQDICT='{"datasize":40,"slack_metric":120,"func_list":["fft","upsampleplot"]}'
-P6_APPPREFDICT='{"m_p":0,"m_u":50,"x_p":0,"x_u":0}'
+P6_APPPREFDICT='{"m_p":1,"m_u":10,"x_p":0,"x_u":0}'
 P6_CLIP=10.0.1.5
 
 C7D=1
-P7D=455
+P7D=120
 P7_REQDICT='{"datasize":20,"slack_metric":400,"func_list":["fft","upsampleplot"]}'
-P7_APPPREFDICT='{"m_p":0,"m_u":50,"x_p":0,"x_u":0}'
+P7_APPPREFDICT='{"m_p":1,"m_u":10,"x_p":0,"x_u":0}'
 P7_CLIP=10.0.1.6
+
+C8D=1
+P8D=130
+P8_REQDICT='{"datasize":80,"slack_metric":150,"func_list":["fft","upsampleplot"]}'
+P8_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
+P8_CLIP=10.0.1.7
+
+C9D=1
+P9D=230
+P9_REQDICT='{"datasize":20,"slack_metric":200,"func_list":["fft","upsampleplot"]}'
+P9_APPPREFDICT='{"m_p":10,"m_u":0,"x_p":0,"x_u":0}'
+P9_CLIP=10.0.1.8
+
+C10D=1
+P10D=240
+P10_REQDICT='{"datasize":20,"slack_metric":200,"func_list":["fft","upsampleplot"]}'
+P10_APPPREFDICT='{"m_p":1,"m_u":10,"x_p":0,"x_u":0}'
+P10_CLIP=10.0.1.9
+
+C11D=1
+P11D=250
+P11_REQDICT='{"datasize":20,"slack_metric":50,"func_list":["fft","upsampleplot"]}'
+P11_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
+P11_CLIP=10.0.1.10
 
 MINHTBDIR='/home/ubuntu/mininet/mininet_rel/host_rel/tc_rel/htb_rel'
 

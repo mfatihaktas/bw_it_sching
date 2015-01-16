@@ -83,6 +83,8 @@ class SchController(object):
       couplingdoneinfo['overall']['datasize_list'] = sessionpreserved['datasize_list']
       couplingdoneinfo['overall']['tobeproced_datasize_list'] = sessionpreserved['tobeproced_datasize_list']
       couplingdoneinfo['overall']['tobeproced_data_transt_list'] = sessionpreserved['tobeproced_data_transt_list']
+      couplingdoneinfo['overall']['elapsed_datasize_list'] = sessionpreserved['elapsed_datasize_list']
+      couplingdoneinfo['overall']['elapsed_time_list'] = sessionpreserved['elapsed_time_list']
       
       couplingdur_relerr = 100*float(coupling_dur - idealtrans_time)/idealtrans_time
       

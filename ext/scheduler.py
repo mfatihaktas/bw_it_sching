@@ -47,8 +47,8 @@ info_dict = {'acterl_addr':('127.0.0.1',7999), #192.168.56.1
              'base_sport':6000,
              'sching_port':7000 }
 
-BWREGCONST = 1 #0.95
-ELAPSEDDSREGCONST = 1 #0.95
+BW_REG_CONST = 1 #0.95
+ELAPSED_DS_REG_CONST = 1 #0.95
 
 '''
 class Scheduler(object):
@@ -99,7 +99,7 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    self.net_xml_file_url = "net_xmls/net_simpler.xml" #"net_xmls/net_simpler.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
+    self.net_xml_file_url = "net_xmls/net_mesh_topo.xml" #"net_xmls/net_simpler.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
     if not is_scheduler_run:
       self.net_xml_file_url = "ext/" + self.net_xml_file_url
     
@@ -143,6 +143,8 @@ class Scheduler(object):
     self.geninfo_dict = {}
     #
     # self.exp()
+    self.s_id_elapsed_time_list_dict = {}
+    self.s_id_elapsed_datasize_list_dict = {}
     
   def recv_from_user(self, userinfo_dict, msg):
     user_ip = userinfo_dict['user_ip']
@@ -412,8 +414,12 @@ class Scheduler(object):
       logging.basicConfig(filename=fname, filemode='w', level=logging.DEBUG)
     elif self.sching_logto == 'console':
       logging.basicConfig(level=logging.DEBUG)
-
+    
     for sch_req_id, sinfo in self.sessionsbeingserved_dict.items():
+      if not sch_req_id in self.s_id_elapsed_datasize_list_dict:
+        self.s_id_elapsed_datasize_list_dict[sch_req_id] = []
+        self.s_id_elapsed_time_list_dict[sch_req_id] = []
+      
       if 'sched_time_list' in sinfo:
         elapsed_time = time.time() - self.starting_time - sinfo['sched_time_list'][-1]
         # elapsed_datasize = sinfo['req_dict']['datasize']*elapsed_time/ #MB
@@ -422,12 +428,14 @@ class Scheduler(object):
         tobeproced_data_transt = sinfo['tobeproced_data_transt_list'][-1]
         tobeproced_datasize = sinfo['tobeproced_datasize_list'][-1]
         if elapsed_time < tobeproced_data_transt:
-          elapsed_datasize = ELAPSEDDSREGCONST*float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
+          elapsed_datasize = ELAPSED_DS_REG_CONST*float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
         else:
-          elapsed_datasize = tobeproced_datasize + float(BWREGCONST*(sinfo['bw_list'][-1])*elapsed_time)/8
+          elapsed_datasize = tobeproced_datasize + float(BW_REG_CONST*(sinfo['bw_list'][-1])*elapsed_time)/8
          #
         sinfo['req_dict']['slack_metric'] = sinfo['slack_metric_list'][-1] - elapsed_time
         sinfo['req_dict']['datasize'] -= elapsed_datasize
+        self.s_id_elapsed_datasize_list_dict[sch_req_id].append(elapsed_datasize)
+        self.s_id_elapsed_time_list_dict[sch_req_id].append(elapsed_time)
       #
     logging.info('do_sching:: sching_id=%s started;', sching_id)
     self.update_sid_res_dict()
@@ -461,6 +469,8 @@ class Scheduler(object):
       sinfo['tobeproced_data_transt_list'].append(salloc['tobeproced_data_transt'])
       
       sinfo['trans_time'] = salloc['trans_time']
+      sinfo['elapsed_datasize_list'] = self.s_id_elapsed_datasize_list_dict[sch_req_id]
+      sinfo['elapsed_time_list'] = self.s_id_elapsed_time_list_dict[sch_req_id]
     # Resource capacity allocation distribution over sessions
     self.schingid_rescapalloc_dict[sching_id] = self.alloc_dict['res-wise']
     self.geninfo_dict = self.alloc_dict['general']
@@ -728,14 +738,14 @@ class Scheduler(object):
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
     #datasize (MB) slack_metric (ms)
-    req_dict_list = [ {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
+    req_dict_list = [ {'datasize':100, 'slack_metric':10, 'func_list':['fft','upsampleplot']},
                       {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
                       {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
                       {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
                       {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
                     ]
     app_pref_dict_list = [
-                          {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
+                          {'m_p': 10,'m_u': 0,'x_p': 0,'x_u': 0},
                           {'m_p': 0,'m_u': 50,'x_p': 0,'x_u': 0},
                           {'m_p': 50,'m_u': 0,'x_p': 0,'x_u': 0},
                           {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},

@@ -10,7 +10,7 @@ VMKEYDIR=./keys/mininet-key
 VM_NAMES=( controller mininet1 mininet2 mininet3 mininet4 mininet5 )
 VM_USRNAMES=( ubuntu ubuntu ubuntu ubuntu ubuntu ubuntu )
 VM_PIVIPS=( 10.39.1.2 10.39.1.14 10.39.1.26 10.39.1.52 10.39.1.63 10.39.1.65)
-VM_PUBIPS=( 149.165.159.11 149.165.159.15 149.165.159.31 149.165.159.37 149.165.159.38 149.165.159.39)
+VM_PUBIPS=( 149.165.159.5 149.165.159.6 149.165.159.31 149.165.159.37 149.165.159.38 149.165.159.39)
 
 CVXOPTDIR=~/Desktop/cvxopt
 #POXEXTDIR=~/Dropbox/sim_rel/pox/ext

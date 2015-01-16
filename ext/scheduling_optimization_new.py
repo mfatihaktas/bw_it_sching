@@ -364,14 +364,15 @@ class SchingOptimizer:
       # print 'tt=%s' % self.get_var_val('tt', (s_id, 0))
       # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
       sn_list = [float(self.s_n[s_id, k].value)**2 for k in range(len(s_req_dict['func_list']) ) ]
-      trans_t = self.s_transt.get((s_id, 0)).value
+      trans_t = (self.s_transt.get((s_id, 0)).value)
       tt = self.get_var_val('tt', (s_id, 0))
       [s_itwalk_dict, s_walk_list] = self.get_session_itwalk_dict__walk_list(s_id)
       # ittime = self.it_time__basedon_itwalk_dict(s_itwalk_dict)
       
       s_path_info = self.sid_res_dict[s_id]['path_info']
-      tobeproced_datasize = s_datasize*int(max(sn_list)) #MB
-      tobeproced_data_transt = 8*tobeproced_datasize/(BWREGCONST_INGRAB*bw) + self.s_proct.get((s_id, 0)).value #sec
+      tobeproced_datasize = int(s_datasize*max(sn_list)) #MB
+      s_proct = (self.s_proct.get((s_id, 0)).value)
+      tobeproced_data_transt = 8*tobeproced_datasize/(BWREGCONST_INGRAB*bw) + s_proct #sec
       #
       self.session_res_alloc_dict['s-wise'][s_id] = {
         'bw':bw, 'proc':proc, 'dur':dur,
@@ -389,10 +390,10 @@ class SchingOptimizer:
         'tt-transt': abs(tt - trans_t),
         'itwalk_dict': s_itwalk_dict,
         'walk_list': s_walk_list,
-        's_txt': self.s_txt.get((s_id, 0)).value,
-        's_proct': self.s_proct.get((s_id, 0)).value,
+        's_txt': (self.s_txt.get((s_id, 0)).value),
+        's_proct': s_proct,
         's_durt': 0, #self.s_durt.get((s_id, 0)).value,
-        's_transt': self.s_transt.get((s_id, 0)).value,
+        's_transt': (self.s_transt.get((s_id, 0)).value),
         'tobeproced_datasize': tobeproced_datasize,
         'tobeproced_data_transt': tobeproced_data_transt 
       }

@@ -5,7 +5,7 @@ settings {
 sync {
   default.rsyncssh,
   source = "/home/mehmet/Desktop/sim_rel-/fg_rel/fg_mininet/mininet_rel/host_rel",
-  host = "ubuntu@149.165.159.15",
+  host = "ubuntu@149.165.159.6",
   targetdir = "/home/ubuntu/mininet/mininet_rel/host_rel",
   rsync = {
   archive = true,
