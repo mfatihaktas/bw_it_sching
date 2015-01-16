@@ -407,7 +407,7 @@ class Scheduler(object):
     # walk/itjob rules to correspoding actuator - which is a single actuator right now !
     sching_id = self.next_sching_id()
     if self.sching_logto == 'file':
-      fname = 'ext/sching_decs/sching_'+sching_id+'.log'
+      fname = 'ext/sching_decs/sching_' + sching_id + '.log'
       logging.basicConfig(filename=fname, filemode='w', level=logging.DEBUG)
     elif self.sching_logto == 'console':
       logging.basicConfig(level=logging.DEBUG)

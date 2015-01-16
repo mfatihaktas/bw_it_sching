@@ -90,6 +90,7 @@ class SchController(object):
       sching_overhead = 100*float(session_done['schingrr_time'])/coupling_dur
       couplingdoneinfo['overall'].update({'idealtrans_time': idealtrans_time,
                                           'couplingdur_relerr': couplingdur_relerr,
+                                          'schingrr_time': session_done['schingrr_time'],
                                           'sching_overhead': sching_overhead })
       #
       couplingdoneinfo['overall']['recvedpercentwithfunc_dict'] = \

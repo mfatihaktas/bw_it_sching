@@ -74,7 +74,7 @@ class SchingOptimizer:
     self.add_sessionpathlinks_with_ids()
     self.add_sessionpathitrs_with_ids()
     # To deal with FEASIBILITY (due to small slackmetric) problems
-    # self.feasibilize_sessions_reqs()
+    self.feasibilize_sessions_reqs()
     self.print_sching_optimizer()
     # scalarization factor
     self.scal_var = cp.Parameter(name='scal_var', sign='positive')
@@ -369,7 +369,7 @@ class SchingOptimizer:
       # ittime = self.it_time__basedon_itwalk_dict(s_itwalk_dict)
       
       s_path_info = self.sid_res_dict[s_id]['path_info']
-      tobeproced_datasize = s_datasize*max(sn_list) #MB
+      tobeproced_datasize = s_datasize*int(max(sn_list)) #MB
       tobeproced_data_transt = 8*tobeproced_datasize/(BWREGCONST_INGRAB*bw) + self.s_proct.get((s_id, 0)).value #sec
       #
       self.session_res_alloc_dict['s-wise'][s_id] = {
@@ -453,9 +453,9 @@ class SchingOptimizer:
         coeff = itr_proc/proc
         info_dict['itfunc_dict'] = {func_list[i]:coeff*n for i, n in enumerate(n_list)}
       #
-    def itr_list__to__walk_list__ordered_itr_list(net_path_list, itr_list):
+    def itr_list__to__walk_list__ordered_itr_list(path_list, itr_list):
       # Construct data_walk
-      walk_list = net_path_list
+      walk_list = list(path_list)
       for itr in itr_list:
         itr_id = self.actual_res_dict['res_id_map'][itr]
         conn_sw = self.actual_res_dict['id_info_map'][itr_id]['conn_sw']
@@ -501,7 +501,7 @@ class SchingOptimizer:
                         n_list = n_list,
                         itr_info_dict = itr_info_dict )
     [walk_list, orded_itr_list] = itr_list__to__walk_list__ordered_itr_list(
-      net_path_list =path_info_dict['path'],
+      path_list = path_info_dict['path'],
       itr_list = [t for t in itr_info_dict] )
     #
     return [itwalk_dict, walk_list]
@@ -540,9 +540,10 @@ class SchingOptimizer:
     # to be feasible for the resource allocation optimization process.
     for s_id in range(self.N):
       s_req_dict = self.sessions_beingserved_dict[s_id]['req_dict']
-      bw = self.sid_res_dict[s_id]['path_info']['fair_bw']
-      if bw == 0:
-        bw = self.sid_res_dict[s_id]['path_info']['bw']
+      bw = self.sid_res_dict[s_id]['path_info']['bw']
+      # bw = self.sid_res_dict[s_id]['path_info']['fair_bw']
+      # if bw == 0:
+      #   bw = self.sid_res_dict[s_id]['path_info']['bw']
       
       tx_t = calc_tx_time(datasize = s_req_dict['datasize'],
                           bw = bw )
