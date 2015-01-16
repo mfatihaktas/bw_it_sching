@@ -423,16 +423,15 @@ class Sender(threading.Thread):
                             's_tp': 6000} }
       self.dummy_send(json.dumps(data_json))
     elif self.dst_addr[1] == 7998: #send to scher
-      data_json = {'type': 'sp_sching_reply',
+      data_json = {'type': 's_sching_reply',
                    'data': 'OK'}
       self.dummy_send(json.dumps(data_json))
     elif self.dst_addr[1] == 7000: #send to p
       data_json = {'type': 'sching_reply',
                    'data': {'datasize':1,
                             'parism_level':1,
-                            'par_share':[1],
-                            'p_bw':[1],
-                            'p_tp_dst':[6000] }}
+                            'bw':[1],
+                            'tp_dst':[6000] }}
       self.dummy_send(json.dumps(data_json))
     else:
       self.init_send()

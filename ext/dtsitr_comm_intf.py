@@ -10,34 +10,34 @@ class DTSItrCommIntf(object):
     logging.basicConfig(level=logging.DEBUG)
     #
     self.timeout = 5
-    self.itrsinfo_dict = {}
+    self.itrs_info_dict = {}
     #
-    logging.info('dtsitr_comm_inft:: inited.')
+    logging.info('dtsitr_comm_intf:: inited.')
   
-  def reg_itr(self, itr_ip, itrinfo_dict, _recv_callback, _send_callback):
-    if not itr_ip in self.itrsinfo_dict:
-      self.itrsinfo_dict[itr_ip] = {'itrinfo_dict': itrinfo_dict,
-                                    '_recv_callback': _recv_callback,
-                                    '_send_callback': _send_callback,
-                                    'seq_num': 0,
-                                    'state': 0,
-                                    'msg_tobeacked': None,
-                                    'timeout_timer': None,
-                                    'helper_queue': Queue.Queue(maxsize=1) }
-      logging.info('reg_itr:: new itr reged itrinfo_dict=\n%s', pprint.pformat(itrinfo_dict) )
+  def reg_itr(self, itr_ip, walk_to_itr_info, _recv_callback, _send_callback):
+    if not itr_ip in self.itrs_info_dict:
+      self.itrs_info_dict[itr_ip] = {'walk_to_itr_info': walk_to_itr_info,
+                                     '_recv_callback': _recv_callback,
+                                     '_send_callback': _send_callback,
+                                     'seq_num': 0,
+                                     'state': 0,
+                                     'msg_tobeacked': None,
+                                     'timeout_timer': None,
+                                     'helper_queue': Queue.Queue(maxsize=1) }
+      logging.info('reg_itr:: new itr reged walk_to_itr_info=\n%s', pprint.pformat(walk_to_itr_info) )
     #
   
   def relsend_to_itr(self, itr_ip, msg):
     ''' reliable send over udp with stop-and-wait arq '''
     self.send_to_itr(itr_ip, msg)
     #
-    itrinfo_dict = self.itrsinfo_dict[itr_ip]
-    news = itrinfo_dict['helper_queue'].get(block=True, timeout=None)
+    itr_info_dict = self.itrs_info_dict[itr_ip]
+    news = itr_info_dict['helper_queue'].get(block=True, timeout=None)
     if news == 'success':
-      logging.info('relsend_to_itr:: completed sending seq_num=%s to itr_ip=%s', itrinfo_dict['seq_num'],itr_ip)
+      logging.info('relsend_to_itr:: completed sending seq_num=%s to itr_ip=%s', itr_info_dict['seq_num'],itr_ip)
       return 1 #success
     else:
-      logging.error('relsend_to_itr:: could not send seq_num=%s to itr_ip=%s', itrinfo_dict['seq_num'],itr_ip)
+      logging.error('relsend_to_itr:: could not send seq_num=%s to itr_ip=%s', itr_info_dict['seq_num'],itr_ip)
       return 0 #failed
   
   def send_to_itr(self, itr_ip, msg):
@@ -48,27 +48,27 @@ class DTSItrCommIntf(object):
     #
     [type_, data_] = msg_
     #
-    itrinfo_dict = self.itrsinfo_dict[itr_ip]
+    itr_info_dict = self.itrs_info_dict[itr_ip]
     msg_tobeacked = {'type': type_,
                      'data': data_,
-                     'seq_num': itrinfo_dict['seq_num'] }
+                     'seq_num': itr_info_dict['seq_num'] }
     #
-    itrinfo_dict['_send_callback'](itrinfo_dict = itrinfo_dict['itrinfo_dict'],
+    itr_info_dict['_send_callback'](walk_to_itr_info = itr_info_dict['walk_to_itr_info'],
                                     msg_str =  json.dumps(msg_tobeacked) )
-    itrinfo_dict['msg_tobeacked'] = msg_tobeacked
-    itrinfo_dict['state'] = 1
+    itr_info_dict['msg_tobeacked'] = msg_tobeacked
+    itr_info_dict['state'] = 1
     logging.debug('send_to_itr:: sent to itr_ip=%s', itr_ip)
     #
     timeout_timer = threading.Timer(interval = self.timeout,
                                     function = self.handle_timeout,
                                     kwargs = {'itr_ip':itr_ip} )
-    itrinfo_dict['timeout_timer'] = timeout_timer
+    itr_info_dict['timeout_timer'] = timeout_timer
     timeout_timer.start()
   
   def handle_timeout(self, itr_ip):
-    itrinfo_dict = self.itrsinfo_dict[itr_ip]
-    seq_num = itrinfo_dict['seq_num']
-    msg_tobeacked = itrinfo_dict['msg_tobeacked']
+    itr_info_dict = self.itrs_info_dict[itr_ip]
+    seq_num = itr_info_dict['seq_num']
+    msg_tobeacked = itr_info_dict['msg_tobeacked']
     #
     logging.debug('handle_timeout:: timeout for itr_ip=%s; resend seq_num=%s', itr_ip, seq_num)
     self.send_to_itr(itr_ip, msg_tobeacked)
@@ -85,23 +85,23 @@ class DTSItrCommIntf(object):
     self.handle_rxfromitr(itr_ip, msg_)
     
   def handle_rxfromitr(self, itr_ip, msg_):
-    itrinfo_dict = self.itrsinfo_dict[itr_ip]
-    seq_num = itrinfo_dict['seq_num']
-    timeout_timer = itrinfo_dict['timeout_timer']
-    state = itrinfo_dict['state']
-    helper_queue = itrinfo_dict['helper_queue']
-    #
+    itr_info_dict = self.itrs_info_dict[itr_ip]
+    seq_num = itr_info_dict['seq_num']
+    timeout_timer = itr_info_dict['timeout_timer']
+    state = itr_info_dict['state']
+    helper_queue = itr_info_dict['helper_queue']
+    
     [type_, data_, seq_num_] = msg_
-    #print '***handle_rxfromitr::'
-    #print 'type_=%s' % type_
-    #print 'data_=%s' % data_
-    #print 'seq_num_=%s' % seq_num_
-    #print '***'
+    # print '***handle_rxfromitr::'
+    # print 'type_= %s' % type_
+    # print 'data_= %s' % data_
+    # print 'seq_num_=%s' % seq_num_
+    # print '***'
     if type_ == 'ack':
       if seq_num_ == seq_num:
         timeout_timer.cancel()
-        itrinfo_dict['seq_num'] += 1
-        itrinfo_dict['state'] = 0
+        itr_info_dict['seq_num'] += 1
+        itr_info_dict['state'] = 0
         logging.debug('handle_rxfromitr:: for itr_ip=%s, ack rxed for seq_num=%s', itr_ip, seq_num)
         helper_queue.put('success')
       else:
@@ -110,8 +110,7 @@ class DTSItrCommIntf(object):
     else:
       if state == 0:
         self.ack_itr(itr_ip, seq_num_)
-        itrinfo_dict['_recv_callback'](itrinfo_dict = itrinfo_dict['itrinfo_dict'],
-                                       msg_ = [type_, data_])
+        itr_info_dict['_recv_callback'](msg_ = [type_, data_])
       else:
         logging.error('handle_rxfromitr:: for itr_ip=%s, nonack is rxed when state=%s', itr_ip, state)
         helper_queue.put('failed')
@@ -121,8 +120,8 @@ class DTSItrCommIntf(object):
                           'seq_num': seq_num,
                           'data': ''} )
     #
-    itrinfo_dict = self.itrsinfo_dict[itr_ip]
-    itrinfo_dict['_send_callback'](itrinfo_dict = itrinfo_dict['itrinfo_dict'],
+    itr_info_dict = self.itrs_info_dict[itr_ip]
+    itr_info_dict['_send_callback'](itr_info_dict = itr_info_dict['walk_to_itr_info'],
                                    msg_str =  msg_ack )
     logging.debug('ack_itr:: for itr_ip=%s, acked seq_num=%s', itr_ip,seq_num)
     
@@ -148,16 +147,16 @@ class DTSItrCommIntf(object):
       raise CorruptMsgError('Wrong msg[type]', type_ )
       logging.error('check_msg:: bad type=%s', type_)
       return None
-    #whole check is done
+    # Whole check is done
     if acttype == 'recv':
       return [type_, data_, seq_num_]
     return [type_, data_]
   
   def close(self):
-    for itr_ip in self.itrsinfo_dict:
-      itrinfo_dict = self.itrsinfo_dict[itr_ip]
-      timeout_timer = itrinfo_dict['timeout_timer']
-      helper_queue = itrinfo_dict['helper_queue']
+    for itr_ip in self.itrs_info_dict:
+      itr_info_dict = self.itrs_info_dict[itr_ip]
+      timeout_timer = itr_info_dict['timeout_timer']
+      helper_queue = itr_info_dict['helper_queue']
       if timeout_timer != None:
         timeout_timer.cancel()
       helper_queue.put('failed')

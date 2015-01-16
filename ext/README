@@ -1,24 +1,21 @@
 This directory is not under version control, so it makes a good place to
 put your own projects.
 
-a = 3 x N
-p_proc = p_dur = N x max_numspaths
+s_proc = N x 1
+s_dur = N x 1
 r_bw = N x num_link
-r_proc = r_dur = N*max_parismlevel x num_itr
 r_stor = 1 x num_itr
-r_proc2 = r_dur2 = N x num_itr
-sp_tx = sp_proc = sp_dur = sp_trans = N x max_numspaths
-r_hard_vector = r_soft_vector = s_pen_vector = s_util_vector = 1 x N
+s_txt = s_proct = s_durt = s_transt = N x 1
+r_hard_vector = r_soft_vector = s_pen_vector = s_util_vector = N x 1
 
 Parameters:
 scal_var
 
 Variables:
-tt = 1 x N
-p_bw = N x max_numspaths
+tt = N x 1
 s_n = N x max_numitfuncs
-r_proc = N x max_parismlevel
-r_dur = N x max_parismlevel
+s_bw = N x 1
+r_proc = N x num_itr
+r_dur = N x num_itr
 
 f1=fft  f2=upsampleplot
-

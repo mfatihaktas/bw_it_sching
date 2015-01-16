@@ -50,54 +50,45 @@ class Consumer(object):
         logging.info('_handle_recvfromdts:: couldnot join to dts :(')
     elif type_ == 'sching_reply':
       self.welcome_s(data_)
-      
     
   def welcome_s(self, data_):
     sch_req_id = data_['sch_req_id']
-    pl = int(data_['parism_level'])
-    p_tp_dst = data_['p_tp_dst']
-    qtorecver_list = [Queue.Queue(0) for i in range(pl)]
-    qfromrecver_list = [Queue.Queue(0) for i in range(pl)]
-    for i,stpdst in enumerate(p_tp_dst):
-      laddr = (self.cl_ip, int(stpdst))
-      recver = Receiver(in_queue = qtorecver_list[i],
-                        out_queue = qfromrecver_list[i],
-                        laddr = laddr,
-                        proto = self.proto,
-                        rx_type = 'kstardata',
-                        file_url = 'kstardata_%s.dat' % stpdst,
-                        logto = self.logto )
-      recver.start()
+    stpdst = data_['tp_dst']
+    qtorecver = Queue.Queue(0)
+    qfromrecver = Queue.Queue(0)
+    laddr = (self.cl_ip, int(stpdst))
+    recver = Receiver(in_queue = qtorecver,
+                      out_queue = qfromrecver,
+                      laddr = laddr,
+                      proto = self.proto,
+                      rx_type = 'kstardata',
+                      file_url = 'kstardata_%s.dat' % stpdst,
+                      logto = self.logto )
+    recver.start()
     #
-    self.sinfo_dict[sch_req_id] = {'parism_level': pl,
-                                   'p_tp_dst': p_tp_dst,
-                                   'qtorecver_list': qtorecver_list,
-                                   'qfromrecver_list': qfromrecver_list }
+    self.sinfo_dict[sch_req_id] = {'tp_dst': stpdst,
+                                   'qtorecver': qtorecver,
+                                   'qfromrecver': qfromrecver }
     logging.info('welcome_s:: welcome sinfo=\n%s', pprint.pformat(self.sinfo_dict[sch_req_id]))
     threading.Thread(target = self.waitfor_couplingtoend,
                      kwargs = {'sch_req_id': sch_req_id} ).start()
     
   def waitfor_couplingtoend(self, sch_req_id):
     couplinginfo_dict = {'sch_req_id': sch_req_id,
-                         'recvedsize': 0,
-                         'recvstart_time': float('Inf'),
-                         'recvend_time': 0,
                          'recvedsizewithfunc_dict': {} }
     
-    qfromrecver_list = self.sinfo_dict[sch_req_id]['qfromrecver_list']
-    for qfromrecver in qfromrecver_list:
-      info_dict = qfromrecver.get(True, None)
-      couplinginfo_dict['recvedsize'] += info_dict['recvedsize']
-      couplinginfo_dict['recvend_time'] = max(couplinginfo_dict['recvend_time'], info_dict['recvend_time'])
-      couplinginfo_dict['recvstart_time'] = min(couplinginfo_dict['recvstart_time'], info_dict['recvstart_time'])
-      
-      recvedsizewithfunc_dict = couplinginfo_dict['recvedsizewithfunc_dict']
-      for func,recvedsize in info_dict['recvedsizewithfunc_dict'].items():
-        if func in recvedsizewithfunc_dict:
-          recvedsizewithfunc_dict[func] += recvedsize
-        else:
-          recvedsizewithfunc_dict[func] = recvedsize
-        #
+    qfromrecver = self.sinfo_dict[sch_req_id]['qfromrecver']
+    info_dict = qfromrecver.get(True, None)
+    couplinginfo_dict['recvedsize'] = info_dict['recvedsize']
+    couplinginfo_dict['recvend_time'] = info_dict['recvend_time']
+    couplinginfo_dict['recvstart_time'] = info_dict['recvstart_time']
+    
+    recvedsizewithfunc_dict = couplinginfo_dict['recvedsizewithfunc_dict']
+    for func, recvedsize in info_dict['recvedsizewithfunc_dict'].items():
+      if func in recvedsizewithfunc_dict:
+        recvedsizewithfunc_dict[func] += recvedsize
+      else:
+        recvedsizewithfunc_dict[func] = recvedsize
       #
     #
     msg = {'type': 'coupling_done',
@@ -107,24 +98,22 @@ class Consumer(object):
     logging.info('waitfor_couplingtoend:: coupling ended; couplinginfo_dict=\n%s', pprint.pformat(couplinginfo_dict))
     
   def send_join_req(self):
-    msg = {'type':'join_req',
-           'data':''}
+    msg = {'type': 'join_req',
+           'data': ''}
     self.userdts_intf.relsend_to_dts(msg)
   
   def close(self):
     self.userdts_intf.close()
     #
     for sch_req_id in self.sinfo_dict:
-      for qtorecver in self.sinfo_dict[sch_req_id]['qtorecver_list']:
-        qtorecver.put('STOP')
+      self.sinfo_dict[sch_req_id]['qtorecver'].put('STOP')
     #
     logging.info('close:: all session recver threads joined.')
     
     for i in range(len(self.recver_thread_list)):
       self.queue_torecvers.put('STOP')
     #
-    logging.info('close:: all dummy recver threads joined.')
-    
+    # logging.info('close:: all dummy recver threads joined.')
     logging.info('consumer:: closed.')
   
   def start_recvers(self):
@@ -145,8 +134,7 @@ class Consumer(object):
     #self.start_recvers()
     '''
     data_ = {'sch_req_id': 0,
-             'parism_level': 1,
-             'p_tp_dst': [6000] }
+             'tp_dst': [6000] }
     self.welcome_s(data_)
     '''
     

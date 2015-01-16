@@ -1,11 +1,15 @@
 
-def sumlist(l):
-  sum_ = None
-  for i,e in enumerate(l):
-    if i == 0:
-      sum_ = e
-    else:
-      sum_ += e
+def sum_list(l):
+  sum_ = 0
+  i = 0
+  for e in l:
+    if e != 0:
+      if i == 0:
+        sum_ = e
+      else:
+        sum_ += e
+      i += 1
+    #
   return sum_
 
 class Expr:
@@ -45,13 +49,13 @@ class Expr:
   def agg_to_column(self):
     cexpr = Expr((self.r, 1))
     for i in range(self.r):
-      cexpr.set_((i,0), sumlist(self.get_row(i)) )
+      cexpr.set_((i,0), sum_list(self.get_row(i)) )
     return cexpr
   
   def agg_to_row(self):
     rexpr = Expr((1, self.c))
     for j in range(self.c):
-      rexpr.set_((0,j), sumlist(self.get_column(j)) )
+      rexpr.set_((0,j), sum_list(self.get_column(j)) )
     return rexpr
   
   def __str__(self):

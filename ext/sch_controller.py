@@ -3,16 +3,33 @@ import pox.openflow.libopenflow_01 as of
 from pox.lib.addresses import IPAddr
 import pox.lib.packet as pkt
 from pox.openflow.of_json import *
-#from pox.lib.util import dpid_to_str
-from scheduler import Scheduler #, EventChief
+from scheduler import Scheduler
 from exp_plot import ExpPlotter
 import pprint,logging,signal,threading
-#log = core.getLogger()
 
 info_dict = {'scher_vip': '10.0.0.255',
              'scher_vmac': '00:00:00:00:00:00',
              'sching_port': 7000 }
-  
+
+'''
+class SchController(object):
+  def __init__(self)
+  def waitforenter(self)
+###  _handle_*** methods
+  def _handle_SendMsgToUser(self, event)
+  def _handle_PacketIn(self, event)
+  def _handle_ConnectionUp(self, event)
+  def _handle_FlowStatsReceived (self, event)
+###  send_*** methods
+  def send_udp_packet_out(self, conn, payload, tp_src, tp_dst,src_ip, dst_ip, src_mac, dst_mac, fw_port = of.OFPP_ALL)
+  def send_stat_req(self, event)
+###  install_*** methods
+  def install_drop_sch_response(self, event)
+  def install_default_to_controller(self, event, proto)
+###
+  def launch ()
+'''
+
 class SchController(object):
   def __init__(self):
     #logging.basicConfig(filename='logs/schcontlog',filemode='w',level=logging.DEBUG)
@@ -29,7 +46,6 @@ class SchController(object):
                                                  self._handle_SendMsgToUser)
     #
     self.dpid_conn_dict = {}
-    #core.addListeners(self)
     core.openflow.addListenerByName("ConnectionUp", self._handle_ConnectionUp)
     core.openflow.addListenerByName("FlowStatsReceived", self._handle_FlowStatsReceived)
     core.openflow.addListenerByName("PacketIn", self._handle_PacketIn  )
@@ -60,13 +76,13 @@ class SchController(object):
                                      'slack-tt': sessionpreserved['slack-tt'],
                                      'slack-transtime': sessionpreserved['slack-transtime'],
                                      'app_pref_dict': sessionpreserved['app_pref_dict'] }
-      idealtrans_time = sessionpreserved['trans_time'] + sessionpreserved['schedtime_list'][-1] - sessionpreserved['schedtime_list'][0]#sec
-      couplingdoneinfo['overall']['slackmetric_list'] = sessionpreserved['slackmetric_list']
-      couplingdoneinfo['overall']['schedtime_list'] = sessionpreserved['schedtime_list']
+      idealtrans_time = sessionpreserved['trans_time'] + sessionpreserved['sched_time_list'][-1] - sessionpreserved['sched_time_list'][0]#sec
+      couplingdoneinfo['overall']['slack_metric_list'] = sessionpreserved['slack_metric_list']
+      couplingdoneinfo['overall']['sched_time_list'] = sessionpreserved['sched_time_list']
       couplingdoneinfo['overall']['bw_list'] = sessionpreserved['bw_list']
       couplingdoneinfo['overall']['datasize_list'] = sessionpreserved['datasize_list']
-      couplingdoneinfo['overall']['tobeproceddatasize_list'] = sessionpreserved['tobeproceddatasize_list']
-      couplingdoneinfo['overall']['tobeproceddata_transt_list'] = sessionpreserved['tobeproceddata_transt_list']
+      couplingdoneinfo['overall']['tobeproced_datasize_list'] = sessionpreserved['tobeproced_datasize_list']
+      couplingdoneinfo['overall']['tobeproced_data_transt_list'] = sessionpreserved['tobeproced_data_transt_list']
       
       couplingdur_relerr = 100*float(coupling_dur - idealtrans_time)/idealtrans_time
       
@@ -75,6 +91,7 @@ class SchController(object):
       sching_overhead = 100*float(session_done['schingrr_time'])/coupling_dur
       couplingdoneinfo['overall'].update({'idealtrans_time': idealtrans_time,
                                           'couplingdur_relerr': couplingdur_relerr,
+                                          'schingrr_time': session_done['schingrr_time'],
                                           'sching_overhead': sching_overhead })
       #
       couplingdoneinfo['overall']['recvedpercentwithfunc_dict'] = \
@@ -82,60 +99,60 @@ class SchController(object):
     #
     print 'couplingdoneinfo_dict=\n%s' % pprint.pformat(couplingdoneinfo_dict)
     
-    furl = '/home/ubuntu/pox/ext/logs/schcontroller.log'
-    f = open(furl, 'w')
-    f.write(pprint.pformat(couplingdoneinfo_dict))
-    f.close()
-    #converting schingid_rescapalloc_dict to resid_rescapalloc_dict
-    schingid_rescapalloc_dict = self.scheduler.get_schingid_rescapalloc_dict()
-    print 'schingid_rescapalloc_dict=%s' % pprint.pformat(schingid_rescapalloc_dict)
-    resid_rescapalloc_dict = {}
-    for sching_id, rescapalloc_dict in schingid_rescapalloc_dict.items():
-      for res_id, rescapalloc in rescapalloc_dict.items():
-        if not res_id in resid_rescapalloc_dict:
-          resid_rescapalloc_dict[res_id] = {}
-        #
-        resid_rescapalloc_dict[res_id][sching_id] = rescapalloc
-    #
-    print 'resid_rescapalloc_dict=%s' % pprint.pformat(resid_rescapalloc_dict)
-    #
-    self.exp_plotter.write_expdatafs(couplingdoneinfo_dict = couplingdoneinfo_dict,
-                                     outf1url='/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat',
-                                     resid_rescapalloc_dict = resid_rescapalloc_dict,
-                                     outf2basename='/home/ubuntu/pox/ext/logs/rescapalloc_resid' )
-    #
-    geninfo_dict = self.scheduler.get_geninfo_dict()
-    maxbw = 10 #Mbps
-    maxproc = 100 #Mfps
-    for res_id in resid_rescapalloc_dict:
-      if res_id <= geninfo_dict['ll_index']: #res is link
-        self.exp_plotter.plot_resallocrel(datafurl='/home/ubuntu/pox/ext/logs/rescapalloc_resid'+str(res_id)+'.dat',
-                                          outfurl='/home/ubuntu/pox/ext/logs/fig_rescapallocLINKid'+str(res_id)+'.png',
-                                          numsching=len(schingid_rescapalloc_dict),
-                                          yrange=1.1*maxbw,
-                                          resunit='Mbps' )
-      else: #res is itr
-        self.exp_plotter.plot_resallocrel(datafurl='/home/ubuntu/pox/ext/logs/rescapalloc_resid'+str(res_id)+'.dat',
-                                          outfurl='/home/ubuntu/pox/ext/logs/fig_rescapallocITRid'+str(res_id)+'.png',
-                                          numsching=len(schingid_rescapalloc_dict),
-                                          yrange=1.1*maxproc,
-                                          resunit='Mfps' )
-      #
-    #
-    self.exp_plotter.plot_sizerel(datafurl = '/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat', 
-                                  outfurl = '/home/ubuntu/pox/ext/logs/sizerel.png',
-                                  nums = len(couplingdoneinfo_dict),
-                                  yrange = 1.1*max([couplingdoneinfo['overall']['recvedsize']/(1024**2) for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()]) )
-    self.exp_plotter.plot_timerel(datafurl = '/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat',
-                                  outfurl = '/home/ubuntu/pox/ext/logs/timerel.png',
-                                  nums = len(couplingdoneinfo_dict),
-                                  yrange = 1.1*max([couplingdoneinfo['overall']['coupling_dur'] for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()]) )
+    # furl = '/home/ubuntu/pox/ext/logs/schcontroller.log'
+    # f = open(furl, 'w')
+    # f.write(pprint.pformat(couplingdoneinfo_dict))
+    # f.close()
+    # #converting schingid_rescapalloc_dict to resid_rescapalloc_dict
+    # schingid_rescapalloc_dict = self.scheduler.get_schingid_rescapalloc_dict()
+    # print 'schingid_rescapalloc_dict=%s' % pprint.pformat(schingid_rescapalloc_dict)
+    # resid_rescapalloc_dict = {}
+    # for sching_id, rescapalloc_dict in schingid_rescapalloc_dict.items():
+    #   for res_id, rescapalloc in rescapalloc_dict.items():
+    #     if not res_id in resid_rescapalloc_dict:
+    #       resid_rescapalloc_dict[res_id] = {}
+    #     #
+    #     resid_rescapalloc_dict[res_id][sching_id] = rescapalloc
+    # #
+    # print 'resid_rescapalloc_dict=%s' % pprint.pformat(resid_rescapalloc_dict)
+    # #
+    # self.exp_plotter.write_expdatafs(couplingdoneinfo_dict = couplingdoneinfo_dict,
+    #                                 outf1url='/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat',
+    #                                 resid_rescapalloc_dict = resid_rescapalloc_dict,
+    #                                 outf2basename='/home/ubuntu/pox/ext/logs/rescapalloc_resid' )
+    # #
+    # geninfo_dict = self.scheduler.get_geninfo_dict()
+    # maxbw = 10 #Mbps
+    # maxproc = 100 #Mfps
+    # for res_id in resid_rescapalloc_dict:
+    #   if res_id <= geninfo_dict['ll_index']: #res is link
+    #     self.exp_plotter.plot_resallocrel(datafurl='/home/ubuntu/pox/ext/logs/rescapalloc_resid'+str(res_id)+'.dat',
+    #                                       outfurl='/home/ubuntu/pox/ext/logs/fig_rescapallocLINKid'+str(res_id)+'.png',
+    #                                       numsching=len(schingid_rescapalloc_dict),
+    #                                       yrange=1.1*maxbw,
+    #   else: #res is itr
+    #                                       resunit='Mbps' )
+    #     self.exp_plotter.plot_resallocrel(datafurl='/home/ubuntu/pox/ext/logs/rescapalloc_resid'+str(res_id)+'.dat',
+    #                                       outfurl='/home/ubuntu/pox/ext/logs/fig_rescapallocITRid'+str(res_id)+'.png',
+    #                                       numsching=len(schingid_rescapalloc_dict),
+    #                                       yrange=1.1*maxproc,
+    #                                       resunit='Mfps' )
+    #   #
+    # #
+    # self.exp_plotter.plot_sizerel(datafurl = '/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat', 
+    #                               outfurl = '/home/ubuntu/pox/ext/logs/sizerel.png',
+    #                               nums = len(couplingdoneinfo_dict),
+    #                               yrange = 1.1*max([couplingdoneinfo['overall']['recvedsize']/(1024**2) for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()]) )
+    # self.exp_plotter.plot_timerel(datafurl = '/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat',
+    #                               outfurl = '/home/ubuntu/pox/ext/logs/timerel.png',
+    #                               nums = len(couplingdoneinfo_dict),
+    #                               yrange = 1.1*max([couplingdoneinfo['overall']['coupling_dur'] for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()]) )
     
-    self.exp_plotter.plot_overheadrel(datafurl = '/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat',
-                                      outfurl = '/home/ubuntu/pox/ext/logs/overheadrel.png',
-                                      nums = len(couplingdoneinfo_dict),
-                                      yrange = 1.1*max([couplingdoneinfo['session_done']['schingrr_time'] for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()] + \
-                                                       [couplingdoneinfo['session_done']['joinrr_time'] for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()]) )
+    # self.exp_plotter.plot_overheadrel(datafurl = '/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat',
+    #                                   outfurl = '/home/ubuntu/pox/ext/logs/overheadrel.png',
+    #                                   nums = len(couplingdoneinfo_dict),
+    #                                   yrange = 1.1*max([couplingdoneinfo['session_done']['schingrr_time'] for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()] + \
+    #                                                   [couplingdoneinfo['session_done']['joinrr_time'] for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()]) )
     #
     
   #########################  _handle_*** methods  #######################
@@ -160,10 +177,9 @@ class SchController(object):
     if ip_packet is None:
       print '_handle_PacketIn:: doesnt have ip_payload; eth_packet=%s' % eth_packet
       return
-    #
+    
     src_ip = (ip_packet.srcip).toStr()
     src_mac = (eth_packet.src).toStr()
-    #
     print '_handle_PacketIn:: rxed via sw_dpid=%s sw_port=%s from user_ip=%s' % (conn.dpid, event.port, src_ip)
     #handle_recv - assume only dts users know about udp_dts_port, no pre-checking
     userinfo_dict = {'user_ip': src_ip,

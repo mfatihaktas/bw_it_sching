@@ -18,7 +18,7 @@ from ruleparser import RuleParser
 from errors import *
 from control_comm_intf import ControlCommIntf
 from dtsitr_comm_intf import DTSItrCommIntf
-import threading,signal
+import threading,signal, logging
 
 log = core.getLogger()
 #
@@ -28,17 +28,43 @@ info_dict = {'lscher_addr':('127.0.0.1', 7999),
              'sensorl_addr':'...',
              'acter_vip': '10.0.0.255',
              'acter_vmac': '00:00:00:00:00:00',
-             'sid_pidlist_dict': {},
              'scherl_tp': 7001,
              'schert_tp': 7001,
-             's_entry_dur': [0, 0],
-            }
-  
-ruleparser = RuleParser('ext/schedwalks.xml', 'ext/scheditjobs.xml')
+             's_entry_dur': [0, 0] }
+
+rule_parser = RuleParser('ext/schedwalks.xml', 'ext/scheditjobs.xml')
+
+'''
+class Actuator (object):
+  def __init__ (self)
+  def signal_handler(self, signal, frame)
+###  _handle_*** methods
+  def _handle_recvfromscher(self, msg)
+  def _handle_PacketIn (self, event)
+  def _handle_ConnectionUp(self, event)
+  def _handle_FlowStatsReceived (self, event)
+  def dev_name_to_port(self, dev_name)
+  def _handle_sendtoitr(self, walk_to_itr_info, msg_str)
+  def _handle_recvfromitr(self, msg)
+###  install_*** methods
+  def install_proactive_scheditjob(self, type_toitr, s_id)
+  def install_proactive_schedwalk(self, s_id)
+###  send_*** methods
+  def send_udp_packet_out(self, conn, payload, tp_src, tp_dst,src_ip, dst_ip,
+## #Basic send functions for communicating with SWs
+  def send_clear_swtable(self, conn)
+  def send_stat_req(self, conn)
+  def send_ofmod_delete(self, conn, nw_src, nw_dst, nw_proto, tp_src, tp_dst, duration)
+  def send_ofmod_forward(self, _called_from, conn, nw_src, nw_dst, nw_proto, tp_src,
+  def send_ofmod_mod_nw_src__forward(self, _called_from, conn, nw_src, nw_dst, nw_proto, 
+  def send_ofmod_mod_nw_dst__forward(self, _called_from, conn, nw_src, nw_dst, nw_proto,
+  ###
+  def launch (proactive_install=True, deneme_flow=False)
+'''
 
 class Actuator (object):
   def __init__ (self):
-    #for control comm with scher, ...
+    # For control comm with scher, ...
     self.cci = ControlCommIntf()
     self.cci.reg_commpair(sctag = 'acter-scher',
                           proto = 'tcp',
@@ -48,73 +74,64 @@ class Actuator (object):
     self.dtsitr_intf = DTSItrCommIntf()
     #
     self.dpid_conn_dict = {}
-    #core.addListeners(self) <- bu aptal neden calismiyo anlamadim
     core.openflow.addListenerByName("ConnectionUp", self._handle_ConnectionUp)
     core.openflow.addListenerByName("FlowStatsReceived", self._handle_FlowStatsReceived)
     core.openflow.addListenerByName("PacketIn", self._handle_PacketIn  )
-    #to be able close dtsitr threads
-    #self.worker_threads = []
-    #to handle ctrl-c for doing cleanup
+    # T be able close dtsitr threads
+    # self.worker_threads = []
+    
+    # To handle ctrl-c for doing cleanup
     signal.signal(signal.SIGINT, self.signal_handler)
     
   def signal_handler(self, signal, frame):
     print('signal_handler:: ctrl+c !')
     self.dtsitr_intf.close()
-    '''
-    for t in self.worker_threads:
-      t.join()
-    #
-    print('signal_handler:: all worker_threads joined.')
-    '''
-    #to transit sigint to pox.py
+    # for t in self.worker_threads:
+    #   t.join()
+    
+    # print('signal_handler:: all worker_threads joined.')
+    
+    # To transit sigint to pox.py
     os.kill(os.getpid(), signal.SIGINT)
     
-  #########################  _handle_*** methods  #######################
+  ######################################  _handle_*** methods  #####################################
   def _handle_recvfromscher(self, msg):
-    #msg = [type_, data_]
     [type_, data_] = msg
-    if type_ == 'sp_sching_req' or type_ == 'resp_sching_req':
-      s_id, p_id = int(data_['s_id']), int(data_['p_id'])
-      walk_rule = data_['walk_rule']
-      itjob_rule = data_['itjob_rule']
+    if type_ == 's_sching_req' or type_ == 'res_sching_req':
+      s_id = int(data_['s_id'])
+      walk_rule_list = data_['walk_rule_list']
+      itjob_rule_dict = data_['itjob_rule_dict']
       
-      print 'walk_rule=\n%s' % pprint.pformat(walk_rule)
-      print 'itjob_rule=\n%s' % pprint.pformat(itjob_rule)
-      
-      #updating global dicts based on the input rxed from scher
-      if not (s_id in info_dict['sid_pidlist_dict']):
-        info_dict['sid_pidlist_dict'][s_id] = []
-      info_dict['sid_pidlist_dict'][s_id].append(p_id)
+      print 'walk_rule_list= \n%s' % pprint.pformat(walk_rule_list)
+      print 'itjob_rule_dict= \n%s' % pprint.pformat(itjob_rule_dict)
       #
-      ruleparser.modify_schedwalkxmlfile_by_walkrule(str(s_id),str(p_id),walk_rule)
-      ruleparser.modify_scheditjobxmlfile_by_itjobrule(str(s_id),str(p_id),itjob_rule)
+      rule_parser.modify_schedwalkxmlfile_by_walkrule(str(s_id), walk_rule_list)
+      rule_parser.modify_scheditjobxmlfile_by_itjobrule(str(s_id), itjob_rule_dict)
       if _install_schrules_proactively:
-        if type_ == 'sp_sching_req':
-          self.install_proactive_schedwalk(s_id, p_id)
+        if type_ == 's_sching_req':
+          self.install_proactive_schedwalk(s_id)
           self.install_proactive_scheditjob(type_toitr = 'itjob_rule',
-                                            s_id = s_id,
-                                            p_id = p_id )
-        elif type_ == 'resp_sching_req':
+                                            s_id = s_id )
+        elif type_ == 'res_sching_req':
           self.install_proactive_scheditjob(type_toitr = 'reitjob_rule',
-                                            s_id = s_id,
-                                            p_id = p_id )
+                                            s_id = s_id )
         #
       #
       # Send "I am done with the job(sch realization)"
       print 'sending sching_realization_done to scher...'
       type_toscher = None
-      if type_ == 'sp_sching_req':
-        type_toscher = 'sp_sching_reply'
-      elif type_ == 'resp_sching_req':
-        type_toscher = 'resp_sching_reply'
+      if type_ == 's_sching_req':
+        type_toscher = 's_sching_reply'
+      elif type_ == 'res_sching_req':
+        type_toscher = 'res_sching_reply'
       #
       msg = json.dumps({'type':type_toscher,
                         'data':{'s_id':s_id,
-                                'p_id':p_id,
                                 'reply':'done'} })
       self.cci.send_to_client('acter-scher', msg)
     #
-  #Since the SW rules are set proactively, only acks are expected
+  
+  # Since the SW rules are set proactively, only acks are expected
   def _handle_PacketIn (self, event):
     eth_packet = event.parsed
     ip_packet = eth_packet.find('ipv4')
@@ -136,7 +153,7 @@ class Actuator (object):
                               tp_src = '-1',
                               tp_dst = '-1',
                               fport = of.OFPP_ALL,
-                              duration = [0,0],
+                              duration = [0, 0],
                               buffer_id = event.ofp.buffer_id )
       print 'icmp rule is inserted!'
       return
@@ -154,70 +171,66 @@ class Actuator (object):
     stats = flow_stats_to_list(event.stats)
     print "FlowStatsReceived from ",dpidToStr(event.connection.dpid), ": ",stats
   
-  #ofcourse works only for mininet networks
-  def dev_tfport(self, dev_str):
-    eth_part = dev_str.split('-', 1)[1]
+  # Of course works only for mininet networks
+  def dev_name_to_port(self, dev_name):
+    eth_part = dev_name.split('-', 1)[1]
     return int(eth_part.strip('eth'))
   
-  def _handle_sendtoitr(self, itrinfo_dict, msg_str):
-    sw_dpid = itrinfo_dict['sw_dpid']
-    #print '***_handle_sendtoitr:: dpid_conn_dict='
-    #pprint.pprint(self.dpid_conn_dict)
-    #print '***'
+  def _handle_sendtoitr(self, walk_to_itr_info, msg_str):
+    sw_dpid = walk_to_itr_info['sw_dpid']
+    # print '_handle_sendtoitr:: dpid_conn_dict= \n%s' % pprint.pprint(self.dpid_conn_dict)
     conn = self.dpid_conn_dict[sw_dpid]
     self.send_udp_packet_out(conn = conn,
-                             fw_port = self.dev_tfport(str(itrinfo_dict['swdev_to_itr']) ),
+                             fw_port = self.dev_name_to_port(str(walk_to_itr_info['swdev_to_itr']) ),
                              payload = msg_str,
                              tp_src = info_dict['scherl_tp'],
                              tp_dst = info_dict['schert_tp'],
                              src_ip = info_dict['acter_vip'],
-                             dst_ip = itrinfo_dict['itr_ip'],
+                             dst_ip = walk_to_itr_info['itr_ip'],
                              src_mac = info_dict['acter_vmac'],
-                             dst_mac = itrinfo_dict['itr_mac'] )
+                             dst_mac = walk_to_itr_info['itr_mac'] )
     
-  #now; itres does not send to dts in the current setting
+  # Now; itres does not send to dts in the current setting
   def _handle_recvfromitr(self, msg):
-    #[type_, data_] = msg
+    # [type_, data_] = msg
     pass
+  
   #########################  install_*** methods  #######################
-  def install_proactive_scheditjob(self, type_toitr, s_id, p_id):
-    dict_ = ruleparser.get_itjobruledict_forsp(str(s_id), str(p_id))
-    print 'itjobdict:'
-    pprint.pprint(dict_)
-    for dpid in dict_:
-      itnodeinfo_list = dict_[dpid]
-      for itnodeinfo in itnodeinfo_list:
-        jobinfo = itnodeinfo['jobinfo']
-        walkinfo = itnodeinfo['walkinfo']
-        itr_ip = walkinfo['itr_ip'].encode('ascii','ignore')
-        #
-        walkinfo.update({'sw_dpid':str(dpid) })
+  def install_proactive_scheditjob(self, type_toitr, s_id):
+    itjob_rule_dict = rule_parser.get_itjobruledict_forsession(str(s_id))
+    print 'itjob_rule_dict= \n%s' % pprint.pformat(itjob_rule_dict)
+    for dpid in itjob_rule_dict:
+      itr_info_list = itjob_rule_dict[dpid]
+      for itr_info in itr_info_list:
+        job_info = itr_info['job_info']
+        walk_to_itr_info = itr_info['walk_info']
+        itr_ip = walk_to_itr_info['itr_ip'].encode('ascii','ignore')
+        walk_to_itr_info.update({'sw_dpid': str(dpid) })
         #
         self.dtsitr_intf.reg_itr(itr_ip = itr_ip,
-                                 itrinfo_dict = walkinfo,
+                                 walk_to_itr_info = walk_to_itr_info,
                                  _recv_callback = self._handle_recvfromitr,
                                  _send_callback = self._handle_sendtoitr )
         self.dtsitr_intf.relsend_to_itr(itr_ip = itr_ip,
-                                        msg = {'type':type_toitr,
-                                               'data': jobinfo} )
+                                        msg = {'type': type_toitr,
+                                               'data': job_info} )
         '''
         t = threading.Thread(name = 'relsend_to_itr;itr_ip='+itr_ip,
                              target = self.dtsitr_intf.relsend_to_itr,
                              kwargs = {'itr_ip': itr_ip,
-                                       'msg': {'type':'itjob_rule',
-                                               'data': jobinfo} } )
+                                       'msg': {'type':'itjob_rule_dict',
+                                               'data': job_info} } )
         self.worker_threads.append(t)
         t.start()
         '''
     #
-    print 'install_proactive_scheditjob:: installed for s_id=%s, p_id=%s; type_toitr=%s' % (s_id, p_id, type_toitr)
+    print 'install_proactive_scheditjob:: installed for s_id=%s; type_toitr=%s' % (s_id, type_toitr)
   
-  def install_proactive_schedwalk(self, s_id,p_id):
-    [dict_I, hmfromdpid_dict] = ruleparser.get_walkruledict_forsp(str(s_id), str(p_id))
-    #print 'walkruledict:'
-    #pprint.pprint(dict_I)
-    #print 'hmfromdpid_dict:'
-    #pprint.pprint(hmfromdpid_dict)
+  def install_proactive_schedwalk(self, s_id):
+    [walk_rule_dict, hmfromdpid_dict] = rule_parser.get_walkruledict_forsession(str(s_id))
+    # print 'walkruledict= \n%s' % pprint.pformat(walk_rule_dict)
+    #print 'hmfromdpid_dict= \n%s' % pprint.pformat(hmfromdpid_dict)
+    
     for conn in core.openflow.connections:
       dpid = str(conn.dpid) #str(event.connection.dpid)
       try:
@@ -228,7 +241,7 @@ class Actuator (object):
       l_dict = None
       counter = 0
       while (counter <= hm):
-        l_dict = dict_I[dpid, counter]
+        l_dict = walk_rule_dict[dpid, counter]
         typ = l_dict['typ']
         rule_dict = l_dict['rule_dict']
         wc_dict = l_dict['wc_dict']
@@ -241,7 +254,7 @@ class Actuator (object):
                                    nw_proto = wc_dict['nw_proto'],
                                    tp_src = wc_dict['tp_src'],
                                    tp_dst = wc_dict['tp_dst'],
-                                   fport = self.dev_tfport(rule_dict['fport']),
+                                   fport = self.dev_name_to_port(rule_dict['fport']),
                                    duration = info_dict['s_entry_dur'] )
           #self.send_stat_req(conn)
         elif typ == 'mod_nw_src__forward':
@@ -254,7 +267,7 @@ class Actuator (object):
                                               tp_dst = wc_dict['tp_dst'],
                                               new_src = rule_dict['new_src_ip'],
                                               new_dl_src = rule_dict['new_src_mac'],
-                                              fport = self.dev_tfport(rule_dict['fport']),
+                                              fport = self.dev_name_to_port(rule_dict['fport']),
                                               duration = info_dict['s_entry_dur'] )
           #self.send_stat_req(conn)
         elif typ == 'mod_nw_dst__forward':
@@ -267,24 +280,24 @@ class Actuator (object):
                                               tp_dst = wc_dict['tp_dst'],
                                               new_dst = rule_dict['new_dst_ip'],
                                               new_dl_dst = rule_dict['new_dst_mac'],
-                                              fport = self.dev_tfport(rule_dict['fport']),
+                                              fport = self.dev_name_to_port(rule_dict['fport']),
                                               duration = info_dict['s_entry_dur'] )
         counter += 1
       #
     #
-    print 'install_proactive_schedwalk::installed for s_id=%s, p_id=%s' % (s_id, p_id)
+    print 'install_proactive_schedwalk::installed for s_id=%s' % s_id
   #######################  send_*** methods  ###################################
   # Method for just sending a UDP packet over any sw_port (broadcast by default)
   def send_udp_packet_out(self, conn, payload, tp_src, tp_dst,src_ip, dst_ip,
                           src_mac, dst_mac, fw_port = of.OFPP_ALL):
     msg = of.ofp_packet_out(in_port=of.OFPP_NONE)
     msg.buffer_id = None
-    #Make the udp packet
+    # Make the udp packet
     udpp = pkt.udp()
     udpp.srcport = tp_src
     udpp.dstport = tp_dst
     udpp.payload = payload
-    #Make the IP packet around it
+    # Make the IP packet around it
     ipp = pkt.ipv4()
     ipp.protocol = ipp.UDP_PROTOCOL
     ipp.srcip = IPAddr(src_ip)
@@ -300,16 +313,16 @@ class Actuator (object):
     # Send it to the sw
     msg.actions.append(of.ofp_action_output(port = fw_port))
     msg.data = ethp.pack()
-    #show msg before sending
+    # Show msg before sending
     """
     print '*******************'
     print 'msg.show(): ',msg.show()
     print '*******************'
     """
-    #print "send_udp_packet_out:: sw%s and fw_port:%s" %(conn.dpid, fw_port)
+    # print "send_udp_packet_out:: sw%s and fw_port:%s" %(conn.dpid, fw_port)
     conn.send(msg)
   
-  #Basic send functions for communicating with SWs
+  # Basic send functions for communicating with SWs
   def send_clear_swtable(self, conn):
     msg = of.ofp_flow_mod(command=of.OFPFC_DELETE)
     conn.send(msg)
@@ -341,9 +354,9 @@ class Actuator (object):
   def send_ofmod_forward(self, _called_from, conn, nw_src, nw_dst, nw_proto, tp_src,
                          tp_dst, fport, duration, buffer_id = None):
     msg = of.ofp_flow_mod()
-    #msg.match = of.ofp_match.from_packet(packet)
+    # msg.match = of.ofp_match.from_packet(packet)
     msg.priority = 0x7000
-    #msg.match = of.ofp_match(dl_type = pkt.ethernet.IP_TYPE, nw_proto = pkt.ipv4.UDP_PROTOCOL, nw_dst=IPAddr(nw_dst))
+    # msg.match = of.ofp_match(dl_type = pkt.ethernet.IP_TYPE, nw_proto = pkt.ipv4.UDP_PROTOCOL, nw_dst=IPAddr(nw_dst))
     msg.match.dl_type = 0x800 # Ethertype / length (e.g. 0x0800 = IPv4)
     msg.match.nw_src = IPAddr(nw_src)
     msg.match.nw_dst = IPAddr(nw_dst)
@@ -354,7 +367,7 @@ class Actuator (object):
       msg.match.tp_dst = int(tp_dst)
     msg.idle_timeout = duration[0]
     msg.hard_timeout = duration[1]
-    #print "event.ofp.buffer_id: ", event.ofp.buffer_id
+    # print "event.ofp.buffer_id: ", event.ofp.buffer_id
     if _called_from == 'packet_in':
       msg.buffer_id = buffer_id
     msg.actions.append(of.ofp_action_output(port = fport))
@@ -416,9 +429,8 @@ _install_deneme_flow = None
 
 def launch (proactive_install=True, deneme_flow=False):
   global _install_schrules_proactively, _install_deneme_flow
-  #
+  
   _install_schrules_proactively = str_to_bool(proactive_install)
   _install_deneme_flow = str_to_bool(deneme_flow)
   #
   core.registerNew(Actuator)
-

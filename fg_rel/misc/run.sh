@@ -1,15 +1,15 @@
 #!/bin/bash
 
 #basic commands to run vm in openstack_india
-echo "1="$1 "2="$2
+echo $1 $2 $3
 
 KEYDIR=~/.ssh/mininet-key #mfa51-key
 KEY=mininet-key #mfa51-key
 FLV=m1.xlarge #m1.xlarge medium
 
-VMNAME=mfa51-001
+VMNAME=controller_medium #mfa51-001
 VMUSERNAME=ubuntu
-VMIMG=futuregrid/ubuntu-12.04
+VMIMG=futuregrid/ubuntu-14.04
 VM_PIVIP=10.39.1.46
 VM_PUBIP=149.165.159.16
 
@@ -21,7 +21,8 @@ EXPCONT_VMPUBIP=149.165.159.47
 
 #mininet_(1 2 3 4 5) -> net_s_(1 2 3 11 12)
 #mininet_(1 2 3) -> net_s_(1)
-VM_NAMES=( controller mininet1 mininet2 mininet3 mininet4 mininet5 )
+VM_NAMES=( controller_medium mininet1 mininet2 mininet3 mininet4 mininet5 )
+FLV_LIST=( m1.medium m1.medium ) 
 VM_USRNAMES=( ubuntu ubuntu ubuntu ubuntu ubuntu ubuntu )
 VM_PIVIPS=( 10.39.1.18 10.39.1.14 10.39.1.26 10.39.1.52 10.39.1.63 10.39.1.65 )
 VM_PUBIPS=( 149.165.159.11 149.165.159.15 149.165.159.31 149.165.159.37 149.165.159.38 149.165.159.39 )
@@ -33,12 +34,10 @@ elif [ $1  = 'lsf' ]; then
   nova flavor-list
 elif [ $1  = 'lsi' ]; then
   nova image-list
-elif [ $1  = 'lsvms' ]; then
-  #ls running vms
+elif [ $1  = 'lsvms' ]; then #ls running vms
   nova list
 #cmds for vm
-elif [ $1  = 'snapvm' ]; then
-  #$3 = instance id
+elif [ $1  = 'snapvm' ]; then #$3 = instance id
   echo "instance: $3"
   nova image-create $3 ${VM_NAMES[$2]}
 elif [ $1  = 'uvmi' ]; then
@@ -62,7 +61,7 @@ elif [ $1  = 'bvm' ]; then
     #           --image $VMIMG \
     #           --key_name $KEY $VMNAME
   else
-    nova boot --flavor $FLV \
+    nova boot --flavor ${FLV_LIST[$2]} \
               --image ${VM_NAMES[$2]} \
               --key_name $KEY ${VM_NAMES[$2]}
   fi

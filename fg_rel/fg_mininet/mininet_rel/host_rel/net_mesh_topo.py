@@ -35,77 +35,77 @@ class MyTopo( Topo ):
     c10 = self.addHost( 'c10', ip='10.0.1.9' )
     c11 = self.addHost( 'c11', ip='10.0.1.10' )
     
+    s20 = self.addSwitch( 's20' )
+    s21 = self.addSwitch( 's21' )
+    s10 = self.addSwitch( 's10' )
+    s11 = self.addSwitch( 's11' )
     s1 = self.addSwitch( 's1' )
     s2 = self.addSwitch( 's2' )
     s3 = self.addSwitch( 's3' )
-    s4 = self.addSwitch( 's4' )
-    s5 = self.addSwitch( 's5' )
-    s11 = self.addSwitch( 's11' )
-    s12 = self.addSwitch( 's12' )
+    
     t11 = self.addHost( 't11', ip='10.0.0.11' )
     t21 = self.addHost( 't21', ip='10.0.0.21' )
     t31 = self.addHost( 't31', ip='10.0.0.31' )
-    t41 = self.addHost( 't41', ip='10.0.0.41' )
-    t51 = self.addHost( 't51', ip='10.0.0.51' )
     #
-    #wide_linkopts = dict(bw=11, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
-    #dsa_linkopts = dict(bw=11, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
+    # wide_linkopts = dict(bw=11, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
+    # dsa_linkopts = dict(bw=11, delay='50ms', loss=0, max_queue_size=1000000, use_htb=True)
     wide_linkopts = dict(delay='0ms', loss=0, max_queue_size=1000000, use_htb=True)
     dsa_linkopts = dict(delay='0ms', loss=0, max_queue_size=1000000, use_htb=True)
     #
-    self.addLink( s11,s1, **wide_linkopts )
+    self.addLink( s20,s1, **wide_linkopts )
+    self.addLink( s1,s10, **wide_linkopts )
     self.addLink( s1,s2, **wide_linkopts )
-    self.addLink( s1,s3, **wide_linkopts )
-    self.addLink( s3,s4, **wide_linkopts )
-    self.addLink( s4,s2, **wide_linkopts )
-    self.addLink( s2,s5, **wide_linkopts )
-    self.addLink( s5,s12, **wide_linkopts )
+    self.addLink( s20,s2, **wide_linkopts )
+    self.addLink( s2,s10, **wide_linkopts )
+    self.addLink( s21,s2, **wide_linkopts )
+    self.addLink( s2,s11, **wide_linkopts )
+    self.addLink( s2,s3, **wide_linkopts )
+    self.addLink( s21,s3, **wide_linkopts )
+    self.addLink( s3,s11, **wide_linkopts )
     
-    self.addLink( s1, t11, **dsa_linkopts )
+    self.addLink( s1,t11, **dsa_linkopts )
     self.addLink( s2,t21, **dsa_linkopts )
     self.addLink( s3,t31, **dsa_linkopts )
-    self.addLink( s4,t41, **dsa_linkopts )
-    self.addLink( s5,t51, **dsa_linkopts )
     
-    self.addLink( s12, c1, **wide_linkopts )
-    self.addLink( s12, c2, **wide_linkopts )
-    self.addLink( s12, c3, **wide_linkopts )
-    self.addLink( s12, c4, **wide_linkopts )
-    self.addLink( s12, c5, **wide_linkopts )
-    self.addLink( s12, c6, **wide_linkopts )
-    self.addLink( s12, c7, **wide_linkopts )
-    self.addLink( s12, c8, **wide_linkopts )
-    self.addLink( s12, c9, **wide_linkopts )
-    self.addLink( s12, c10, **wide_linkopts )
-    self.addLink( s12, c11, **wide_linkopts )
+    self.addLink( s10, c1, **wide_linkopts )
+    self.addLink( s10, c2, **wide_linkopts )
+    self.addLink( s10, c3, **wide_linkopts )
+    self.addLink( s10, c4, **wide_linkopts )
+    self.addLink( s10, c5, **wide_linkopts )
+    self.addLink( s11, c6, **wide_linkopts )
+    self.addLink( s11, c7, **wide_linkopts )
+    self.addLink( s11, c8, **wide_linkopts )
+    self.addLink( s11, c9, **wide_linkopts )
+    self.addLink( s11, c10, **wide_linkopts )
+    self.addLink( s11, c11, **wide_linkopts )
     
-    self.addLink( p1, s11, **wide_linkopts )
-    self.addLink( p2, s11, **wide_linkopts )
-    self.addLink( p3, s11, **wide_linkopts )
-    self.addLink( p4, s11, **wide_linkopts )
-    self.addLink( p5, s11, **wide_linkopts )
-    self.addLink( p6, s11, **wide_linkopts )
-    self.addLink( p7, s11, **wide_linkopts )
-    self.addLink( p8, s11, **wide_linkopts )
-    self.addLink( p9, s11, **wide_linkopts )
-    self.addLink( p10, s11, **wide_linkopts )
-    self.addLink( p11, s11, **wide_linkopts )
+    self.addLink( p1, s20, **wide_linkopts )
+    self.addLink( p2, s20, **wide_linkopts )
+    self.addLink( p3, s20, **wide_linkopts )
+    self.addLink( p4, s20, **wide_linkopts )
+    self.addLink( p5, s20, **wide_linkopts )
+    self.addLink( p6, s21, **wide_linkopts )
+    self.addLink( p7, s21, **wide_linkopts )
+    self.addLink( p8, s21, **wide_linkopts )
+    self.addLink( p9, s21, **wide_linkopts )
+    self.addLink( p10, s21, **wide_linkopts )
+    self.addLink( p11, s21, **wide_linkopts )
     # 
   
-def run_tnodes(hosts):
+def run_tnodes(host_list):
   popens = {}
-  for host in hosts:
+  for host in host_list:
     popens[host] = {}
     #popens[host]['eceiproc'] = host.popen('./run_hosts.sh ep2m')
-    popens[host]['t'] = host.popen('./run_hosts2.sh %s' % host.name) #host.popen('./run_hosts.sh t')
+    popens[host]['t'] = host.popen('./run_hosts.sh %s' % host.name) #host.popen('./run_hosts.sh t')
     print '%s is ready' % host.name
   #
   print 'itnodes are ready...'
 
-def run_pcnodes(hosts):
+def run_pcnodes(host_list):
   popens = {}
-  for host in hosts:
-    popens[host] = host.popen('./run_hosts2.sh %s' % host.name )
+  for host in host_list:
+    popens[host] = host.popen('./run_hosts.sh %s' % host.name )
     print '%s is ready' % host.name
   #
   print 'pcnodes are ready...'
@@ -113,7 +113,7 @@ def run_pcnodes(hosts):
 if __name__ == '__main__':
   setLogLevel( 'info' )
   net = Mininet( topo=MyTopo(), link=TCLink, controller=RemoteController)
-  net.addController('r0', controller=RemoteController, ip='10.39.1.172', port=6633)
+  net.addController('r0', controller=RemoteController, ip='10.39.1.41', port=6633)
   
   p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11 = net.getNodeByName('p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11')
   c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11 = net.getNodeByName('c1','c2','c3','c4','c5','c6','c7','c8','c9','c10','c11')
@@ -146,7 +146,7 @@ if __name__ == '__main__':
   t11.setMAC(mac='00:00:00:00:01:01')
   t21.setMAC(mac='00:00:00:00:02:01')
   t31.setMAC(mac='00:00:00:00:03:01')
-  # To fix "network is unreachable"
+  #To fix "network is unreachable"
   p1.setDefaultRoute(intf='p1-eth0')
   p2.setDefaultRoute(intf='p2-eth0')
   p3.setDefaultRoute(intf='p3-eth0')
@@ -174,15 +174,15 @@ if __name__ == '__main__':
   t11.setDefaultRoute(intf='t11-eth0')
   t21.setDefaultRoute(intf='t21-eth0')
   t31.setDefaultRoute(intf='t31-eth0')
-  t41.setDefaultRoute(intf='t41-eth0')
-  t51.setDefaultRoute(intf='t51-eth0')
   #
   net.start()
   #
-  run_tnodes([t11, t21, t31, t41, t51])
+  run_tnodes([t11, t21, t31])
   
-  run_pcnodes([c1, p1])
+  # run_pcnodes([c1, p1])
   # run_pcnodes([c1, p1, c2, p2, c3, p3])
+  run_pcnodes([c1, p1, c2, p2])
+  # run_pcnodes([c1, p1, c2, p2, c3, p3, c4, p4, c5, p5, c6, p6, c7, p7])
   # run_pcnodes([c1, p1, c2, p2, c3, p3, c4, p4, c5, p5, c6, p6, c7, p7, c8, p8, c9, p9, c10, p10, c11, p11])
   #
   CLI( net )

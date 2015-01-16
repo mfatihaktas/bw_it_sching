@@ -99,7 +99,7 @@ class PipeServer(threading.Thread):
     self.open_socket()
     self.logger.debug('run:: serversock_stpdst=%s is opened; waiting for client.', self.stpdst)
     try:
-      (sclient_sock,sclient_addr) = self.server_sock.accept()
+      (sclient_sock, sclient_addr) = self.server_sock.accept()
       self.sstarted = True
     except Exception, e:
       self.logger.error('Most likely transit.py is terminated with ctrl-c')
@@ -120,7 +120,7 @@ class PipeServer(threading.Thread):
                                         procq = procq )
     self.itserv_handler.start()
     
-    self.sc_handler = SessionClientHandler((sclient_sock,sclient_addr),
+    self.sc_handler = SessionClientHandler((sclient_sock, sclient_addr),
                                            itwork_dict = self.itwork_dict,
                                            to_addr = self.to_addr,
                                            stpdst = self.stpdst,
@@ -152,7 +152,7 @@ class PipeServer(threading.Thread):
     self.logger.info('shutdown.')
 
 class SessionClientHandler(threading.Thread):
-  def __init__(self,(sclient_sock,sclient_addr), itwork_dict, to_addr, stpdst,
+  def __init__(self,(sclient_sock, sclient_addr), itwork_dict, to_addr, stpdst,
                flagq_in, flagq_out, procq ):
     threading.Thread.__init__(self)
     self.setDaemon(True)
@@ -251,7 +251,7 @@ class SessionClientHandler(threading.Thread):
       return 1
     #
     else: #overflow
-      chunksize_ = chunksize-overflow_size
+      chunksize_ = chunksize - overflow_size
       overflow = self.chunk[chunksize_:]
       chunk_to_push = self.chunk[:chunksize_]
       self.procq.put(chunk_to_push)
@@ -312,8 +312,7 @@ class ItServHandler(threading.Thread):
     self.procwrsize_dict = {'fft': {'wsize': CHUNKSIZE,
                                     'rsize': CHUNKSIZE },
                             'upsampleplot': {'wsize': CHUNKSIZE,
-                                             'rsize': CHUNKSIZE }
-                           }
+                                             'rsize': CHUNKSIZE } }
     #
     self.jobtobedone_dict = None
     self.uptorecvsize_dict = {}
@@ -327,7 +326,7 @@ class ItServHandler(threading.Thread):
   def init_itjobdicts(self):
     self.jobtobedone_dict = self.itwork_dict['jobtobedone']
     for ftag,datasize in self.jobtobedone_dict.items():
-        self.jobremaining[ftag] = datasize*(1024**2) #B
+        self.jobremaining[ftag] = int(datasize)*(1024**2) #B
     #
     self.logger.debug('init_itjobdicts:: jobremaining=\n%s', pprint.pformat(self.jobremaining))
   
@@ -388,11 +387,9 @@ class ItServHandler(threading.Thread):
       for func in self.idealfunc_order:
         if func in itfunc_list:
           ordered_list.append(func)
-      #
       return ordered_list
     #
     itfunc_list = []
-    
     for ftag in self.jobtobedone_dict:
       if self.jobremaining[ftag] > 0:
         itfunc_list.append(ftag)
@@ -417,14 +414,11 @@ class ItServHandler(threading.Thread):
   
   def run(self):
     threading.Thread(target=self.listen_pipeserver).start()
-    #
     threading.Thread(target = self.forward_thread).start()
-    #
     #threading.Thread(target=self.init_eceiproc).start()
     #self.init_procsocks()
-    #
     self.startedtohandle_time = time.time()
-    
+    #
     startrunround_time = time.time()
     runround_dur = 0
     totalrunround_dur = 0
@@ -445,7 +439,6 @@ class ItServHandler(threading.Thread):
       (data, datasize, uptofunc_list) = self.pop_from_pipe()
       datasize_t = copy.copy(datasize)
       self.active_last_time = time.time()
-      
       if data == None:
         if datasize == 0: #failed
           pass
@@ -466,18 +459,15 @@ class ItServHandler(threading.Thread):
           sys.exit(2)
       else:
         itfunc_list = self.get_itfunclist_overnextchunk()
-        #print 'itfunc_list=%s' % pprint.pformat(itfunc_list)
-        self.logger.debug('run:: datasize=%s popped. uptofunc_list=%s', datasize, uptofunc_list)
+        self.logger.debug('run:: datasize= %s popped. \nuptofunc_list= %s, itfunc_list= %s', datasize, uptofunc_list, itfunc_list)
         if len(itfunc_list) == 0:
-          if (not self.nodename[0] == 't'):
+          if (self.nodename[0] != 't'):
             #self.forward_data(data = self.addheader(data, itfunc_list),
             #                  datasize = getsizeof(data) )
-            self.forwardq.put( self.addheader(data, itfunc_list) )
+            self.forwardq.put(self.addheader(data, itfunc_list) )
             if not self.procingdone:
               self.procingdone = True
               self.logger.debug('run:: procing done, dur=%s', time.time()-self.startedtohandle_time)
-            #
-          #
         else:
           #wait for the proc turn
           stoken = self.sproctokenq.get(True, None)
@@ -536,7 +526,7 @@ class ItServHandler(threading.Thread):
     header = json.dumps(itfunc_list)
     padding_length = CHUNKHSIZE - len(header)
     header += ' '*padding_length
-    data = header+data
+    data = header + data
     #
     return data
   
@@ -644,15 +634,8 @@ class ItServHandler(threading.Thread):
     return (chunk, chunksize-CHUNKHSIZE, uptofunc_list)
   
 #############################  Class Transit  ##################################
-func_comp_dict = {'f0':0.5,
-                  'f1':1,
-                  'f2':2,
-                  'f3':3,
-                  'f4':4,
-                  'fft':5,
-                  'upsample':8,
-                  'plot':8,
-                  'upsampleplot':75 }
+func_comp_dict = {'fft':1,
+                  'upsampleplot':5 }
 
 def proc_time_model(datasize, func_n_dict, proc_cap):
   pm = 0
@@ -762,16 +745,13 @@ class Transit(object):
     del data_['s_tp']
     #
     to_ip = data_['data_to_ip']
-    del data_['data_to_ip']
     proc_cap = float(data_['proc'])
-    del data_['proc']
     func_n_dict = data_['itfunc_dict']
     proto = int(data_['proto']) #6:TCP, 17:UDP
-    del data_['proto']
     to_addr = (to_ip, stpdst) #goes into s_info_dict
     datasize = float(data_['datasize'])
-    #
     bw = float(data_['bw'])
+    #
     modeltxt = float(datasize*8)/(bw*BWREGCONST)
     nchunks = float(datasize*(1024**2))/CHUNKSTRSIZE
     self.stpdst_txintereqtime_dict[stpdst] = TXINTEREQTIME_REGCONST*float(float(modeltxt)/nchunks)
@@ -779,7 +759,7 @@ class Transit(object):
     stxtokenq = Queue.Queue(1)
     self.stxtokenq_dict[stpdst] = stxtokenq
     threading.Thread(target = self.manage_stxtokenq,
-                     kwargs = {'stpdst':stpdst } ).start()
+                     kwargs = {'stpdst': stpdst } ).start()
     self.logger.debug('welcome_s:: datasize=%s, modeltxt=%s', datasize, modeltxt)
     #self.init_htbconf(bw, stpdst)
     #
@@ -808,13 +788,9 @@ class Transit(object):
     tobeproced_datasize = float(datasize)*max([float(n) for func,n in func_n_dict.items()])
     tobeproceddata_modeltxt = float(tobeproced_datasize*8)/(bw*BWREGCONST)
     nchunkstobeproced = float(tobeproced_datasize*(1024**2))/CHUNKSTRSIZE
-    tobeproceddata_modeltranst = tobeproced_modelproct+tobeproceddata_modeltxt #+upto_modelproct
-    #
-    proc_intereq_time = 0
-    if nchunkstobeproced >= 1:
-      proc_intereq_time = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
-    self.stpdst_procintereqtime_dict[stpdst] = proc_intereq_time
-    #
+    tobeproceddata_modeltranst = tobeproced_modelproct + tobeproceddata_modeltxt #+upto_modelproct
+    
+    self.stpdst_procintereqtime_dict[stpdst] = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
     threading.Thread(target = self.manage_sproctokenq,
                      kwargs = {'stpdst':stpdst } ).start()
     self.logger.debug('welcome_s:: nchunkstobeproced= %s', nchunkstobeproced)
@@ -1101,7 +1077,6 @@ def main(argv):
     logging.basicConfig(level=logging.DEBUG)
   else:
     raise CommandLineOptionError('Unexpected logto', logto)
-  logger = logging.getLogger('t')
   #
   tl_ip = get_addr(intf)
   tr = Transit(nodename = nodename,
@@ -1112,7 +1087,7 @@ def main(argv):
                dtsl_ip = dtsl_ip,
                dtsl_port = dtsl_port,
                trans_type = trans_type,
-               logger = logger )
+               logger = logging.getLogger('t') )
   #
   if nodename == 't': # or nodename == 't11':
     tr.test()
