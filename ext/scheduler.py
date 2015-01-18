@@ -97,15 +97,16 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    self.net_xml_file_url = "net_xmls/net_four_paths.xml" #"net_xmls/net_simpler.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
+    self.net_xml_file_url = "net_xmls/net_mesh_topo.xml" #"net_xmls/net_four_paths.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
     if not is_scheduler_run:
       self.net_xml_file_url = "ext/" + self.net_xml_file_url
     
+    logging.info("Scheduler:: self.net_xml_file_url= %s", self.net_xml_file_url)
     self.xml_parser = XMLParser(self.net_xml_file_url, str(xml_net_num))
     #
     self.gm = GraphMan()
     self.init_network_from_xml()
-    self.gm.print_graph()
+    # self.gm.print_graph()
     # Useful state variables
     self.last_sching_id_given = -1
     self.last_sch_req_id_given = -1
@@ -276,8 +277,8 @@ class Scheduler(object):
   ####################  scher_state_management  methods  #######################
   def init_network_from_xml(self):
     [node_list, edge_list] = self.xml_parser.get_node__edge_list()
-    print 'node_list= %s' % pprint.pformat(node_list)
-    print 'edge_list= %s' % pprint.pformat(edge_list)
+    # print 'node_list= %s' % pprint.pformat(node_list)
+    # print 'edge_list= %s' % pprint.pformat(edge_list)
     self.gm.graph_add_nodes(node_list)
     self.gm.graph_add_edges(edge_list)
   
@@ -320,7 +321,7 @@ class Scheduler(object):
     logging.info('welcome user:: ip=%s, mac=%s, gw_dpid=%s, gw_conn_port=%s', user_ip, user_mac, gw_dpid, gw_conn_port)
     return True
   
-  #not used now, for future
+  # not used now, for future
   def bye_user(self, user_ip):
     if not self.did_user_joindts(user_ip):
       logging.error('bye_user:: user_ip=%s is not joined.', user_ip)
@@ -431,7 +432,7 @@ class Scheduler(object):
           elapsed_datasize = tobeproced_datasize + float(BW_REG_CONST*(sinfo['bw_list'][-1])*elapsed_time)/8
          #
         sinfo['req_dict']['slack_metric'] = sinfo['slack_metric_list'][-1] - elapsed_time
-        sinfo['req_dict']['datasize'] -= elapsed_datasize
+        sinfo['req_dict']['datasize'] = max(0.01, sinfo['req_dict']['datasize'] - elapsed_datasize)
         self.s_id_elapsed_datasize_list_dict[sch_req_id].append(elapsed_datasize)
         self.s_id_elapsed_time_list_dict[sch_req_id].append(elapsed_time)
       #

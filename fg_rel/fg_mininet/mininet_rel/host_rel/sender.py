@@ -2,9 +2,12 @@
 import sys,socket,json,getopt,struct,time,errno,logging,threading,Queue,copy
 #import numpy as np
 
-CHUNKHSIZE = 50
-TXCHUNK_SIZE = 24*8*9*10/ #1024 #4096
-CHUNKSTRSIZE = 24*8*9*10 + CHUNKHSIZE
+CHUNK_H_SIZE = 50
+TX_CHUNK_SIZE = 24*8*9*10 #1024 #4096
+CHUNK_STR_SIZE = TX_CHUNK_SIZE + CHUNK_H_SIZE
+
+TX_CHUNK_SIZE_ = 24 #1024 #4096
+CHUNK_STR_SIZE_ = TX_CHUNK_SIZE_ + CHUNK_H_SIZE
 #IMGSIZE = 24*8*9
 
 class Sender(threading.Thread):
@@ -71,12 +74,12 @@ class Sender(threading.Thread):
   def init_send(self):
     if self.tx_type == 'dummy':
       #n = int(float(8*float(self.datasize)*1024/8/8))
-      n = int(float(8*float(TXCHUNK_SIZE/1024)*1024/8/8))
+      n = int(float(8*float(TX_CHUNK_SIZE/1024)*1024/8/8))
       data = self.numpy_random(n)
       packer = struct.Struct('%sd' % n)
       data_str = packer.pack(*data)
       #
-      self.dummy_send(data_str, self.datasize*1024/TXCHUNK_SIZE)
+      self.dummy_send(data_str, self.datasize*1024/TX_CHUNK_SIZE)
     elif self.tx_type == 'file':
       self.file_send()
     elif self.tx_type == 'kstardata':
@@ -97,7 +100,7 @@ class Sender(threading.Thread):
       self.out_queue.put(sendinfo_dict)
   
   def fastdata2_send(self):
-    chunk = '0'*TXCHUNK_SIZE
+    chunk = '0'*TX_CHUNK_SIZE
     #
     self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     logging.info('fastdata2_send:: trying to connect to %s ...', self.dst_addr )
@@ -114,13 +117,13 @@ class Sender(threading.Thread):
       #add uptofunc_list padding
       uptofunc_list = []
       header = json.dumps(uptofunc_list)
-      padding_length = CHUNKHSIZE - len(header)
+      padding_length = CHUNK_H_SIZE - len(header)
       header += ' '*padding_length
       l = header+l
       try:
         self.sock.sendall(l)
-        logging.info('fastdata2_send:: sent datasize=%s', TXCHUNK_SIZE )
-        len_ += TXCHUNK_SIZE
+        logging.info('fastdata2_send:: sent datasize=%s', TX_CHUNK_SIZE )
+        len_ += TX_CHUNK_SIZE
       except socket.error, e:
         if isinstance(e.args, tuple):
           logging.error('errno is %d', e[0])
@@ -141,7 +144,7 @@ class Sender(threading.Thread):
     logging.info('fastdata2_send:: sent to %s; size=%sB, dur=%ssec', self.dst_addr,len_,send_dur)
   
   def fastdata_send(self):
-    chunk = '0'*TXCHUNK_SIZE
+    chunk = '0'*TX_CHUNK_SIZE_
     #
     self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     logging.info('fastdata_send:: trying to connect to %s ...', self.dst_addr )
@@ -158,12 +161,12 @@ class Sender(threading.Thread):
       #add uptofunc_list padding
       uptofunc_list = []
       header = json.dumps(uptofunc_list)
-      padding_length = CHUNKHSIZE - len(header)
+      padding_length = CHUNK_H_SIZE - len(header)
       header += ' '*padding_length
-      l = header+l
+      l = header + l
       #wait for tx turn
       stoken = self.txtokenq.get(True, None)
-      if stoken == CHUNKSTRSIZE:
+      if stoken == CHUNK_STR_SIZE:
         pass
       elif stoken == -1:
         self.logger.error('fastdata_send:: interrupted with txtoken= -1.')
@@ -174,8 +177,8 @@ class Sender(threading.Thread):
       #
       try:
         self.sock.sendall(l)
-        logging.info('fastdata_send:: sent datasize=%s', TXCHUNK_SIZE )
-        len_ += TXCHUNK_SIZE
+        logging.info('fastdata_send:: sent datasize=%s', TX_CHUNK_SIZE_ )
+        len_ += TX_CHUNK_SIZE
       except socket.error, e:
         if isinstance(e.args, tuple):
           logging.error('errno is %d', e[0])
@@ -212,19 +215,19 @@ class Sender(threading.Thread):
     ds_tobesent_B = self.datasize*(1024**2)
     #
     len_ = 0
-    l = f.read(TXCHUNK_SIZE)
+    l = f.read(TX_CHUNK_SIZE)
     while (l and len_ < ds_tobesent_B):
       c_len_ = len(l)
       len_ += c_len_
       #add uptofunc_list padding
       uptofunc_list = []
       header = json.dumps(uptofunc_list)
-      padding_length = CHUNKHSIZE - len(header)
+      padding_length = CHUNK_H_SIZE - len(header)
       header += ' '*padding_length
       l = header+l
       #wait for tx turn
       stoken = self.txtokenq.get(True, None)
-      if stoken == CHUNKSTRSIZE:
+      if stoken == CHUNK_STR_SIZE:
         pass
       elif stoken == -1:
         self.logger.error('kstardata2_send:: interrupted with txtoken=-1.')
@@ -245,7 +248,7 @@ class Sender(threading.Thread):
         else:
           logging.error('socket error=%s', e)
       #
-      l = f.read(TXCHUNK_SIZE)
+      l = f.read(TX_CHUNK_SIZE)
     #
     self.sock.sendall('EOF')
     logging.info('kstardata_send:: EOF is txed.')
@@ -280,14 +283,14 @@ class Sender(threading.Thread):
     ds_tobesent_B = self.datasize*(1024**2)
     #
     len_ = 0
-    l = f.read(TXCHUNK_SIZE)
+    l = f.read(TX_CHUNK_SIZE)
     while (l and len_ < ds_tobesent_B):
       c_len_ = len(l)
       len_ += c_len_
       #add uptofunc_list padding
       uptofunc_list = []
       header = json.dumps(uptofunc_list)
-      padding_length = CHUNKHSIZE - len(header)
+      padding_length = CHUNK_H_SIZE - len(header)
       header += ' '*padding_length
       l = header+l
       #
@@ -303,7 +306,7 @@ class Sender(threading.Thread):
         else:
           logging.error('socket error=%s', e)
       #
-      l = f.read(TXCHUNK_SIZE)
+      l = f.read(TX_CHUNK_SIZE)
     #
     self.sock.sendall('EOF')
     logging.info('kstardata_send:: EOF is txed.')
@@ -327,8 +330,8 @@ class Sender(threading.Thread):
     #untill whole file is txed
     #  send m*chunk where m is random btw [0.5,1.5]
     import random
-    #l = f.read(TXCHUNK_SIZE)
-    l = f.read(int(random.uniform(0.5,1.5)*TXCHUNK_SIZE) )
+    #l = f.read(TX_CHUNK_SIZE)
+    l = f.read(int(random.uniform(0.5,1.5)*TX_CHUNK_SIZE) )
     #
     while (l):
       c_len_ = len(l)
@@ -352,8 +355,8 @@ class Sender(threading.Thread):
         #
       elif self.proto == 'udp':
         self.sock.sendto(l, self.dst_addr)
-      #l = f.read(TXCHUNK_SIZE)
-      l = f.read(int(random.uniform(0.5,1.5)*TXCHUNK_SIZE) )
+      #l = f.read(TX_CHUNK_SIZE)
+      l = f.read(int(random.uniform(0.5,1.5)*TX_CHUNK_SIZE) )
     #
     if self.proto == 'tcp':
       self.sock.sendall('EOF')
@@ -439,7 +442,7 @@ class Sender(threading.Thread):
 def manage_stxtokenq(stxtokenq, intereq_time):
   while not stopflag:
     try:
-      stxtokenq.put(CHUNKSTRSIZE, False)
+      stxtokenq.put(CHUNK_STR_SIZE, False)
     except Queue.Full:
       pass
     time.sleep(intereq_time)
@@ -488,7 +491,7 @@ def main(argv):
   datasize = 1024 #MB
   bw = 1024 #Mbps
   modeltxt = float(datasize*8)/(bw)
-  nchunks = float(datasize*(1024**2))/CHUNKSTRSIZE
+  nchunks = float(datasize*(1024**2))/CHUNK_STR_SIZE
   intereq_time = 0 #float(float(modeltxt)/nchunks)
   stxtokenq = Queue.Queue(1)
   threading.Thread(target = manage_stxtokenq,

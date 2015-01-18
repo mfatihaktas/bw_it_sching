@@ -12,11 +12,14 @@ def getsizeof(data):
   return sys.getsizeof(data) - PYTHON_STR_HEADER_LEN
 
 
-KSTAR_CHUNKHSIZE = 50 #B
-KSTAR_CHUNKSIZE = 24*8*9*10 #B
-KSTAR_CHUNKSTRSIZE = KSTAR_CHUNKSIZE+KSTAR_CHUNKHSIZE
+CHUNK_H_SIZE = 50 #B
+CHUNK_SIZE = 24*8*9*10 #B
+CHUNK_STR_SIZE = CHUNK_SIZE + CHUNK_H_SIZE
 
-RXCHUNK_SIZE = 1024 #4096
+CHUNK_SIZE_ = 24 #B
+CHUNK_STR_SIZE_ = CHUNK_SIZE_ + CHUNK_H_SIZE
+
+RX_CHUNK_SIZE = 1024 #4096
 
 #########################  UDP Server-Handler  ###########################
 class ThreadedUDPServer(SocketServer.ThreadingMixIn, SocketServer.UDPServer):
@@ -57,7 +60,7 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
   
 class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
   def handle(self):
-    data = self.request.recv(RXCHUNK_SIZE)
+    data = self.request.recv(RX_CHUNK_SIZE)
     cur_thread = threading.current_thread()
     datasize = getsizeof(data)
     #
@@ -95,8 +98,8 @@ class Receiver(threading.Thread):
     #
     self.recvstart_time = 0
     self.recvend_time = 0
-    self.chunkstr = ''
-    self.rxeddatasize = 0
+    self.chunk = ''
+    self.rxed_datasize = 0
     
     self.recvdsizewithfunc_dict = {}
   
@@ -142,7 +145,7 @@ class Receiver(threading.Thread):
     logging.info('rx_kstardata:: got conn from addr=%s', addr[0])
     #
     while 1:
-      data = sc.recv(KSTAR_CHUNKSTRSIZE)
+      data = sc.recv(CHUNK_STR_SIZE_)
       datasize = len(data)
       logging.info('rx_kstardata:: lport=%s; rxed datasize=%sB', self.laddr[1], datasize)
       #
@@ -167,79 +170,79 @@ class Receiver(threading.Thread):
     #self.f_obj.close()
     
     self.recvend_time = time.time()
-    logging.info('rx_kstardata:: finished rxing; rxeddatasize=%s, dur=%s', self.rxeddatasize, self.recvend_time-self.recvstart_time)
-    logging.info('rx_kstardata:: rxedsizewithfunc_dict=%s', self.recvdsizewithfunc_dict)
+    logging.info('rx_kstardata:: finished rxing; rxed_datasize= %s, dur= %s', self.rxed_datasize, self.recvend_time - self.recvstart_time)
+    logging.info('rx_kstardata:: rxedsizewithfunc_dict= %s', self.recvdsizewithfunc_dict)
     #let consumer know...
     self.out_queue.put({'recvend_time': self.recvend_time,
                         'recvstart_time': self.recvstart_time,
-                        'recvedsize': self.rxeddatasize,
+                        'recvedsize': self.rxed_datasize,
                         'recvedsizewithfunc_dict': self.recvdsizewithfunc_dict })
     
   def push_to_kstarfile(self, data):
     """ returns 1:successful, 0:failed, -1:EOF, -2:datasize=0 """
-    self.chunkstr += data
-    chunkstrsize = len(self.chunkstr)
+    self.chunk += data
+    chunk_str_size = len(self.chunk)
     #
-    if chunkstrsize == 0:
+    if chunk_str_size == 0:
       #this may happen in mininet and cause threads live forever
       return -2
-    elif chunkstrsize == 3:
-      if self.chunkstr == 'EOF':
+    elif chunk_str_size == 3:
+      if self.chunk == 'EOF':
         return -1
     #
-    overflow_size = chunkstrsize - KSTAR_CHUNKSTRSIZE
+    overflow_size = chunk_str_size - CHUNK_STR_SIZE_
     if overflow_size == 0:
-      (uptofunc_list, chunk, chunksize) = self.get_uptofunc_list__chunk(self.chunkstr)
+      (uptofunc_list, chunk, chunk_size) = self.get_uptofunc_list__chunk(self.chunk)
       self.update_rxedsizewithfunc_dict(uptofunc_list = uptofunc_list,
-                                        chunksize = chunksize )
+                                        chunk_size = CHUNK_SIZE )
       #self.f_obj.write(chunk)
-      self.rxeddatasize += chunksize
+      self.rxed_datasize += CHUNK_SIZE
       
-      #logging.debug('push_to_kstarfile:: pushed; chunksize=%s, uptofunc_list=%s', chunksize, uptofunc_list)
-      self.chunkstr = ''
+      #logging.debug('push_to_kstarfile:: pushed; chunk_size=%s, uptofunc_list=%s', chunk_size, uptofunc_list)
+      self.chunk = ''
       return 1
     elif overflow_size < 0:
       return 1
     #
     else: #overflow
-      chunkstrsize_ = chunkstrsize-overflow_size
-      overflow = self.chunkstr[chunkstrsize_:]
-      chunkstr_to_push = self.chunkstr[:chunkstrsize_]
+      chunk_str_size_ = chunk_str_size-overflow_size
+      overflow = self.chunk[chunk_str_size_:]
+      chunk_str_to_push = self.chunk[:chunk_str_size_]
       
-      (uptofunc_list, chunk, chunksize) = self.get_uptofunc_list__chunk(chunkstr_to_push)
+      (uptofunc_list, chunk, chunk_size) = self.get_uptofunc_list__chunk(chunk_str_to_push)
       self.update_rxedsizewithfunc_dict(uptofunc_list = uptofunc_list,
-                                        chunksize = chunksize )
+                                        chunk_size = CHUNK_SIZE )
       #self.f_obj.write(chunk)
-      self.rxeddatasize += chunksize
+      self.rxed_datasize += chunk_size
       
-      #logging.debug('push_to_kstarfile:: pushed; chunksize=%s, overflow_size=%s, uptofunc_list=%s', chunksize, overflow_size, uptofunc_list)
+      #logging.debug('push_to_kstarfile:: pushed; chunk_size=%s, overflow_size=%s, uptofunc_list=%s', chunk_size, overflow_size, uptofunc_list)
       #
       if overflow_size == 3 and overflow == 'EOF':
         return -1
       #
-      self.chunkstr = overflow
+      self.chunk = overflow
       return 1
     #
     
   def get_uptofunc_list__chunk(self, chunkstr):
     uptofunc_list = None
-    header = chunkstr[:KSTAR_CHUNKHSIZE]
+    header = chunkstr[:CHUNK_H_SIZE]
     try:
       uptofunc_list = json.loads(header)
     except ValueError:
       pass
     #
-    chunk = chunkstr[KSTAR_CHUNKHSIZE:]
-    chunksize = len(chunk)
+    chunk = chunkstr[CHUNK_H_SIZE:]
+    chunk_size = len(chunk)
     
-    return (uptofunc_list, chunk, chunksize)
+    return (uptofunc_list, chunk, chunk_size)
   
-  def update_rxedsizewithfunc_dict(self, uptofunc_list, chunksize):
+  def update_rxedsizewithfunc_dict(self, uptofunc_list, chunk_size):
     for func in uptofunc_list:
       if func in self.recvdsizewithfunc_dict:
-        self.recvdsizewithfunc_dict[func] += chunksize
+        self.recvdsizewithfunc_dict[func] += chunk_size
       else:
-        self.recvdsizewithfunc_dict[func] = chunksize
+        self.recvdsizewithfunc_dict[func] = chunk_size
       #
     #
   
@@ -255,13 +258,13 @@ class Receiver(threading.Thread):
       logging.info('%s_file_recver gets conn from addr=%s', self.proto, addr[0])
       #
       rx_ended = False
-      l = sc.recv(RXCHUNK_SIZE)
+      l = sc.recv(RX_CHUNK_SIZE)
       #print '***l=\n%s' % l
       l_ = l
       l_len = len(l)
       rxed_tlen = 0
       while (l != 'EOF'):
-        l = sc.recv(RXCHUNK_SIZE)
+        l = sc.recv(RX_CHUNK_SIZE)
         #print '***l=\n%s' % l
         if len(l) == 0:
           rxed_tlen += l_len-3
@@ -282,11 +285,11 @@ class Receiver(threading.Thread):
     elif self.proto == 'udp':
       self.rx_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
       self.rx_sock.bind(self.laddr)
-      l = self.rx_sock.recv(RXCHUNK_SIZE)
+      l = self.rx_sock.recv(RX_CHUNK_SIZE)
       rxed_tlen = len(l)
       while (l != 'EOF'):
         self.f_obj.write(l)        
-        l = self.rx_sock.recv(RXCHUNK_SIZE)
+        l = self.rx_sock.recv(RX_CHUNK_SIZE)
         rxed_tlen += len(l)
         logging.info('rxed size=%sB, rxed_tlen=%sB', len(l), rxed_tlen)
       #
