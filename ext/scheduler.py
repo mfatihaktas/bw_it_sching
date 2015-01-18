@@ -84,9 +84,7 @@ def test(self, num_session):
 class Scheduler(object):
   event_chief = EventChief()
   def __init__(self, xml_net_num, sching_logto, data_over_tp, act):
-    #logging.basicConfig(filename='logs/schinglog',filemode='w',level=logging.DEBUG)
-    #logging.basicConfig(level=logging.ERROR)
-    #logging.basicConfig(level=logging.WARNING)
+    # logging.basicConfig(filename='logs/schinglog',filemode='w',level=logging.DEBUG)
     logging.basicConfig(level=logging.DEBUG)
     #
     if not (sching_logto == 'console' or sching_logto == 'file'):
@@ -99,7 +97,7 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    self.net_xml_file_url = "net_xmls/net_mesh_topo.xml" #"net_xmls/net_simpler.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
+    self.net_xml_file_url = "net_xmls/net_four_paths.xml" #"net_xmls/net_simpler.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
     if not is_scheduler_run:
       self.net_xml_file_url = "ext/" + self.net_xml_file_url
     
@@ -107,7 +105,7 @@ class Scheduler(object):
     #
     self.gm = GraphMan()
     self.init_network_from_xml()
-    # self.gm.print_graph()
+    self.gm.print_graph()
     # Useful state variables
     self.last_sching_id_given = -1
     self.last_sch_req_id_given = -1
@@ -278,8 +276,8 @@ class Scheduler(object):
   ####################  scher_state_management  methods  #######################
   def init_network_from_xml(self):
     [node_list, edge_list] = self.xml_parser.get_node__edge_list()
-    # print 'node_list= %s' % pprint.pformat(node_edge_list['node_list'])
-    # print 'edge_list= %s' % pprint.pformat(node_edge_list['edge_list'])
+    print 'node_list= %s' % pprint.pformat(node_list)
+    print 'edge_list= %s' % pprint.pformat(edge_list)
     self.gm.graph_add_nodes(node_list)
     self.gm.graph_add_edges(edge_list)
   
@@ -440,7 +438,6 @@ class Scheduler(object):
     logging.info('do_sching:: sching_id=%s started;', sching_id)
     self.update_sid_res_dict()
     # self.update_sid_schregid_dict()
-    # self.gm.print_graph()
     sching_opter = SchingOptimizer(self.give_incintkeyform(flag = True,
                                                            indict = self.sessionsbeingserved_dict),
                                    self.actual_res_dict,
@@ -713,7 +710,16 @@ class Scheduler(object):
   
   def test(self, num_session):
     userinfo_list = None
-    if self.net_xml_file_url == 'net_xmls/net_simpler.xml':
+    if self.net_xml_file_url == "net_xmls/net_four_paths.xml":
+      userinfo_list = [{'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':20, 'gw_conn_port':3},
+                       {'user_ip':'10.0.2.1', 'user_mac':'00:00:00:01:02:01', 'gw_dpid':21, 'gw_conn_port':4},
+                       {'user_ip':'10.0.2.2', 'user_mac':'00:00:00:01:02:02', 'gw_dpid':22, 'gw_conn_port':4},
+                       {'user_ip':'10.0.2.3', 'user_mac':'00:00:00:01:02:03', 'gw_dpid':23, 'gw_conn_port':3},
+                       {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':10, 'gw_conn_port':3},
+                       {'user_ip':'10.0.1.1', 'user_mac':'00:00:00:01:01:01', 'gw_dpid':11, 'gw_conn_port':4},
+                       {'user_ip':'10.0.1.2', 'user_mac':'00:00:00:01:01:02', 'gw_dpid':12, 'gw_conn_port':4},
+                       {'user_ip':'10.0.1.3', 'user_mac':'00:00:00:01:01:03', 'gw_dpid':13, 'gw_conn_port':3} ]
+    elif self.net_xml_file_url == 'net_xmls/net_simpler.xml':
       userinfo_list = [{'user_ip':'10.0.2.0', 'user_mac':'00:00:00:01:02:00', 'gw_dpid':1, 'gw_conn_port':3},
                        {'user_ip':'10.0.1.0', 'user_mac':'00:00:00:01:01:00', 'gw_dpid':2, 'gw_conn_port':3} ]
     elif self.net_xml_file_url == 'net_xmls/net_mesh_topo.xml':
@@ -738,29 +744,27 @@ class Scheduler(object):
                         gw_conn_port = userinfo['gw_conn_port'] )
     #
     #datasize (MB) slack_metric (ms)
-    req_dict_list = [ {'datasize':100, 'slack_metric':10, 'func_list':['fft','upsampleplot']},
+    req_dict_list = [ {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
                       {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
                       {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
-                      {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
-                      {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']},
+                      {'datasize':100, 'slack_metric':100, 'func_list':['fft','upsampleplot']}
                     ]
     app_pref_dict_list = [
                           {'m_p': 10,'m_u': 0,'x_p': 0,'x_u': 0},
                           {'m_p': 0,'m_u': 50,'x_p': 0,'x_u': 0},
                           {'m_p': 50,'m_u': 0,'x_p': 0,'x_u': 0},
-                          {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
-                          {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0},
+                          {'m_p': 1,'m_u': 1,'x_p': 0,'x_u': 0}
                          ]
     p_c_ip_list_list = [
                         ['10.0.2.0','10.0.1.0'],
                         ['10.0.2.1','10.0.1.1'],
-                        ['10.0.2.2','10.0.1.2']
+                        ['10.0.2.2','10.0.1.2'],
+                        ['10.0.2.3','10.0.1.3']
                        ]
     for i in range(num_session):
-      self.welcome_session(p_c_ip_list = p_c_ip_list_list[int(i%3)],
-                           req_dict = req_dict_list[int(i%5)],
-                           app_pref_dict = app_pref_dict_list[int(i%5)] )
-      self.do_sching()
+      self.welcome_session(p_c_ip_list = p_c_ip_list_list[int(i%4)],
+                           req_dict = req_dict_list[int(i%4)],
+                           app_pref_dict = app_pref_dict_list[int(i%4)] )
     #
     # self.run_sching()
     self.do_sching()
@@ -791,7 +795,7 @@ def main():
                   data_over_tp = 'tcp',
                   act = False)
   
-  sch.test(num_session = 1)
+  sch.test(num_session = 4)
   #
   raw_input('Enter')
   

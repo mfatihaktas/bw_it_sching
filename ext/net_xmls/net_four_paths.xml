@@ -1,0 +1,216 @@
+<!--
+..S20[eth1].....[eth1] S1 [eth2]...[eth1] S2 [eth2]...[eth1] S10 ..
+     [eth2]                                                 [eth2]
+       |                                                      |
+     [eth2]                                                 [eth2]
+..S21[eth1].....[eth1] S3 [eth2]...[eth1] S4 [eth2]...[eth1] S11 ..
+     [eth3]                                                 [eth3]
+       |                                                      |
+     [eth2]                                                 [eth2]
+..S22[eth1].....[eth1] S5 [eth2]...[eth1] S6 [eth2]...[eth1] S12 ..
+     [eth3]                                                 [eth3]
+        |                                                     |
+     [eth2]                                                 [eth2]
+..S23[eth1].....[eth1] S7 [eth2]...[eth1] S8 [eth2]...[eth1] S13 ..
+
+SW              ITR
+S1[eth3] ... [eth0]t11
+S2[eth3] ... [eth0]t21
+S3[eth3] ... [eth0]t31
+S4[eth3] ... [eth0]t41
+S5[eth3] ... [eth0]t51
+S6[eth3] ... [eth0]t61
+S7[eth3] ... [eth0]t71
+S8[eth3] ... [eth0]t81
+###################################################################################################
+t11 t11-eth0:s1-eth3
+t21 t21-eth0:s2-eth3
+t31 t31-eth0:s3-eth3
+t41 t41-eth0:s4-eth3
+t51 t51-eth0:s5-eth3
+t61 t61-eth0:s6-eth3
+t71 t71-eth0:s7-eth3
+t81 t81-eth0:s8-eth3
+s1 lo:  s1-eth1:s20-eth1 s1-eth2:s2-eth1 s1-eth3:t11-eth0
+s2 lo:  s2-eth1:s1-eth2 s2-eth2:s10-eth1 s2-eth3:t21-eth0
+s3 lo:  s3-eth1:s21-eth1 s3-eth2:s4-eth1 s3-eth3:t31-eth0
+s4 lo:  s4-eth1:s3-eth2 s4-eth2:s11-eth1 s4-eth3:t41-eth0
+s5 lo:  s5-eth1:s22-eth1 s5-eth2:s6-eth1 s5-eth3:t51-eth0
+s6 lo:  s6-eth1:s5-eth2 s6-eth2:s12-eth1 s6-eth3:t61-eth0
+s7 lo:  s7-eth1:s23-eth1 s7-eth2:s8-eth1 s7-eth3:t71-eth0
+s8 lo:  s8-eth1:s7-eth2 s8-eth2:s13-eth1 s8-eth3:t81-eth0
+s10 lo:  s10-eth1:s2-eth2 s10-eth2:s11-eth2 s10-eth3:c1-eth0 s10-eth4:c5-eth0 s10-eth5:c9-eth0
+s11 lo:  s11-eth1:s4-eth2 s11-eth2:s10-eth2 s11-eth3:s12-eth2 s11-eth4:c2-eth0 s11-eth5:c6-eth0 s11-eth6:c10-eth0
+s12 lo:  s12-eth1:s6-eth2 s12-eth2:s11-eth3 s12-eth3:s13-eth2 s12-eth4:c3-eth0 s12-eth5:c7-eth0 s12-eth6:c11-eth0
+s13 lo:  s13-eth1:s8-eth2 s13-eth2:s12-eth3 s13-eth3:c4-eth0 s13-eth4:c8-eth0
+s20 lo:  s20-eth1:s1-eth1 s20-eth2:s21-eth2 s20-eth3:p1-eth0 s20-eth4:p5-eth0 s20-eth5:p9-eth0
+s21 lo:  s21-eth1:s3-eth1 s21-eth2:s20-eth2 s21-eth3:s22-eth2 s21-eth4:p2-eth0 s21-eth5:p6-eth0 s21-eth6:p10-eth0
+s22 lo:  s22-eth1:s5-eth1 s22-eth2:s21-eth3 s22-eth3:s23-eth2 s22-eth4:p3-eth0 s22-eth5:p7-eth0 s22-eth6:p11-eth0
+s23 lo:  s23-eth1:s7-eth1 s23-eth2:s22-eth3 s23-eth3:p4-eth0 s23-eth4:p8-eth0
+-->
+<networks>
+  <network number="1">
+    <nodes>
+      <s20 type="sw" dpid="20" />
+      <s21 type="sw" dpid="21" />
+      <s22 type="sw" dpid="22" />
+      <s23 type="sw" dpid="23" />
+      <s10 type="sw" dpid="10" />
+      <s11 type="sw" dpid="11" />
+      <s12 type="sw" dpid="12" />
+      <s13 type="sw" dpid="13" />
+      <s1  type="sw" dpid="1"  />
+      <s2  type="sw" dpid="2"  />
+      <s3  type="sw" dpid="3"  />
+      <s4  type="sw" dpid="4"  />
+      <s5  type="sw" dpid="5"  />
+      <s6  type="sw" dpid="6"  />
+      <s7  type="sw" dpid="7"  />
+      <s8  type="sw" dpid="8"  />
+      <t11 type="t" ip="10.0.0.11" mac="00:00:00:00:01:01" proc_cap="100" stor_cap="600" />
+      <t21 type="t" ip="10.0.0.21" mac="00:00:00:00:02:01" proc_cap="100" stor_cap="600" />
+      <t31 type="t" ip="10.0.0.31" mac="00:00:00:00:03:01" proc_cap="100" stor_cap="600" />
+      <t41 type="t" ip="10.0.0.41" mac="00:00:00:00:04:01" proc_cap="100" stor_cap="600" />
+      <t51 type="t" ip="10.0.0.51" mac="00:00:00:00:05:01" proc_cap="100" stor_cap="600" />
+      <t61 type="t" ip="10.0.0.61" mac="00:00:00:00:06:01" proc_cap="100" stor_cap="600" />
+      <t71 type="t" ip="10.0.0.71" mac="00:00:00:00:07:01" proc_cap="100" stor_cap="600" />
+      <t81 type="t" ip="10.0.0.81" mac="00:00:00:00:08:01" proc_cap="100" stor_cap="600" />
+    </nodes>
+    <edges>
+      <!-- SW...SW-->
+      <!--4 paths-->
+      <edge pre_node="s20" post_node="s1">
+        <dev pre_dev="s20-eth1" post_dev="s1-eth1"/>
+        <session/>
+        <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>
+      </edge>
+      <edge pre_node="s1" post_node="s2">
+        <dev pre_dev="s1-eth2" post_dev="s2-eth1"/>
+        <session/>
+        <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>
+      </edge>
+      <edge pre_node="s2" post_node="s10">
+        <dev pre_dev="s2-eth2" post_dev="s10-eth1"/>
+        <session/>
+        <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>
+      </edge>
+      <edge pre_node="s21" post_node="s3">
+        <dev pre_dev="s21-eth1" post_dev="s3-eth1"/>
+        <session/>
+        <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>
+      </edge>
+      <edge pre_node="s3" post_node="s4">
+        <dev pre_dev="s3-eth2" post_dev="s4-eth1"/>
+        <session/>
+        <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>
+      </edge>
+      <edge pre_node="s4" post_node="s11">
+        <dev pre_dev="s4-eth2" post_dev="s11-eth1"/>
+        <session/>
+        <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>
+      </edge>
+      <edge pre_node="s22" post_node="s5">
+        <dev pre_dev="s22-eth1" post_dev="s5-eth1"/>
+        <session/>
+        <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>
+      </edge>
+      <edge pre_node="s5" post_node="s6">
+        <dev pre_dev="s5-eth2" post_dev="s6-eth1"/>
+        <session/>
+        <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>
+      </edge>
+      <edge pre_node="s6" post_node="s12">
+        <dev pre_dev="s6-eth2" post_dev="s12-eth1"/>
+        <session/>
+        <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>
+      </edge>
+      <edge pre_node="s23" post_node="s7">
+        <dev pre_dev="s23-eth1" post_dev="s7-eth1"/>
+        <session/>
+        <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>
+      </edge>
+      <edge pre_node="s7" post_node="s8">
+        <dev pre_dev="s7-eth2" post_dev="s8-eth1"/>
+        <session/>
+        <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>
+      </edge>
+      <edge pre_node="s8" post_node="s13">
+        <dev pre_dev="s8-eth2" post_dev="s13-eth1"/>
+        <session/>
+        <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>
+      </edge>
+      <!--Inter-path-->
+      <!--<edge pre_node="s20" post_node="s21">-->
+      <!--  <dev pre_dev="s20-eth2" post_dev="s21-eth2"/>-->
+      <!--  <session/>-->
+      <!--  <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>-->
+      <!--</edge>-->
+      <!--<edge pre_node="s21" post_node="s22">-->
+      <!--  <dev pre_dev="s21-eth3" post_dev="s22-eth2"/>-->
+      <!--  <session/>-->
+      <!--  <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>-->
+      <!--</edge>-->
+      <!--<edge pre_node="s22" post_node="s23">-->
+      <!--  <dev pre_dev="s22-eth3" post_dev="s23-eth2"/>-->
+      <!--  <session/>-->
+      <!--  <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>-->
+      <!--</edge>-->
+      <!--<edge pre_node="s10" post_node="s11">-->
+      <!--  <dev pre_dev="s10-eth2" post_dev="s11-eth2"/>-->
+      <!--  <session/>-->
+      <!--  <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>-->
+      <!--</edge>-->
+      <!--<edge pre_node="s11" post_node="s12">-->
+      <!--  <dev pre_dev="s11-eth3" post_dev="s12-eth2"/>-->
+      <!--  <session/>-->
+      <!--  <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>-->
+      <!--</edge>-->
+      <!--<edge pre_node="s12" post_node="s13">-->
+      <!--  <dev pre_dev="s12-eth3" post_dev="s13-eth2"/>-->
+      <!--  <session/>-->
+      <!--  <link_cap bw="10" delay="50" loss="0" max_queue_size="1000"/>-->
+      <!--</edge>-->
+      <!-- SW...ITR -->
+      <edge pre_node="s1" post_node="t11">
+        <dev pre_dev="s1-eth3" post_dev="t11-eth0"/>
+        <session/>
+        <link_cap bw="100" delay="0" loss="0" max_queue_size="10000"/>
+      </edge>
+      <edge pre_node="s2" post_node="t21">
+        <dev pre_dev="s2-eth3" post_dev="t21-eth0"/>
+        <session/>
+        <link_cap bw="100" delay="0" loss="0" max_queue_size="10000"/>
+      </edge>
+      <edge pre_node="s3" post_node="t31">
+        <dev pre_dev="s3-eth3" post_dev="t31-eth0"/>
+        <session/>
+        <link_cap bw="100" delay="0" loss="0" max_queue_size="10000"/>
+      </edge>
+      <edge pre_node="s4" post_node="t41">
+        <dev pre_dev="s4-eth3" post_dev="t41-eth0"/>
+        <session/>
+        <link_cap bw="100" delay="0" loss="0" max_queue_size="10000"/>
+      </edge>
+      <edge pre_node="s5" post_node="t51">
+        <dev pre_dev="s5-eth3" post_dev="t51-eth0"/>
+        <session/>
+        <link_cap bw="100" delay="0" loss="0" max_queue_size="10000"/>
+      </edge>
+      <edge pre_node="s6" post_node="t61">
+        <dev pre_dev="s6-eth3" post_dev="t61-eth0"/>
+        <session/>
+        <link_cap bw="100" delay="0" loss="0" max_queue_size="10000"/>
+      </edge>
+      <edge pre_node="s7" post_node="t71">
+        <dev pre_dev="s7-eth3" post_dev="t71-eth0"/>
+        <session/>
+        <link_cap bw="100" delay="0" loss="0" max_queue_size="10000"/>
+      </edge>
+      <edge pre_node="s8" post_node="t81">
+        <dev pre_dev="s8-eth3" post_dev="t81-eth0"/>
+        <session/>
+        <link_cap bw="100" delay="0" loss="0" max_queue_size="10000"/>
+      </edge>
+    </edges>
+  </network>
+</networks>

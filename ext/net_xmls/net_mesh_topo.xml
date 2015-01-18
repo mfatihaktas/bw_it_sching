@@ -28,16 +28,16 @@ s21 lo:  s21-eth1:s2-eth4 s21-eth2:s3-eth2 s21-eth3:p6-eth0 s21-eth4:p7-eth0 s21
 <networks>
   <network number="1">
     <nodes>
-      <s20 type="sw" dpid="20"  out_bw="0" in_bw="0"/>
-      <s21 type="sw" dpid="21"  out_bw="0" in_bw="0"/>
-      <s10 type="sw" dpid="10"  out_bw="0" in_bw="0"/>
-      <s11 type="sw" dpid="11"  out_bw="0" in_bw="0"/>
-      <s1  type="sw" dpid="1"   out_bw="0" in_bw="0"/>
-      <s2  type="sw" dpid="2"   out_bw="0" in_bw="0"/>
-      <s3  type="sw" dpid="3"   out_bw="0" in_bw="0"/>
-      <t11 type="t" ip="10.0.0.11" mac="00:00:00:00:01:01" p_index="0.01" proc_cap="100" stor_cap="600" session=""/>
-      <t21 type="t" ip="10.0.0.21" mac="00:00:00:00:02:01" p_index="0.01" proc_cap="100" stor_cap="600" session=""/>
-      <t31 type="t" ip="10.0.0.31" mac="00:00:00:00:03:01" p_index="0.01" proc_cap="100" stor_cap="600" session=""/>
+      <s20 type="sw" dpid="20" />
+      <s21 type="sw" dpid="21" />
+      <s10 type="sw" dpid="10" />
+      <s11 type="sw" dpid="11" />
+      <s1  type="sw" dpid="1"  />
+      <s2  type="sw" dpid="2"  />
+      <s3  type="sw" dpid="3"  />
+      <t11 type="t" ip="10.0.0.11" mac="00:00:00:00:01:01" proc_cap="100" stor_cap="600" />
+      <t21 type="t" ip="10.0.0.21" mac="00:00:00:00:02:01" proc_cap="100" stor_cap="600" />
+      <t31 type="t" ip="10.0.0.31" mac="00:00:00:00:03:01" proc_cap="100" stor_cap="600" />
     </nodes>
     <edges>
       <!-- SW...SW-->

@@ -3,8 +3,8 @@ import sys,socket,json,getopt,struct,time,errno,logging,threading,Queue,copy
 #import numpy as np
 
 CHUNKHSIZE = 50
-TXCHUNK_SIZE = 24*8*9*10 #1024 #4096
-CHUNKSTRSIZE=TXCHUNK_SIZE+CHUNKHSIZE
+TXCHUNK_SIZE = 24*8*9*10/ #1024 #4096
+CHUNKSTRSIZE = 24*8*9*10 + CHUNKHSIZE
 #IMGSIZE = 24*8*9
 
 class Sender(threading.Thread):
@@ -119,7 +119,7 @@ class Sender(threading.Thread):
       l = header+l
       try:
         self.sock.sendall(l)
-        logging.info('fastdata_send:: sent datasize=%s', TXCHUNK_SIZE )
+        logging.info('fastdata2_send:: sent datasize=%s', TXCHUNK_SIZE )
         len_ += TXCHUNK_SIZE
       except socket.error, e:
         if isinstance(e.args, tuple):
@@ -133,12 +133,12 @@ class Sender(threading.Thread):
       #
     #
     self.sock.sendall('EOF')
-    logging.info('fastdata_send:: EOF is txed.')
+    logging.info('fastdata2_send:: EOF is txed.')
     #
     self.sendstop_time = time.time()
     self.sentsize = len_
     send_dur = self.sendstop_time - self.sendstart_time
-    logging.info('fastdata_send:: sent to %s; size=%sB, dur=%ssec', self.dst_addr,len_,send_dur)
+    logging.info('fastdata2_send:: sent to %s; size=%sB, dur=%ssec', self.dst_addr,len_,send_dur)
   
   def fastdata_send(self):
     chunk = '0'*TXCHUNK_SIZE
@@ -166,7 +166,7 @@ class Sender(threading.Thread):
       if stoken == CHUNKSTRSIZE:
         pass
       elif stoken == -1:
-        self.logger.error('fastdata_send:: interrupted with txtoken=-1.')
+        self.logger.error('fastdata_send:: interrupted with txtoken= -1.')
         return
       else:
         self.logger.error('fastdata_send:: Unexpected stoken=%s', stoken)

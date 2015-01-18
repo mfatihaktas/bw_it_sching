@@ -24,9 +24,12 @@ else:
 def getsizeof(data):
   return sys.getsizeof(data) - PYTHON_STR_HEADER_LEN
 
-CHUNKHSIZE = 50 #B
-CHUNKSIZE = 24*8*9*10 #B
-CHUNKSTRSIZE = CHUNKSIZE+CHUNKHSIZE
+CHUNK_H_SIZE = 50 #B
+CHUNK_SIZE = 24*8*9*10 #B
+CHUNK_STR_SIZE = CHUNK_SIZE + CHUNK_H_SIZE
+
+CHUNK_SIZE_ = 24*8*9*10/10 #B
+CHUNK_STR_SIZE_ = CHUNK_SIZE + CHUNK_H_SIZE
 
 BWREGCONST = 1 #0.95 #0.9
 TXINTEREQTIME_REGCONST = 1 #0.98 #1
@@ -152,7 +155,7 @@ class PipeServer(threading.Thread):
     self.logger.info('shutdown.')
 
 class SessionClientHandler(threading.Thread):
-  def __init__(self,(sclient_sock, sclient_addr), itwork_dict, to_addr, stpdst,
+  def __init__(self, (sclient_sock, sclient_addr), itwork_dict, to_addr, stpdst,
                flagq_in, flagq_out, procq ):
     threading.Thread.__init__(self)
     self.setDaemon(True)
@@ -201,7 +204,7 @@ class SessionClientHandler(threading.Thread):
   
   def init_rx(self):
     while 1:
-      data = self.sclient_sock.recv(CHUNKSTRSIZE)
+      data = self.sclient_sock.recv(CHUNK_STR_SIZE_)
       datasize = getsizeof(data)
       self.logger.debug('init_rx:: stpdst=%s; rxed datasize=%sB', self.stpdst, datasize)
       #
@@ -231,31 +234,31 @@ class SessionClientHandler(threading.Thread):
   def push_to_pipe(self, data):
     """ returns 1:successful, 0:failed, -1:EOF, -2:datasize=0 """
     self.chunk += data
-    chunksize = getsizeof(self.chunk)
+    chunk_size = getsizeof(self.chunk)
     #
-    if chunksize == 0:
+    if chunk_size == 0:
       #this may happen in mininet and cause threads live forever
       return -2
-    elif chunksize == 3:
+    elif chunk_size == 3:
       if self.chunk == 'EOF':
         self.procq.put('EOF')
         return -1
     #
-    overflow_size = chunksize - CHUNKSTRSIZE
+    overflow_size = chunk_size - CHUNK_STR_SIZE_
     if overflow_size == 0:
       self.procq.put(self.chunk)
-      self.logger.debug('push_to_pipe:: pushed; chunksize=%s', chunksize)
+      self.logger.debug('push_to_pipe:: pushed; chunk_size=%s', chunk_size)
       self.chunk = ''
       return 1
     elif overflow_size < 0:
       return 1
     #
     else: #overflow
-      chunksize_ = chunksize - overflow_size
-      overflow = self.chunk[chunksize_:]
-      chunk_to_push = self.chunk[:chunksize_]
+      chunk_size_ = chunk_size - overflow_size
+      overflow = self.chunk[chunk_size_:]
+      chunk_to_push = self.chunk[:chunk_size_]
       self.procq.put(chunk_to_push)
-      self.logger.debug('push_to_pipe:: pushed; chunksize_=%s, overflow_size=%s', chunksize_, overflow_size)
+      self.logger.debug('push_to_pipe:: pushed; chunk_size_=%s, overflow_size=%s', chunk_size_, overflow_size)
       #
       if overflow_size == 3 and overflow == 'EOF':
         self.procq.put('EOF')
@@ -309,10 +312,10 @@ class ItServHandler(threading.Thread):
     self.procsock_dict = {'fft': None, 'upsampleplot': None}
     self.procsockpath_dict = {'fft': '/tmp/fft',
                               'upsampleplot': '/tmp/upsampleplot' }
-    self.procwrsize_dict = {'fft': {'wsize': CHUNKSIZE,
-                                    'rsize': CHUNKSIZE },
-                            'upsampleplot': {'wsize': CHUNKSIZE,
-                                             'rsize': CHUNKSIZE } }
+    self.procwrsize_dict = {'fft': {'wsize': CHUNK_SIZE,
+                                    'rsize': CHUNK_SIZE },
+                            'upsampleplot': {'wsize': CHUNK_SIZE,
+                                             'rsize': CHUNK_SIZE } }
     #
     self.jobtobedone_dict = None
     self.uptorecvsize_dict = {}
@@ -471,7 +474,7 @@ class ItServHandler(threading.Thread):
         else:
           #wait for the proc turn
           stoken = self.sproctokenq.get(True, None)
-          if stoken == CHUNKSIZE:
+          if stoken == CHUNK_SIZE:
             pass
           elif stoken == -1:
             self.stopflag = True
@@ -524,7 +527,7 @@ class ItServHandler(threading.Thread):
   def addheader(self, data, itfunc_list):
     #add itfunc_list as header
     header = json.dumps(itfunc_list)
-    padding_length = CHUNKHSIZE - len(header)
+    padding_length = CHUNK_H_SIZE - len(header)
     header += ' '*padding_length
     data = header + data
     #
@@ -574,7 +577,7 @@ class ItServHandler(threading.Thread):
   def forward_data(self, data, datasize):
     #wait for the tx turn
     stoken = self.stxtokenq.get(True, None)
-    if stoken == CHUNKSIZE:
+    if stoken == CHUNK_SIZE:
       pass
     elif stoken == -1:
       self.logger.error('forward_data:: interrupted with txtoken=-1.')
@@ -614,24 +617,24 @@ class ItServHandler(threading.Thread):
     (None, -3): fatal failure
     """
     chunk = self.procq.get(True, None)
-    chunksize = getsizeof(chunk)
+    chunk_size = getsizeof(chunk)
     
-    if chunksize == 3:
+    if chunk_size == 3:
       if chunk == 'EOF':
         return (None, -1, None)
-    elif chunksize == 0:
+    elif chunk_size == 0:
       return (None, -2, None)
     #
     uptofunc_list = None
-    header = chunk[:CHUNKHSIZE]
+    header = chunk[:CHUNK_H_SIZE]
     try:
       uptofunc_list = json.loads(header)
     except ValueError:
       pass
     #
-    chunk = chunk[CHUNKHSIZE:]
+    chunk = chunk[CHUNK_H_SIZE:]
     
-    return (chunk, chunksize-CHUNKHSIZE, uptofunc_list)
+    return (chunk, chunk_size-CHUNK_H_SIZE, uptofunc_list)
   
 #############################  Class Transit  ##################################
 func_comp_dict = {'fft':1,
@@ -709,7 +712,7 @@ class Transit(object):
     #
     bw = float(data_['bw'])
     modeltxt = float(datasize_*8)/(bw*BWREGCONST)
-    nchunks = float(datasize_*(1024**2))/CHUNKSTRSIZE
+    nchunks = float(datasize_*(1024**2))/CHUNK_STR_SIZE
     self.stpdst_txintereqtime_dict[stpdst] = TXINTEREQTIME_REGCONST*float(float(modeltxt)/nchunks)
     self.logger.debug('rewelcome_s:: datasize_=%s, modeltxt=%s', datasize_, modeltxt)
     #self.reinit_htbconf(bw, stpdst)
@@ -731,7 +734,7 @@ class Transit(object):
     tobeproced_datasize = float(datasize_)*max([float(n) for func,n in func_n_dict.items()])
     tobeproceddata_modeltxt = float(tobeproced_datasize*8)/(bw*BWREGCONST)
     tobeproceddata_modeltranst = tobeproced_modelproct+tobeproceddata_modeltxt #+upto_modelproct
-    nchunkstobeproced = tobeproced_datasize*(1024**2)/CHUNKSTRSIZE
+    nchunkstobeproced = tobeproced_datasize*(1024**2)/CHUNK_STR_SIZE
     self.stpdst_procintereqtime_dict[stpdst] = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
     #
     self.sflagq_topipes_dict[stpdst].put(data_)
@@ -753,7 +756,7 @@ class Transit(object):
     bw = float(data_['bw'])
     #
     modeltxt = float(datasize*8)/(bw*BWREGCONST)
-    nchunks = float(datasize*(1024**2))/CHUNKSTRSIZE
+    nchunks = float(datasize*(1024**2))/CHUNK_STR_SIZE
     self.stpdst_txintereqtime_dict[stpdst] = TXINTEREQTIME_REGCONST*float(float(modeltxt)/nchunks)
     
     stxtokenq = Queue.Queue(1)
@@ -787,7 +790,7 @@ class Transit(object):
                                             proc_cap = proc_cap )
     tobeproced_datasize = float(datasize)*max([float(n) for func,n in func_n_dict.items()])
     tobeproceddata_modeltxt = float(tobeproced_datasize*8)/(bw*BWREGCONST)
-    nchunkstobeproced = float(tobeproced_datasize*(1024**2))/CHUNKSTRSIZE
+    nchunkstobeproced = float(tobeproced_datasize*(1024**2))/CHUNK_STR_SIZE
     tobeproceddata_modeltranst = tobeproced_modelproct + tobeproceddata_modeltxt #+upto_modelproct
     
     self.stpdst_procintereqtime_dict[stpdst] = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
@@ -843,7 +846,7 @@ class Transit(object):
     stxtokenq = self.stxtokenq_dict[stpdst]
     while not self.stopflag:
       try:
-        stxtokenq.put(CHUNKSIZE, False)
+        stxtokenq.put(CHUNK_SIZE, False)
       except Queue.Full:
         pass
       #self.logger.debug('manage_stxtokenq_%s:: sleeping for %ssecs', stpdst, self.stpdst_procintereqtime_dict[stpdst])
@@ -855,7 +858,7 @@ class Transit(object):
     sproctokenq = self.sproctokenq_dict[stpdst]
     while not self.stopflag:
       try:
-        sproctokenq.put(CHUNKSIZE, False)
+        sproctokenq.put(CHUNK_SIZE, False)
       except Queue.Full:
         pass
       #self.logger.debug('manage_sproctokenq_%s:: sleeping for %ssecs', stpdst, self.stpdst_procintereqtime_dict[stpdst])
@@ -999,7 +1002,7 @@ class Transit(object):
     self.logger.debug('test')
     
     datasize = 1024 #MB
-    #imgsize = CHUNKSIZE/10
+    #imgsize = CHUNK_SIZE/10
     #nimg = datasize*(1024**2)/float(imgsize)
     #
     data = {'proto': 6,
