@@ -397,7 +397,10 @@ class ItServHandler(threading.Thread):
       if self.jobremaining[ftag] > 0:
         itfunc_list.append(ftag)
     #
-    return reorder(itfunc_list)
+    if len(itfunc_list) == 0:
+      return []
+    else:
+      return reorder(itfunc_list)
   
   def canfunc_berun(self, func, uptofunc_list):
     if len(uptofunc_list) == 0:
@@ -714,7 +717,7 @@ class Transit(object):
     modeltxt = float(datasize_*8)/(bw*BWREGCONST)
     nchunks = float(datasize_*(1024**2))/CHUNK_STR_SIZE
     self.stpdst_txintereqtime_dict[stpdst] = TXINTEREQTIME_REGCONST*float(float(modeltxt)/nchunks)
-    self.logger.debug('rewelcome_s:: datasize_=%s, modeltxt=%s', datasize_, modeltxt)
+    self.logger.debug('rewelcome_s:: for stpdst=%s, datasize_=%s, modeltxt=%s', stpdst, datasize_, modeltxt)
     #self.reinit_htbconf(bw, stpdst)
     uptoitrjob_list = data_['uptoitrjob_list']
     upto_modelproct = 0
@@ -729,11 +732,14 @@ class Transit(object):
     data_.update( {'jobtobedone': jobtobedone} )
     #
     tobeproced_modelproct = proc_time_model(datasize = datasize_,
-                                 func_n_dict = func_n_dict,
-                                 proc_cap = proc_cap )
+                                            func_n_dict = func_n_dict,
+                                            proc_cap = proc_cap )
     tobeproced_datasize = float(datasize_)*max([float(n) for func,n in func_n_dict.items()])
     tobeproceddata_modeltxt = float(tobeproced_datasize*8)/(bw*BWREGCONST)
-    tobeproceddata_modeltranst = tobeproced_modelproct+tobeproceddata_modeltxt #+upto_modelproct
+    tobeproceddata_modeltranst = tobeproced_modelproct + tobeproceddata_modeltxt #+upto_modelproct
+    if tobeproceddata_modeltranst < 0.001:
+      tobeproceddata_modeltranst = 0
+    
     nchunkstobeproced = tobeproced_datasize*(1024**2)/CHUNK_STR_SIZE
     self.stpdst_procintereqtime_dict[stpdst] = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
     #
@@ -792,6 +798,8 @@ class Transit(object):
     tobeproceddata_modeltxt = float(tobeproced_datasize*8)/(bw*BWREGCONST)
     nchunkstobeproced = float(tobeproced_datasize*(1024**2))/CHUNK_STR_SIZE
     tobeproceddata_modeltranst = tobeproced_modelproct + tobeproceddata_modeltxt #+upto_modelproct
+    if tobeproceddata_modeltranst < 0.001:
+      tobeproceddata_modeltranst = 0
     
     self.stpdst_procintereqtime_dict[stpdst] = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
     threading.Thread(target = self.manage_sproctokenq,

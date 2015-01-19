@@ -87,7 +87,7 @@ P7_CLIP=10.0.1.6
 C8D=1
 P8D=130
 P8_REQDICT='{"datasize":80,"slack_metric":150,"func_list":["fft","upsampleplot"]}'
-P8_APPPREFDICT='{"m_p":10,"m_u":0,"x_p":0,"x_u":0}'
+P8_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 P8_CLIP=10.0.1.7
 
 C9D=1

@@ -55,11 +55,15 @@ class SchController(object):
     
     couplingdoneinfo_dict = self.scheduler.get_couplingdoneinfo_dict()
     sessionspreserved_dict = self.scheduler.get_sessionspreserved_dict()
-    print 'sessionspreserved_dict=\n%s' % pprint.pformat(sessionspreserved_dict)
+    # print 'sessionspreserved_dict= \n%s' % pprint.pformat(sessionspreserved_dict)
+    # print 'couplingdoneinfo_dict= \n%s' % pprint.pformat(couplingdoneinfo_dict)
     # 1
     for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items():
-      coupling_done = couplingdoneinfo['coupling_done']
-      session_done = couplingdoneinfo['session_done']
+      try:
+        coupling_done = couplingdoneinfo['coupling_done']
+        session_done = couplingdoneinfo['session_done']
+      except:
+        continue
       
       sessionpreserved = sessionspreserved_dict[sch_req_id]
       
@@ -81,6 +85,8 @@ class SchController(object):
       couplingdoneinfo['overall']['sched_time_list'] = sessionpreserved['sched_time_list']
       couplingdoneinfo['overall']['bw_list'] = sessionpreserved['bw_list']
       couplingdoneinfo['overall']['datasize_list'] = sessionpreserved['datasize_list']
+      couplingdoneinfo['overall']['txt_list'] = sessionpreserved['txt_list']
+      couplingdoneinfo['overall']['walk_list'] = sessionpreserved['walk_list']
       couplingdoneinfo['overall']['tobeproced_datasize_list'] = sessionpreserved['tobeproced_datasize_list']
       couplingdoneinfo['overall']['tobeproced_data_transt_list'] = sessionpreserved['tobeproced_data_transt_list']
       couplingdoneinfo['overall']['elapsed_datasize_list'] = sessionpreserved['elapsed_datasize_list']
@@ -100,12 +106,11 @@ class SchController(object):
         {func:100*float(size)/coupling_done['recvedsize'] for func,size in coupling_done['recvedsizewithfunc_dict'].items()}
     #
     print 'couplingdoneinfo_dict=\n%s' % pprint.pformat(couplingdoneinfo_dict)
-    
     furl = '/home/ubuntu/pox/ext/logs/schcontroller.log'
     f = open(furl, 'w')
     f.write(pprint.pformat(couplingdoneinfo_dict))
     f.close()
-    #converting schingid_rescapalloc_dict to resid_rescapalloc_dict
+    # Converting schingid_rescapalloc_dict to resid_rescapalloc_dict
     schingid_rescapalloc_dict = self.scheduler.get_schingid_rescapalloc_dict()
     print 'schingid_rescapalloc_dict=%s' % pprint.pformat(schingid_rescapalloc_dict)
     resid_rescapalloc_dict = {}
@@ -116,16 +121,15 @@ class SchController(object):
         #
         resid_rescapalloc_dict[res_id][sching_id] = rescapalloc
     #
-    print 'resid_rescapalloc_dict=%s' % pprint.pformat(resid_rescapalloc_dict)
-    #
+    
+    # print 'resid_rescapalloc_dict=%s' % pprint.pformat(resid_rescapalloc_dict)
     self.exp_plotter.write_expdatafs(couplingdoneinfo_dict = couplingdoneinfo_dict,
                                     outf1url='/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat',
                                     resid_rescapalloc_dict = resid_rescapalloc_dict,
                                     outf2basename='/home/ubuntu/pox/ext/logs/rescapalloc_resid' )
-    #
     geninfo_dict = self.scheduler.get_geninfo_dict()
-    maxbw = 10 #Mbps
-    maxproc = 100 #Mfps
+    maxbw = 10 # Mbps
+    maxproc = 100 # Mfps
     for res_id in resid_rescapalloc_dict:
       if res_id <= geninfo_dict['ll_index']: #res is link
         self.exp_plotter.plot_resallocrel(datafurl='/home/ubuntu/pox/ext/logs/rescapalloc_resid'+str(res_id)+'.dat',
@@ -139,8 +143,7 @@ class SchController(object):
                                           numsching=len(schingid_rescapalloc_dict),
                                           yrange=1.1*maxproc,
                                           resunit='Mfps' )
-      #
-    #
+    # 
     self.exp_plotter.plot_sizerel(datafurl = '/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat', 
                                   outfurl = '/home/ubuntu/pox/ext/logs/sizerel.png',
                                   nums = len(couplingdoneinfo_dict),
@@ -149,12 +152,11 @@ class SchController(object):
                                   outfurl = '/home/ubuntu/pox/ext/logs/timerel.png',
                                   nums = len(couplingdoneinfo_dict),
                                   yrange = 1.1*max([couplingdoneinfo['overall']['coupling_dur'] for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()]) )
-    
     self.exp_plotter.plot_overheadrel(datafurl = '/home/ubuntu/pox/ext/logs/couplingdoneinfo.dat',
                                       outfurl = '/home/ubuntu/pox/ext/logs/overheadrel.png',
                                       nums = len(couplingdoneinfo_dict),
                                       yrange = 1.1*max([couplingdoneinfo['session_done']['schingrr_time'] for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()] + \
-                                                      [couplingdoneinfo['session_done']['joinrr_time'] for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()]) )
+                                                       [couplingdoneinfo['session_done']['joinrr_time'] for sch_req_id, couplingdoneinfo in couplingdoneinfo_dict.items()]) )
     
     
   #########################  _handle_*** methods  #######################

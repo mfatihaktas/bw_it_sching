@@ -54,10 +54,10 @@ class ExpPlotter(object):
                 str(couplingdoneinfo['overall']['coupling_dur']) + ' ' + \
                 str(abs(couplingdoneinfo['overall']['couplingdur_relerr'])) + ' '
       #6:9
-      for func,size in couplingdoneinfo['coupling_done']['recvedsizewithfunc_dict'].items():
+      for func, size in couplingdoneinfo['coupling_done']['recvedsizewithfunc_dict'].items():
         infostr += str(float(size)/(1024**2)) + ' ' + str(couplingdoneinfo['overall']['recvedpercentwithfunc_dict'][func]) + ' '
       
-      for i in range(maxnumitfuncs-len(couplingdoneinfo['coupling_done']['recvedsizewithfunc_dict'])):
+      for i in range(maxnumitfuncs - len(couplingdoneinfo['coupling_done']['recvedsizewithfunc_dict'])):
         infostr += '0' + ' ' + '0' + ' '
       #10:
       infostr += str(abs(couplingdoneinfo['session_done']['joinrr_time'])) + ' ' +\
@@ -112,8 +112,8 @@ class ExpPlotter(object):
     pipe.stdin.write('set samples 11\n')
     #pipe.stdin.write('set xtics rotate out\n')
     pipe.stdin.write('plot "%s" using 2:xtic(1) w boxes fs pattern 1 lc rgb "#000000" title "total size"' % datafurl + \
-                   ', "" using 6 w boxes fs pattern 2 lc rgb "#696969" title "fft"' + \
-                   ', "" using 8 w boxes fs pattern 3 lc rgb "#7F7F7F" title "upsample-plot"\n' )
+                     ', "" using 6 w boxes fs pattern 2 lc rgb "#696969" title "fft"' + \
+                     ', "" using 8 w boxes fs pattern 3 lc rgb "#7F7F7F" title "upsample-plot"\n' )
     #
   
   def plot_timerel(self, datafurl, outfurl, nums, yrange):
@@ -138,7 +138,7 @@ class ExpPlotter(object):
     pipe.stdin.write('set style fill solid border -1\n')
     pipe.stdin.write('set style fill pattern border\n')
     pipe.stdin.write('set samples 11\n')
-    pipe.stdin.write('plot "%s" using 3:xtic(1) w points linewidth 2 lc rgb "#000000" title "opt trans time"' % datafurl + \
+    pipe.stdin.write('plot "%s" using 3:xtic(1) w points linewidth 2 lc rgb "#000000" title "opt-trans time"' % datafurl + \
                      ', "" using 4 w points linewidth 2 lc rgb "#696969" title "trans time"' + \
                      ', "" using 5 axes x1y2 w points pointsize 2 lc rgb "#7F7F7F" title "rel-err"\n' )
     #
@@ -154,7 +154,7 @@ class ExpPlotter(object):
     
     pipe.stdin.write('set xrange [-1:%s] \n' % (int(nums)+1) )
     pipe.stdin.write('set yrange [0:%s] \n'  % yrange )
-    pipe.stdin.write('set y2range [0:5] \n')
+    pipe.stdin.write('set y2range [0:20] \n')
     
     pipe.stdin.write('set ytics nomirror \n')
     pipe.stdin.write('set y2tics nomirror border \n')

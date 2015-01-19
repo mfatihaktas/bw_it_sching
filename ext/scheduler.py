@@ -97,7 +97,7 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    self.net_xml_file_url = "net_xmls/net_simpler.xml" #"net_xmls/net_four_paths.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
+    self.net_xml_file_url = "net_xmls/net_mesh_topo.xml" #"net_xmls/net_four_paths.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
     if not is_scheduler_run:
       self.net_xml_file_url = "ext/" + self.net_xml_file_url
     
@@ -270,7 +270,10 @@ class Scheduler(object):
       self.bye_session(sch_req_id = sch_req_id )
     elif type_ == 'coupling_done':
       sch_req_id = int(data_['sch_req_id'])
-      del data_['sch_req_id']
+      
+      logging.debug('_handle_recvfromuser:: OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO')
+      logging.debug('_handle_recvfromuser:: coupling_done for sch_req_id= %s', sch_req_id)
+      logging.debug('_handle_recvfromuser:: OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO')
       
       if not sch_req_id in self.couplinginfo_dict:
         self.couplinginfo_dict[sch_req_id] = {}
@@ -426,13 +429,22 @@ class Scheduler(object):
         # elapsed_datasize = sinfo['req_dict']['datasize']*elapsed_time/ #MB
         # elapsed_datasize = sinfo['req_dict']['datasize'] - float(sinfo['bw_list'][-1]*elapsed_time)/8 #MB
         elapsed_datasize = None
-        tobeproced_data_transt = sinfo['tobeproced_data_transt_list'][-1]
-        tobeproced_datasize = sinfo['tobeproced_datasize_list'][-1]
-        if elapsed_time < tobeproced_data_transt:
-          elapsed_datasize = ELAPSED_DS_REG_CONST*float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
+        last_txt = sinfo['txt_list'][-1]
+        if elapsed_time > last_txt:
+          logging.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+          logging.debug('do_sching:: elapsed_time > last_txt but session_done is still not received; sch_req_id= %s', sch_req_id)
+          logging.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+          # self.bye_session(sch_req_id)
         else:
-          elapsed_datasize = tobeproced_datasize + float(BW_REG_CONST*(sinfo['bw_list'][-1])*elapsed_time)/8
-         #
+          # elapsed_datasize = sinfo['req_dict']['datasize']*elapsed_time/last_txt
+          tobeproced_data_transt = sinfo['tobeproced_data_transt_list'][-1]
+          tobeproced_datasize = sinfo['tobeproced_datasize_list'][-1]
+          if elapsed_time < tobeproced_data_transt:
+            elapsed_datasize = ELAPSED_DS_REG_CONST*float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
+          else:
+            elapsed_datasize = sinfo['req_dict']['datasize']*elapsed_time/last_txt
+            # elapsed_datasize = tobeproced_datasize + float(BW_REG_CONST*(sinfo['bw_list'][-1])*elapsed_time)/8
+           
         sinfo['req_dict']['slack_metric'] = sinfo['slack_metric_list'][-1] - elapsed_time
         sinfo['req_dict']['datasize'] = max(0.01, sinfo['req_dict']['datasize'] - elapsed_datasize)
         self.s_id_elapsed_datasize_list_dict[sch_req_id].append(elapsed_datasize)
@@ -458,6 +470,8 @@ class Scheduler(object):
         sinfo['slack_metric_list'] = []
         sinfo['bw_list'] = []
         sinfo['datasize_list'] = []
+        sinfo['txt_list'] = []
+        sinfo['walk_list'] = salloc['walk_list']
         sinfo['tobeproced_datasize_list'] = []
         sinfo['tobeproced_data_transt_list'] = []
       #
@@ -465,9 +479,9 @@ class Scheduler(object):
       sinfo['slack_metric_list'].append(sinfo['req_dict']['slack_metric'])
       sinfo['bw_list'].append(salloc['bw'])
       sinfo['datasize_list'].append(sinfo['req_dict']['datasize'])
+      sinfo['txt_list'].append(salloc['s_txt'])
       sinfo['tobeproced_datasize_list'].append(salloc['tobeproced_datasize'])
       sinfo['tobeproced_data_transt_list'].append(salloc['tobeproced_data_transt'])
-      
       sinfo['trans_time'] = salloc['trans_time']
       sinfo['elapsed_datasize_list'] = self.s_id_elapsed_datasize_list_dict[sch_req_id]
       sinfo['elapsed_time_list'] = self.s_id_elapsed_time_list_dict[sch_req_id]
@@ -798,7 +812,7 @@ def main():
                   data_over_tp = 'tcp',
                   act = False)
   
-  sch.test(num_session = 4)
+  sch.test(num_session = 1)
   #
   raw_input('Enter')
   
