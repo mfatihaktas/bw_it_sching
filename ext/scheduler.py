@@ -97,7 +97,7 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    self.net_xml_file_url = "net_xmls/net_mesh_topo.xml" #"net_xmls/net_four_paths.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
+    self.net_xml_file_url = "net_xmls/net_simpler.xml" #"net_xmls/net_four_paths.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
     if not is_scheduler_run:
       self.net_xml_file_url = "ext/" + self.net_xml_file_url
     
@@ -272,6 +272,8 @@ class Scheduler(object):
       sch_req_id = int(data_['sch_req_id'])
       del data_['sch_req_id']
       
+      if not sch_req_id in self.couplinginfo_dict:
+        self.couplinginfo_dict[sch_req_id] = {}
       self.couplinginfo_dict[sch_req_id]['coupling_done'] = data_
     
   ####################  scher_state_management  methods  #######################
