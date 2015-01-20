@@ -435,15 +435,18 @@ class Scheduler(object):
           logging.debug('do_sching:: elapsed_time > last_txt but session_done is still not received; sch_req_id= %s', sch_req_id)
           logging.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
           # self.bye_session(sch_req_id)
+          sinfo['resching_case_list'].append('elapsed_time= %s > last_txt= %s' % (elapsed_time, last_txt) )
         else:
           # elapsed_datasize = sinfo['req_dict']['datasize']*elapsed_time/last_txt
           tobeproced_data_transt = sinfo['tobeproced_data_transt_list'][-1]
           tobeproced_datasize = sinfo['tobeproced_datasize_list'][-1]
           if elapsed_time < tobeproced_data_transt:
             elapsed_datasize = ELAPSED_DS_REG_CONST*float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
+            sinfo['resching_case_list'].append('elapsed_time= %s < tobeproced_data_transt= %s' % (elapsed_time, tobeproced_data_transt) )
           else:
             elapsed_datasize = sinfo['req_dict']['datasize']*elapsed_time/last_txt
             # elapsed_datasize = tobeproced_datasize + float(BW_REG_CONST*(sinfo['bw_list'][-1])*elapsed_time)/8
+            sinfo['resching_case_list'].append('elapsed_time= %s >= tobeproced_data_transt= %s' % (elapsed_time, tobeproced_data_transt) )
            
         sinfo['req_dict']['slack_metric'] = sinfo['slack_metric_list'][-1] - elapsed_time
         sinfo['req_dict']['datasize'] = max(0.01, sinfo['req_dict']['datasize'] - elapsed_datasize)
@@ -474,6 +477,7 @@ class Scheduler(object):
         sinfo['walk_list'] = salloc['walk_list']
         sinfo['tobeproced_datasize_list'] = []
         sinfo['tobeproced_data_transt_list'] = []
+        sinfo['resching_case_list'] = []
       #
       sinfo['sched_time_list'].append(time.time() - self.starting_time)
       sinfo['slack_metric_list'].append(sinfo['req_dict']['slack_metric'])

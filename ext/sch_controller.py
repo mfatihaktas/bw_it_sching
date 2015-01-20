@@ -91,6 +91,7 @@ class SchController(object):
       couplingdoneinfo['overall']['tobeproced_data_transt_list'] = sessionpreserved['tobeproced_data_transt_list']
       couplingdoneinfo['overall']['elapsed_datasize_list'] = sessionpreserved['elapsed_datasize_list']
       couplingdoneinfo['overall']['elapsed_time_list'] = sessionpreserved['elapsed_time_list']
+      couplingdoneinfo['overall']['resching_case_list'] = sessionpreserved['resching_case_list']
       
       couplingdur_relerr = 100*float(coupling_dur - idealtrans_time)/idealtrans_time
       
@@ -112,7 +113,7 @@ class SchController(object):
     f.close()
     # Converting schingid_rescapalloc_dict to resid_rescapalloc_dict
     schingid_rescapalloc_dict = self.scheduler.get_schingid_rescapalloc_dict()
-    print 'schingid_rescapalloc_dict=%s' % pprint.pformat(schingid_rescapalloc_dict)
+    # print 'schingid_rescapalloc_dict=%s' % pprint.pformat(schingid_rescapalloc_dict)
     resid_rescapalloc_dict = {}
     for sching_id, rescapalloc_dict in schingid_rescapalloc_dict.items():
       for res_id, rescapalloc in rescapalloc_dict.items():
