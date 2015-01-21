@@ -110,7 +110,7 @@ class Producer(object):
         stxtokenq.put(CHUNKSTRSIZE, False)
       except Queue.Full:
         pass
-      #logging.debug('manage_stxtokenq_%s:: sleeping for %ssecs', stpdst, self.stpdst_procintereqtime_dict[stpdst])
+      logging.debug('manage_stxtokenq_%s:: sleeping for %ssecs', stpdst, self.stpdst_procintereqtime_dict[stpdst])
       time.sleep(self.stpdst_txintereqtime_dict[stpdst])
     #
     logging.debug('manage_stxtokenq_%s:: stoppped by STOP flag!', stpdst)

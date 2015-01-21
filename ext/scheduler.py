@@ -441,7 +441,10 @@ class Scheduler(object):
           tobeproced_data_transt = sinfo['tobeproced_data_transt_list'][-1]
           tobeproced_datasize = sinfo['tobeproced_datasize_list'][-1]
           if elapsed_time < tobeproced_data_transt:
-            elapsed_datasize = ELAPSED_DS_REG_CONST*float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
+            if tobeproced_data_transt/elapsed_time < 4:
+              elapsed_datasize = ELAPSED_DS_REG_CONST*float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
+            else:
+              elapsed_datasize = ELAPSED_DS_REG_CONST*float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
             sinfo['resching_case_list'].append('elapsed_time= %s < tobeproced_data_transt= %s' % (elapsed_time, tobeproced_data_transt) )
           else:
             elapsed_datasize = sinfo['req_dict']['datasize']*elapsed_time/last_txt
