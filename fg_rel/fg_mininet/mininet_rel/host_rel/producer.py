@@ -15,7 +15,7 @@ def get_addr(lintf):
   intf_eth0_ip = intf_eth0_ip[intf_eth0_ip.index('inet') + 1].split('/')[0]
   return intf_eth0_ip
 
-BWREGCONST = 1.05
+BWREGCONST = 1 #1.05
 CHUNKSTRSIZE = 24*8*9*10 + 50
 class Producer(object):
   def __init__(self, intf, dtst_port, dtsl_ip, dtsl_port, cl_ip, proto,tx_type, file_url, kstardata_url,
@@ -56,6 +56,7 @@ class Producer(object):
     self.schingreplyrecved_time = 0
     #
     self.stpdst_txintereqtime_dict = {}
+    self.stpdst_threadlock_dict = {}
     self.stpdst_txtokenq_dict = {}
     self.sdone_dict = {}
     self.stopflag = False
@@ -76,6 +77,7 @@ class Producer(object):
     
     stxtokenq = Queue.Queue(1)
     self.stpdst_txtokenq_dict[stpdst] = stxtokenq
+    self.stpdst_threadlock_dict[stpdst] = threading.Lock()
     self.sdone_dict[stpdst] = False
     threading.Thread(target = self.manage_stxtokenq,
                      kwargs = {'stpdst': stpdst } ).start()
@@ -104,13 +106,15 @@ class Producer(object):
                                    'stpdst': stpdst }
   
   def manage_stxtokenq(self, stpdst):
+    self.stpdst_threadlock_dict[stpdst].acquire()
     stxtokenq = self.stpdst_txtokenq_dict[stpdst]
+    self.stpdst_threadlock_dict[stpdst].release()
     while not self.sdone_dict[stpdst]:
       try:
         stxtokenq.put(CHUNKSTRSIZE, False)
       except Queue.Full:
         pass
-      logging.debug('manage_stxtokenq_%s:: sleeping for %ssecs', stpdst, self.stpdst_procintereqtime_dict[stpdst])
+      logging.debug('manage_stxtokenq_%s:: sleeping for %ssecs', stpdst, self.stpdst_txintereqtime_dict[stpdst])
       time.sleep(self.stpdst_txintereqtime_dict[stpdst])
     #
     logging.debug('manage_stxtokenq_%s:: stoppped by STOP flag!', stpdst)
@@ -166,11 +170,16 @@ class Producer(object):
       logging.info('_handle_recvfromdts:: resching_reply: data_=\n%s', pprint.pformat(data_))
       #reinit htb
       bw = float(data_['bw'])
+      datasize = float(data_['datasize'])
       stpdst = int(data_['tp_dst'])
-      #
+      
       modeltxt = float(datasize*8)/(bw*BWREGCONST)
       nchunks = float(datasize*(1024**2))/CHUNKSTRSIZE
+      
+      self.stpdst_threadlock_dict[stpdst].acquire()
       self.stpdst_txintereqtime_dict[stpdst] = float(float(modeltxt)/nchunks)
+      logging.info('_handle_recvfromdts:: resching_reply: self.stpdst_txintereqtime_dict[%s] changed to %s', stpdst, self.stpdst_txintereqtime_dict[stpdst])
+      self.stpdst_threadlock_dict[stpdst].release()
       #self.init_htbconf(pl, p_bw, p_tp_dst)
       
     elif type_ == 'join_reply':

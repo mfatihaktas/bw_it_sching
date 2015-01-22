@@ -741,7 +741,9 @@ class Transit(object):
       tobeproceddata_modeltranst = 0
     
     nchunkstobeproced = tobeproced_datasize*(1024**2)/CHUNK_STR_SIZE
+    old_procintereqtime = self.stpdst_procintereqtime_dict[stpdst]
     self.stpdst_procintereqtime_dict[stpdst] = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
+    self.logger.debug('rewelcome_s:: self.stpdst_procintereqtime_dict[%s] changed from %s to %s', stpdst, old_procintereqtime, self.stpdst_procintereqtime_dict[stpdst])
     #
     self.sflagq_topipes_dict[stpdst].put(data_)
     self.logger.debug('rewelcome_s:: done for stpdst=%s;\n\ttobeproced_datasize=%s, tobeproceddata_modeltranst=%s, upto_modelproct=%s, tobeproced_modelproct=%s, tobeproceddata_modeltxt=%s', stpdst, tobeproced_datasize, tobeproceddata_modeltranst, upto_modelproct, tobeproced_modelproct, tobeproceddata_modeltxt)

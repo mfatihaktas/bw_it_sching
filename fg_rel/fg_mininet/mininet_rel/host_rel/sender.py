@@ -278,7 +278,7 @@ class Sender(threading.Thread):
     #
     self.sendstart_time = time.time()
     logging.info('kstardata_send:: started at time=%s', self.sendstart_time )
-    f=open(self.kstardata_url, "r")
+    f = open(self.kstardata_url, "r")
     
     ds_tobesent_B = self.datasize*(1024**2)
     #

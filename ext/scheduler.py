@@ -97,7 +97,7 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    self.net_xml_file_url = "net_xmls/net_mesh_topo.xml" #"net_xmls/net_four_paths.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
+    self.net_xml_file_url = "net_xmls/net_simpler.xml" #"net_xmls/net_four_paths.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
     if not is_scheduler_run:
       self.net_xml_file_url = "ext/" + self.net_xml_file_url
     
@@ -113,7 +113,7 @@ class Scheduler(object):
     self.last_tp_dst_given = info_dict['base_sport']-1
     # Scher state dicts
     self.num_dstusers = 0
-    self.users_beingserved_dict = {} #user_ip:{'gw_dpid':<>, 'gw_conn_port':<> ...}
+    self.users_beingserved_dict = {} # user_ip:{'gw_dpid':<>, 'gw_conn_port':<> ...}
     #
     self.N = 0 #num_activesessions
     self.alloc_dict = None
@@ -142,8 +142,7 @@ class Scheduler(object):
     self.geninfo_dict = {}
     #
     # self.exp()
-    self.s_id_elapsed_time_list_dict = {}
-    self.s_id_elapsed_datasize_list_dict = {}
+    self.s_id_resching_info_dict = {}
     
   def recv_from_user(self, userinfo_dict, msg):
     user_ip = userinfo_dict['user_ip']
@@ -196,16 +195,22 @@ class Scheduler(object):
                  'data': {'sch_req_id': sch_req_id,
                           'tp_dst': s_info['tp_dst'] } }
           if self.dtsuser_intf.relsend_to_user(user_ip = c_ip, msg = msg ) == 0:
-            logging.error('_handle_recvfromacter:: could not send msg=%s, \nuserinfo_dict=%s', pprint.pformat(msg), pprint.pformat(userinfo_dict) )
+            logging.error('_handle_recvfromacter:: could not send msg=%s, userinfo_dict= \n%s', pprint.pformat(msg), pprint.pformat(userinfo_dict) )
           else:
             logging.debug('_handle_recvfromacter:: sent msg=%s' % pprint.pformat(msg) )
         # to producer
+        datasize = None
+        try:
+          datasize = s_info['datasize_to_tx_list'][-1]
+        except:
+          pass
         msg = {'type': type_touser,
                'data': {'sch_req_id': sch_req_id,
                         'bw': s_alloc_info['bw'],
-                        'tp_dst': s_info['tp_dst'] } }
+                        'tp_dst': s_info['tp_dst'],
+                        'datasize': datasize } }
         if self.dtsuser_intf.relsend_to_user(user_ip = p_ip, msg = msg ) == 0:
-          logging.error('_handle_recvfromacter:: could not send msg=%s, \nuserinfo_dict=%s', pprint.pformat(msg), pprint.pformat(userinfo_dict) )
+          logging.error('_handle_recvfromacter:: could not send msg= %s, userinfo_dict= \n%s', pprint.pformat(msg), pprint.pformat(userinfo_dict) )
         else:
           logging.debug('_handle_recvfromacter:: sent msg=%s', pprint.pformat(msg) )
       else:
@@ -214,7 +219,7 @@ class Scheduler(object):
                'data':'sorry' }
         if self.dtsuser_intf.relsend_to_user(user_ip = p_ip,
                                              msg = msg ) == 0:
-          logging.error('_handle_recvfromacter:: could not send msg=%s, \nuserinfo_dict=%s', pprint.pformat(msg), pprint.pformat(userinfo_dict) )
+          logging.error('_handle_recvfromacter:: could not send msg=%s, userinfo_dict= \n%s', pprint.pformat(msg), pprint.pformat(userinfo_dict) )
         else:
           logging.debug('_handle_recvfromacter:: sent msg=%s', pprint.pformat(msg) )
       #
@@ -420,41 +425,43 @@ class Scheduler(object):
       logging.basicConfig(level=logging.DEBUG)
     
     for sch_req_id, sinfo in self.sessionsbeingserved_dict.items():
-      if not sch_req_id in self.s_id_elapsed_datasize_list_dict:
-        self.s_id_elapsed_datasize_list_dict[sch_req_id] = []
-        self.s_id_elapsed_time_list_dict[sch_req_id] = []
+      if not sch_req_id in self.s_id_resching_info_dict:
+        self.s_id_resching_info_dict[sch_req_id] = {'elapsed_datasize_list': [],
+                                                    'elapsed_time_list': [],
+                                                    'datasize_to_tx_list': [] }
       
       if 'sched_time_list' in sinfo:
         elapsed_time = time.time() - self.starting_time - sinfo['sched_time_list'][-1]
-        # elapsed_datasize = sinfo['req_dict']['datasize']*elapsed_time/ #MB
-        # elapsed_datasize = sinfo['req_dict']['datasize'] - float(sinfo['bw_list'][-1]*elapsed_time)/8 #MB
-        elapsed_datasize = None
+        elapsed_datasize, txed_datasize = None, None
         last_txt = sinfo['txt_list'][-1]
         if elapsed_time > last_txt:
           logging.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-          logging.debug('do_sching:: elapsed_time > last_txt but session_done is still not received; sch_req_id= %s', sch_req_id)
+          logging.debug('do_sching:: sch_req_id= %s, elapsed_time= %s > last_txt= %s but session_done is still not received.', sch_req_id, elapsed_time, last_txt)
           logging.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
           # self.bye_session(sch_req_id)
           sinfo['resching_case_list'].append('elapsed_time= %s > last_txt= %s' % (elapsed_time, last_txt) )
         else:
-          # elapsed_datasize = sinfo['req_dict']['datasize']*elapsed_time/last_txt
+          txed_datasize = sinfo['req_dict']['datasize']*elapsed_time/last_txt
+          # elapsed_datasize = datasize_to_tx
           tobeproced_data_transt = sinfo['tobeproced_data_transt_list'][-1]
           tobeproced_datasize = sinfo['tobeproced_datasize_list'][-1]
           if elapsed_time < tobeproced_data_transt:
+            sinfo['resching_case_list'].append('elapsed_time= %s < tobeproced_data_transt= %s' % (elapsed_time, tobeproced_data_transt) )
             if tobeproced_data_transt/elapsed_time < 4:
               elapsed_datasize = ELAPSED_DS_REG_CONST*float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
             else:
               elapsed_datasize = ELAPSED_DS_REG_CONST*float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
-            sinfo['resching_case_list'].append('elapsed_time= %s < tobeproced_data_transt= %s' % (elapsed_time, tobeproced_data_transt) )
           else:
-            elapsed_datasize = sinfo['req_dict']['datasize']*elapsed_time/last_txt
-            # elapsed_datasize = tobeproced_datasize + float(BW_REG_CONST*(sinfo['bw_list'][-1])*elapsed_time)/8
             sinfo['resching_case_list'].append('elapsed_time= %s >= tobeproced_data_transt= %s' % (elapsed_time, tobeproced_data_transt) )
-           
+            elapsed_datasize = txed_datasize
+            # elapsed_datasize = tobeproced_datasize + float(BW_REG_CONST*(sinfo['bw_list'][-1])*elapsed_time)/8
+            
+        sinfo['elapsed_datasize_list'].append(elapsed_datasize)
+        sinfo['elapsed_time_list'].append(elapsed_time)
+        sinfo['datasize_to_tx_list'].append(sinfo['req_dict']['datasize'] - txed_datasize)
+        
         sinfo['req_dict']['slack_metric'] = sinfo['slack_metric_list'][-1] - elapsed_time
         sinfo['req_dict']['datasize'] = max(0.01, sinfo['req_dict']['datasize'] - elapsed_datasize)
-        self.s_id_elapsed_datasize_list_dict[sch_req_id].append(elapsed_datasize)
-        self.s_id_elapsed_time_list_dict[sch_req_id].append(elapsed_time)
       #
     logging.info('do_sching:: sching_id=%s started;', sching_id)
     self.update_sid_res_dict()
@@ -481,6 +488,9 @@ class Scheduler(object):
         sinfo['tobeproced_datasize_list'] = []
         sinfo['tobeproced_data_transt_list'] = []
         sinfo['resching_case_list'] = []
+        sinfo['elapsed_datasize_list'] = []
+        sinfo['elapsed_time_list'] = []
+        sinfo['datasize_to_tx_list'] = []
       #
       sinfo['sched_time_list'].append(time.time() - self.starting_time)
       sinfo['slack_metric_list'].append(sinfo['req_dict']['slack_metric'])
@@ -490,8 +500,7 @@ class Scheduler(object):
       sinfo['tobeproced_datasize_list'].append(salloc['tobeproced_datasize'])
       sinfo['tobeproced_data_transt_list'].append(salloc['tobeproced_data_transt'])
       sinfo['trans_time'] = salloc['trans_time']
-      sinfo['elapsed_datasize_list'] = self.s_id_elapsed_datasize_list_dict[sch_req_id]
-      sinfo['elapsed_time_list'] = self.s_id_elapsed_time_list_dict[sch_req_id]
+      
     # Resource capacity allocation distribution over sessions
     self.schingid_rescapalloc_dict[sching_id] = self.alloc_dict['res-wise']
     self.geninfo_dict = self.alloc_dict['general']
