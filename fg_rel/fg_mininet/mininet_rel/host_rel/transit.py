@@ -317,9 +317,9 @@ class ItServHandler(threading.Thread):
                             'upsampleplot': {'wsize': CHUNK_SIZE,
                                              'rsize': CHUNK_SIZE } }
     #
-    self.jobtobedone_dict = None
-    self.uptorecvsize_dict = {}
-    self.jobremaining = {}
+    self.ftag_datasize_tobedone_dict = None
+    self.ftag_datasize_remaining_dict = {}
+    self.datasize_done = 0
     self.forwardq = Queue.Queue(0)
     
     self.init_itjobdicts()
@@ -327,30 +327,30 @@ class ItServHandler(threading.Thread):
     self.procingdone = False
     
   def init_itjobdicts(self):
-    self.jobtobedone_dict = self.itwork_dict['jobtobedone']
-    for ftag,datasize in self.jobtobedone_dict.items():
-        self.jobremaining[ftag] = int(datasize)*(1024**2) #B
+    self.ftag_datasize_tobedone_dict = self.itwork_dict['jobtobedone']
+    for ftag, datasize in self.ftag_datasize_tobedone_dict.items():
+        self.ftag_datasize_remaining_dict[ftag] = int(datasize)*(1024**2) #B
     #
-    self.logger.debug('init_itjobdicts:: jobremaining=\n%s', pprint.pformat(self.jobremaining))
+    self.logger.debug('init_itjobdicts:: ftag_datasize_remaining_dict=\n%s', pprint.pformat(self.ftag_datasize_remaining_dict))
   
   def reinit_itjobdicts(self):
-    pre_jobtobedone_dict = self.jobtobedone_dict
-    self.jobtobedone_dict = self.itwork_dict['jobtobedone']
-    for ftag,datasize in self.jobtobedone_dict.items():
-      if ftag in self.jobremaining:
-        jobdonesize =  pre_jobtobedone_dict[ftag]*(1024**2) - self.jobremaining[ftag]
-        self.jobremaining[ftag] = datasize*(1024**2) - jobdonesize #B
+    pre_ftag_datasize_tobedone_dict = self.ftag_datasize_tobedone_dict
+    self.ftag_datasize_tobedone_dict = self.itwork_dict['jobtobedone']
+    for ftag,datasize in self.ftag_datasize_tobedone_dict.items():
+      if ftag in self.ftag_datasize_remaining_dict:
+        jobdonesize =  pre_ftag_datasize_tobedone_dict[ftag]*(1024**2) - self.ftag_datasize_remaining_dict[ftag]
+        self.ftag_datasize_remaining_dict[ftag] = datasize*(1024**2) - jobdonesize #B
       else:
-        self.jobremaining[ftag] = datasize*(1024**2) #B
+        self.ftag_datasize_remaining_dict[ftag] = datasize*(1024**2) #B
       #
     #
-    self.logger.debug('reinit_itjobdicts:: jobremaining=\n%s', pprint.pformat(self.jobremaining))
+    self.logger.debug('reinit_itjobdicts:: ftag_datasize_remaining_dict=\n%s', pprint.pformat(self.ftag_datasize_remaining_dict))
     
   def init_eceiproc(self):
     if self.nodename[0] == 't':
       subprocess.call(['./eceiproc2', '--stpdst=%s' % self.stpdst ])
     else:
-      subprocess.call(['./eceiproc2', '--stpdst=%s' % str(int(self.stpdst)-6000) ])
+      subprocess.call(['./eceiproc2', '--stpdst=%s' % str(int(self.stpdst) - 6000) ])
       #subprocess.call(['./eceiproc2', '--stpdst=%s' % self.stpdst, '--loc=mininet',
       #                 '>', 'logs/eceproc%s.log' % self.stpdst ])
     #
@@ -378,8 +378,9 @@ class ItServHandler(threading.Thread):
       #flag can only be new itwork_dict
       self.itwork_dict = flag
       #self.reinit_itjobdicts()
-      dict_ = {ftag:datasize-float(float(self.jobremaining[ftag])/(1024**2)) for ftag,datasize in self.jobtobedone_dict.items()}
-      self.logger.info('>>> jobdone_dict=\n%s', pprint.pformat(dict_))
+      dict_ = {ftag:datasize-float(float(self.ftag_datasize_remaining_dict[ftag])/(1024**2)) \
+                for ftag, datasize in self.ftag_datasize_tobedone_dict.items() }
+      self.logger.info('listen_pipeserver:: self.datasize_done= %s MB, jobdone_dict= \n%s', float(self.datasize_done/(1024**2)), pprint.pformat(dict_) )
       self.init_itjobdicts()
       
       self.logger.debug('listen_pipeserver:: NEW itwork_dict=%s\n', pprint.pformat(self.itwork_dict))
@@ -393,8 +394,8 @@ class ItServHandler(threading.Thread):
       return ordered_list
     #
     itfunc_list = []
-    for ftag in self.jobtobedone_dict:
-      if self.jobremaining[ftag] > 0:
+    for ftag in self.ftag_datasize_tobedone_dict:
+      if self.ftag_datasize_remaining_dict[ftag] > 0:
         itfunc_list.append(ftag)
     #
     if len(itfunc_list) == 0:
@@ -471,6 +472,7 @@ class ItServHandler(threading.Thread):
             #self.forward_data(data = self.addheader(data, itfunc_list),
             #                  datasize = getsizeof(data) )
             self.forwardq.put(self.addheader(data, itfunc_list) )
+            self.datasize_done += datasize
             if not self.procingdone:
               self.procingdone = True
               self.logger.debug('run:: procing done, dur=%s', time.time()-self.startedtohandle_time)
@@ -498,7 +500,7 @@ class ItServHandler(threading.Thread):
                                              datasize = datasize,
                                              data = data )
               '''
-              self.jobremaining[func] -= datasize
+              self.ftag_datasize_remaining_dict[func] -= datasize
               #datasize = datasize_
               #data = data_
               uptofunc_list.append(func)
@@ -514,6 +516,7 @@ class ItServHandler(threading.Thread):
             #self.forward_data(data = self.addheader(data, uptofunc_list),
             #                  datasize = getsizeof(data) )
             self.forwardq.put( self.addheader(data, uptofunc_list) )
+            self.datasize_done += datasize
           #
         #
     #
@@ -524,7 +527,7 @@ class ItServHandler(threading.Thread):
     #
     self.stoppedtohandle_time = time.time()
     self.logger.info('run:: done, dur=%ssecs, stoppedtohandle_time=%s, startedtohandle_time=%s', self.stoppedtohandle_time-self.startedtohandle_time, self.stoppedtohandle_time, self.startedtohandle_time)
-    self.logger.info('run:: totalrunround_dur=%s, served_size_B=%s(MB), jobremaining=\n%s', totalrunround_dur, float(self.served_size_B)/(1024**2), pprint.pformat(self.jobremaining))
+    self.logger.info('run:: totalrunround_dur=%s, served_size_B=%s(MB), ftag_datasize_remaining_dict=\n%s', totalrunround_dur, float(self.served_size_B)/(1024**2), pprint.pformat(self.ftag_datasize_remaining_dict))
     self.logger.info('run:: totalexcessrunround_dur=%s', totalexcessrunround_dur)
   
   def addheader(self, data, itfunc_list):
@@ -637,7 +640,8 @@ class ItServHandler(threading.Thread):
     #
     chunk = chunk[CHUNK_H_SIZE:]
     
-    return (chunk, chunk_size-CHUNK_H_SIZE, uptofunc_list)
+    # return (chunk, chunk_size-CHUNK_H_SIZE, uptofunc_list)
+    return (chunk, CHUNK_SIZE, uptofunc_list)
   
 #############################  Class Transit  ##################################
 func_comp_dict = {'fft':1,
