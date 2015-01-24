@@ -142,7 +142,6 @@ class Scheduler(object):
     self.geninfo_dict = {}
     #
     # self.exp()
-    self.s_id_resching_info_dict = {}
     
   def recv_from_user(self, userinfo_dict, msg):
     user_ip = userinfo_dict['user_ip']
@@ -425,43 +424,45 @@ class Scheduler(object):
       logging.basicConfig(level=logging.DEBUG)
     
     for sch_req_id, sinfo in self.sessionsbeingserved_dict.items():
-      if not sch_req_id in self.s_id_resching_info_dict:
-        self.s_id_resching_info_dict[sch_req_id] = {'elapsed_datasize_list': [],
-                                                    'elapsed_time_list': [],
-                                                    'datasize_to_tx_list': [] }
-      
+      if not 'initial_datasize' in sinfo:
+        sinfo['initial_datasize'] = sinfo['req_dict']['datasize']
+        sinfo['total_txed_datasize'] = 0
+        
       if 'sched_time_list' in sinfo:
         elapsed_time = time.time() - self.starting_time - sinfo['sched_time_list'][-1]
+        sinfo['elapsed_time_list'].append(elapsed_time)
+        
         elapsed_datasize, txed_datasize = None, None
         last_txt = sinfo['txt_list'][-1]
-        if elapsed_time > last_txt:
-          logging.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-          logging.debug('do_sching:: sch_req_id= %s, elapsed_time= %s > last_txt= %s but session_done is still not received.', sch_req_id, elapsed_time, last_txt)
-          logging.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
-          # self.bye_session(sch_req_id)
-          sinfo['resching_case_list'].append('elapsed_time= %s > last_txt= %s' % (elapsed_time, last_txt) )
-        else:
-          txed_datasize = sinfo['req_dict']['datasize']*elapsed_time/last_txt
-          # elapsed_datasize = datasize_to_tx
-          tobeproced_data_transt = sinfo['tobeproced_data_transt_list'][-1]
-          tobeproced_datasize = sinfo['tobeproced_datasize_list'][-1]
-          if elapsed_time < tobeproced_data_transt:
-            sinfo['resching_case_list'].append('elapsed_time= %s < tobeproced_data_transt= %s' % (elapsed_time, tobeproced_data_transt) )
-            if tobeproced_data_transt/elapsed_time < 4:
-              elapsed_datasize = ELAPSED_DS_REG_CONST*float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
-            else:
-              elapsed_datasize = ELAPSED_DS_REG_CONST*float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
-          else:
-            sinfo['resching_case_list'].append('elapsed_time= %s >= tobeproced_data_transt= %s' % (elapsed_time, tobeproced_data_transt) )
-            elapsed_datasize = txed_datasize
-            # elapsed_datasize = tobeproced_datasize + float(BW_REG_CONST*(sinfo['bw_list'][-1])*elapsed_time)/8
-            
-        sinfo['elapsed_datasize_list'].append(elapsed_datasize)
-        sinfo['elapsed_time_list'].append(elapsed_time)
-        sinfo['datasize_to_tx_list'].append(sinfo['req_dict']['datasize'] - txed_datasize)
+        # if elapsed_time > last_txt:
+        #   logging.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+        #   logging.debug('do_sching:: sch_req_id= %s, elapsed_time= %s > last_txt= %s but session_done is still not received.', sch_req_id, elapsed_time, last_txt)
+        #   logging.debug('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+        #   # self.bye_session(sch_req_id)
+        #   sinfo['resching_case_list'].append('elapsed_time= %s > last_txt= %s' % (elapsed_time, last_txt) )
+        # else:
+        datasize = sinfo['req_dict']['datasize']
+        try:
+          txed_datasize = sinfo['datasize_to_tx_list'][-1]*elapsed_time/last_txt
+        except:
+          txed_datasize = datasize*elapsed_time/last_txt
+        sinfo['total_txed_datasize'] += txed_datasize
+        sinfo['datasize_to_tx_list'].append(sinfo['initial_datasize'] - sinfo['total_txed_datasize'])
         
+        tobeproced_data_transt = sinfo['tobeproced_data_transt_list'][-1]
+        tobeproced_datasize = sinfo['tobeproced_datasize_list'][-1]
+        if elapsed_time < tobeproced_data_transt:
+          sinfo['resching_case_list'].append('elapsed_time= %s < tobeproced_data_transt= %s' % (elapsed_time, tobeproced_data_transt) )
+          elapsed_datasize = float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
+          sinfo['req_dict']['datasize'] = datasize - elapsed_datasize
+        else:
+          sinfo['resching_case_list'].append('elapsed_time= %s >= tobeproced_data_transt= %s' % (elapsed_time, tobeproced_data_transt) )
+          elapsed_datasize = txed_datasize
+          sinfo['req_dict']['datasize'] = datasize - elapsed_datasize # sinfo['datasize_to_tx_list'][-1]
+          
+        sinfo['elapsed_datasize_list'].append(elapsed_datasize)
         sinfo['req_dict']['slack_metric'] = sinfo['slack_metric_list'][-1] - elapsed_time
-        sinfo['req_dict']['datasize'] = max(0.01, sinfo['req_dict']['datasize'] - elapsed_datasize)
+        
       #
     logging.info('do_sching:: sching_id=%s started;', sching_id)
     self.update_sid_res_dict()

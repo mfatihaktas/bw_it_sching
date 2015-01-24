@@ -49,7 +49,7 @@ P1_APPPREFDICT='{"m_p":10,"m_u":0,"x_p":0,"x_u":0}'
 P1_CLIP=10.0.1.0
 
 C2D=1
-P2D=10
+P2D=12
 P2_REQDICT='{"datasize":15,"slack_metric":30,"func_list":["fft","upsampleplot"]}'
 P2_APPPREFDICT='{"m_p":1,"m_u":10,"x_p":0,"x_u":0}'
 P2_CLIP=10.0.1.1

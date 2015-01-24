@@ -361,7 +361,7 @@ class ItServHandler(threading.Thread):
       while 1:
         try:
           sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-          sock.connect(self.procsockpath_dict[func]+str(int(self.stpdst)-6000))
+          sock.connect(self.procsockpath_dict[func]+str(int(self.stpdst) - 6000))
           self.procsock_dict[func] = sock
         except:
           continue
