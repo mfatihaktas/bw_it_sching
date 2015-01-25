@@ -14,7 +14,7 @@ s2 lo:  s2-eth1:s1-eth1 s2-eth2:t21-eth0 s2-eth3:c1-eth0
       <s1  type="sw" dpid="1" />
       <s2  type="sw" dpid="2" />
       <t11 type="t" ip="10.0.0.11" mac="00:00:00:00:01:01" proc_cap="100" stor_cap="200"/>-->c
-      <!--<t21 type="t" ip="10.0.0.21" mac="00:00:00:00:02:01" proc_cap="100" stor_cap="200"/>-->
+      <t21 type="t" ip="10.0.0.21" mac="00:00:00:00:02:01" proc_cap="100" stor_cap="200"/>
     </nodes>
     <edges>
       <!-- SW...SW-->
@@ -29,11 +29,11 @@ s2 lo:  s2-eth1:s1-eth1 s2-eth2:t21-eth0 s2-eth3:c1-eth0
         <session/>
         <link_cap bw="20" delay="0" loss="0" max_queue_size="10000"/>
       </edge>
-      <!--<edge pre_node="s2" post_node="t21">-->
-      <!--  <dev pre_dev="s2-eth2" post_dev="t21-eth0"/>-->
-      <!--  <session/>-->
-      <!--  <link_cap bw="20" delay="0" loss="0" max_queue_size="10000"/>-->
-      <!--</edge>-->
+      <edge pre_node="s2" post_node="t21">
+        <dev pre_dev="s2-eth2" post_dev="t21-eth0"/>
+        <session/>
+        <link_cap bw="20" delay="0" loss="0" max_queue_size="10000"/>
+      </edge>
     </edges>
   </network>
 </networks>
