@@ -188,7 +188,8 @@ class SchingOptimizer:
     #
     quadoverlin_ = (quadoverlin_vector.agg_to_row()).get((0,0))
     
-    proc_t = num_itres* (8*datasize)*(quadoverlin_) # sec
+    # proc_t = num_itres* (8*datasize)*(quadoverlin_) # sec
+    proc_t = (8*datasize)*(quadoverlin_) # sec
     stage_t = 0 #self.s_dur.get((s_id, 0))
     #trans_t = cp.max(tx_t, proc_t)
     trans_t = tx_t + proc_t #+ stage_t
@@ -201,8 +202,10 @@ class SchingOptimizer:
     return cp.abs(self.tt[s_id, 0] - s_st)/s_st
   
   def R_soft(self, s_id):
-    s_n_list = [self.s_n[s_id, i] for i in range(self.max_numitfuncs)]
-    return sum_list(s_n_list)/len(self.sessions_beingserved_dict[s_id]['req_dict']['func_list'])
+    s_func_list_len = len(self.sessions_beingserved_dict[s_id]['req_dict']['func_list'])
+    s_n_list = [self.s_n[s_id, i] for i in range(s_func_list_len)]
+    
+    return sum_list(s_n_list)/s_func_list_len
     # return cp.log1p(sum_list(s_n_list)/len(self.sessions_beingserved_dict[s_id]['req_dict']['func_list']) )
     # TODO: next line is causing s_n.value to be None after solution. Report as bug !
     # return sum(self.s_n[s_id, :])*self.r_soft_grain

@@ -446,17 +446,20 @@ class Scheduler(object):
           txed_datasize = sinfo['datasize_to_tx_list'][-1]*elapsed_time/last_txt
         except:
           txed_datasize = datasize*elapsed_time/last_txt
-        # sinfo['total_txed_datasize'] += txed_datasize
+        # txed_datasize = datasize*elapsed_time/last_txt
+        sinfo['total_txed_datasize'] += txed_datasize
+        
+        # for multiple itrs
+        # sinfo['datasize_to_tx_list'].append(datasize - txed_datasize)
+        # sinfo['datasize_to_tx_list'].append(sinfo['initial_datasize'] - sinfo['total_txed_datasize'])
         last_resching_case_id = None
         try:
           last_resching_case_id = sinfo['resching_case_id_list'][-1]
         except:
           last_resching_case_id = 0
         
-        if last_resching_case_id  == 1:
-          sinfo['datasize_to_tx_list'].append(sinfo['initial_datasize'] - sinfo['total_txed_datasize'])
-        elif last_resching_case_id == 0:
-          sinfo['datasize_to_tx_list'].append(datasize - txed_datasize)
+        
+        # sinfo['req_dict']['datasize'] = sinfo['datasize_to_tx_list'][-1]
         
         tobeproced_data_transt = sinfo['tobeproced_data_transt_list'][-1]
         tobeproced_datasize = sinfo['tobeproced_datasize_list'][-1]
@@ -465,11 +468,19 @@ class Scheduler(object):
           elapsed_datasize = float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
           sinfo['req_dict']['datasize'] = datasize - elapsed_datasize
           sinfo['resching_case_id_list'].append(0)
+          if last_resching_case_id  == 0:
+            sinfo['datasize_to_tx_list'].append(datasize - txed_datasize)
+          elif last_resching_case_id == 1:
+            sinfo['datasize_to_tx_list'].append(sinfo['initial_datasize'] - sinfo['total_txed_datasize'])
         else:
           sinfo['resching_case_list'].append('elapsed_time= %s >= tobeproced_data_transt= %s' % (elapsed_time, tobeproced_data_transt) )
           elapsed_datasize = txed_datasize
           sinfo['req_dict']['datasize'] = datasize - elapsed_datasize # sinfo['datasize_to_tx_list'][-1]
           sinfo['resching_case_id_list'].append(1)
+          if last_resching_case_id  == 0:
+            sinfo['datasize_to_tx_list'].append(datasize - txed_datasize)
+          elif last_resching_case_id == 1:
+            sinfo['datasize_to_tx_list'].append(sinfo['initial_datasize'] - sinfo['total_txed_datasize'])
           
         sinfo['elapsed_datasize_list'].append(elapsed_datasize)
         sinfo['req_dict']['slack_metric'] = sinfo['slack_metric_list'][-1] - elapsed_time

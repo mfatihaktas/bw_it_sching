@@ -414,7 +414,7 @@ class ItServHandler(threading.Thread):
       if self.idealfunc_order.index(func) <= self.idealfunc_order.index(uptofunc_list[-1]):
         return False
     except ValueError:
-      self.logger.error('A func which is not in idealfunc_order is found !.')
+      self.logger.error('A func which is not in idealfunc_order is found!')
       return False
     #
     return True
@@ -467,7 +467,13 @@ class ItServHandler(threading.Thread):
       else:
         itfunc_list = self.get_itfunclist_overnextchunk()
         self.logger.debug('run:: datasize= %s popped. \nuptofunc_list= %s, itfunc_list= %s', datasize, uptofunc_list, itfunc_list)
-        if len(itfunc_list) == 0:
+        
+        runnable_func_list = []
+        for func in itfunc_list:
+          if self.canfunc_berun(func, uptofunc_list):
+            runnable_func_list.append(func)
+          
+        if len(runnable_func_list) == 0:
           if (self.nodename[0] != 't'):
             #self.forward_data(data = self.addheader(data, itfunc_list),
             #                  datasize = getsizeof(data) )
@@ -475,7 +481,7 @@ class ItServHandler(threading.Thread):
             self.datasize_done += datasize
             if not self.procingdone:
               self.procingdone = True
-              self.logger.debug('run:: procing done, dur=%s', time.time()-self.startedtohandle_time)
+              self.logger.debug('run:: procing done, dur=%s', time.time() - self.startedtohandle_time)
         else:
           #wait for the proc turn
           stoken = self.sproctokenq.get(True, None)
@@ -493,17 +499,16 @@ class ItServHandler(threading.Thread):
           procstart_time = time.time()
           [datasize_, data_] = [0, None]
           
-          for func in itfunc_list:
-            if self.canfunc_berun(func, uptofunc_list):
-              '''
-              [datasize_, data_] = self.proc(func = func,
-                                             datasize = datasize,
-                                             data = data )
-              '''
-              self.ftag_datasize_remaining_dict[func] -= datasize
-              #datasize = datasize_
-              #data = data_
-              uptofunc_list.append(func)
+          for func in runnable_func_list:
+            '''
+            [datasize_, data_] = self.proc(func = func,
+                                           datasize = datasize,
+                                           data = data )
+            '''
+            self.ftag_datasize_remaining_dict[func] -= datasize
+            #datasize = datasize_
+            #data = data_
+            uptofunc_list.append(func)
           #
           self.served_size_B += datasize_t
           #self.test_file.write(data)
