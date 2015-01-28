@@ -473,6 +473,8 @@ class ItServHandler(threading.Thread):
           if self.canfunc_berun(func, uptofunc_list):
             runnable_func_list.append(func)
           
+        self.logger.debug('run:: runnable_func_list= %s', runnable_func_list)
+        
         if len(runnable_func_list) == 0:
           if (self.nodename[0] != 't'):
             #self.forward_data(data = self.addheader(data, itfunc_list),
@@ -484,6 +486,7 @@ class ItServHandler(threading.Thread):
               self.logger.debug('run:: procing done, dur=%s', time.time() - self.startedtohandle_time)
         else:
           #wait for the proc turn
+          self.logger.debug('run:: waiting token from self.sproctokenq...')
           stoken = self.sproctokenq.get(True, None)
           if stoken == CHUNK_SIZE:
             pass
@@ -506,6 +509,7 @@ class ItServHandler(threading.Thread):
                                            data = data )
             '''
             self.ftag_datasize_remaining_dict[func] -= datasize
+            self.logger.debug('run:: func= %s got run.', func)
             #datasize = datasize_
             #data = data_
             uptofunc_list.append(func)
@@ -726,13 +730,14 @@ class Transit(object):
     modeltxt = float(datasize_*8)/(bw*BWREGCONST)
     nchunks = float(datasize_*(1024**2))/CHUNK_STR_SIZE
     self.stpdst_txintereqtime_dict[stpdst] = TXINTEREQTIME_REGCONST*float(float(modeltxt)/nchunks)
+    # self.logger.debug('rewelcome_s:: for stpdst=%s, data_= \n%s', stpdst, pprint.pformat(data_) )
     self.logger.debug('rewelcome_s:: for stpdst=%s, datasize_=%s, modeltxt=%s', stpdst, datasize_, modeltxt)
     #self.reinit_htbconf(bw, stpdst)
     uptoitrjob_list = data_['uptoitrjob_list']
     upto_modelproct = 0
     for uptoitrjob in uptoitrjob_list:
-      upto_modelproct += proc_time_model(datasize = datasize,
-                                         func_n_dict = uptoitrjob['itfunc_list'],
+      upto_modelproct += proc_time_model(datasize = datasize_,
+                                         func_n_dict = uptoitrjob['itfunc_dict'],
                                          proc_cap = uptoitrjob['proc'] )
     #
     jobtobedone = {}
@@ -749,7 +754,7 @@ class Transit(object):
     if tobeproceddata_modeltranst < 0.001:
       tobeproceddata_modeltranst = 0
     
-    nchunkstobeproced = tobeproced_datasize*(1024**2)/CHUNK_STR_SIZE
+    nchunkstobeproced = int(tobeproced_datasize*(1024**2)/CHUNK_STR_SIZE)
     old_procintereqtime = self.stpdst_procintereqtime_dict[stpdst]
     self.stpdst_procintereqtime_dict[stpdst] = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
     self.logger.debug('rewelcome_s:: self.stpdst_procintereqtime_dict[%s] changed from %s to %s', stpdst, old_procintereqtime, self.stpdst_procintereqtime_dict[stpdst])
@@ -780,7 +785,7 @@ class Transit(object):
     self.stxtokenq_dict[stpdst] = stxtokenq
     threading.Thread(target = self.manage_stxtokenq,
                      kwargs = {'stpdst': stpdst } ).start()
-    self.logger.debug('welcome_s:: datasize=%s, modeltxt=%s', datasize, modeltxt)
+    self.logger.debug('welcome_s:: stpdst= %s, datasize=%s, modeltxt=%s', stpdst, datasize, modeltxt)
     #self.init_htbconf(bw, stpdst)
     #
     uptoitrjob_list = data_['uptoitrjob_list']
@@ -807,17 +812,20 @@ class Transit(object):
                                             proc_cap = proc_cap )
     tobeproced_datasize = float(datasize)*max([float(n) for func,n in func_n_dict.items()])
     tobeproceddata_modeltxt = float(tobeproced_datasize*8)/(bw*BWREGCONST)
-    nchunkstobeproced = float(tobeproced_datasize*(1024**2))/CHUNK_STR_SIZE
-    tobeproceddata_modeltranst = tobeproced_modelproct + tobeproceddata_modeltxt #+upto_modelproct
+    nchunkstobeproced = int(tobeproced_datasize*(1024**2)/CHUNK_STR_SIZE)
+    tobeproceddata_modeltranst = tobeproced_modelproct + tobeproceddata_modeltxt # + upto_modelproct
     if tobeproceddata_modeltranst < 0.001:
       tobeproceddata_modeltranst = 0
     
-    self.stpdst_procintereqtime_dict[stpdst] = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
+    if nchunkstobeproced == 0:
+      self.stpdst_procintereqtime_dict[stpdst] = 0
+    else:
+      self.stpdst_procintereqtime_dict[stpdst] = PROCINTEREQTIME_REGCONST*float(float(tobeproceddata_modeltranst)/nchunkstobeproced)
+    
     threading.Thread(target = self.manage_sproctokenq,
                      kwargs = {'stpdst':stpdst } ).start()
-    self.logger.debug('welcome_s:: nchunkstobeproced= %s', nchunkstobeproced)
-    self.logger.debug('welcome_s:: tobeproced_datasize=%s, tobeproceddata_modeltranst=%s, upto_modelproct=%s, tobeproced_modelproct=%s, tobeproceddata_modeltxt=%s', tobeproced_datasize, tobeproceddata_modeltranst, upto_modelproct, tobeproced_modelproct, tobeproceddata_modeltxt)
-    self.logger.debug('welcome_s::\n stpdst_txintereqtime_dict=%s,\n stpdst_procintereqtime_dict=%s', pprint.pformat(self.stpdst_txintereqtime_dict), pprint.pformat(self.stpdst_procintereqtime_dict))
+    self.logger.debug('welcome_s:: stpdst= %s, nchunkstobeproced= %s\n tobeproced_datasize= %s, tobeproceddata_modeltranst= %s', stpdst, nchunkstobeproced, tobeproced_datasize, tobeproceddata_modeltranst)
+    self.logger.debug('welcome_s::\n stpdst_txintereqtime_dict= \n%s, \nstpdst_procintereqtime_dict= \n%s', pprint.pformat(self.stpdst_txintereqtime_dict), pprint.pformat(self.stpdst_procintereqtime_dict))
     #
     #self.stpdst_itwork_dict[stpdst] = data_
     #self.logger.debug('stpdst_itwork_dict=%s', pprint.pformat(self.stpdst_itwork_dict))
@@ -841,7 +849,7 @@ class Transit(object):
     else:
       self.logger.error('Unexpected trans_type=%s', self.trans_type)
     #
-    self.logger.info('welcome_s:: welcome stpdst=%s, s_info=\n%s', stpdst, pprint.pformat(self.sinfo_dict[stpdst]) )
+    self.logger.info('welcome_s:: welcome stpdst= %s, s_info= \n%s', stpdst, pprint.pformat(self.sinfo_dict[stpdst]) )
     threading.Thread(target = self.waitforsession_toend,
                      kwargs = {'stpdst': stpdst} ).start()
   

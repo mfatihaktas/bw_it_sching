@@ -102,8 +102,8 @@ class Actuator (object):
       walk_rule_list = data_['walk_rule_list']
       itjob_rule_dict = data_['itjob_rule_dict']
       
-      print 'walk_rule_list= \n%s' % pprint.pformat(walk_rule_list)
-      print 'itjob_rule_dict= \n%s' % pprint.pformat(itjob_rule_dict)
+      print '_handle_recvfromscher:: walk_rule_list= \n%s' % pprint.pformat(walk_rule_list)
+      print '_handle_recvfromscher:: itjob_rule_dict= \n%s' % pprint.pformat(itjob_rule_dict)
       #
       rule_parser.modify_schedwalkxmlfile_by_walkrule(str(s_id), walk_rule_list)
       rule_parser.modify_scheditjobxmlfile_by_itjobrule(str(s_id), itjob_rule_dict)
@@ -117,8 +117,7 @@ class Actuator (object):
                                             s_id = s_id )
         #
       #
-      # Send "I am done with the job(sch realization)"
-      print 'sending sching_realization_done to scher...'
+      print '_handle_recvfromscher:: sending sching_realization_done for s_id= %s to scher...' % s_id
       type_toscher = None
       if type_ == 's_sching_req':
         type_toscher = 's_sching_reply'
@@ -198,7 +197,7 @@ class Actuator (object):
   #########################  install_*** methods  #######################
   def install_proactive_scheditjob(self, type_toitr, s_id):
     itjob_rule_dict = rule_parser.get_itjobruledict_forsession(str(s_id))
-    print 'itjob_rule_dict= \n%s' % pprint.pformat(itjob_rule_dict)
+    # print 'itjob_rule_dict= \n%s' % pprint.pformat(itjob_rule_dict)
     for dpid in itjob_rule_dict:
       itr_info_list = itjob_rule_dict[dpid]
       for itr_info in itr_info_list:

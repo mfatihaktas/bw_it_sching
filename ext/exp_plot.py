@@ -127,7 +127,7 @@ class ExpPlotter(object):
     
     pipe.stdin.write('set xrange [-1:%s] \n' % (int(nums)+1) )
     pipe.stdin.write('set yrange [0:%s] \n'  % yrange )
-    pipe.stdin.write('set y2range [0:20] \n')
+    pipe.stdin.write('set y2range [0:10] \n')
     
     pipe.stdin.write('set ytics nomirror \n')
     pipe.stdin.write('set y2tics nomirror border \n')
@@ -154,7 +154,7 @@ class ExpPlotter(object):
     
     pipe.stdin.write('set xrange [-1:%s] \n' % (int(nums)+1) )
     pipe.stdin.write('set yrange [0:%s] \n'  % yrange )
-    pipe.stdin.write('set y2range [0:5] \n')
+    pipe.stdin.write('set y2range [0:10] \n')
     
     pipe.stdin.write('set ytics nomirror \n')
     pipe.stdin.write('set y2tics nomirror border \n')

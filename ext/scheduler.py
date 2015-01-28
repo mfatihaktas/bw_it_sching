@@ -97,7 +97,7 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    self.net_xml_file_url = "net_xmls/net_simpler.xml" #"net_xmls/net_four_paths.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
+    self.net_xml_file_url = "net_xmls/net_mesh_topo.xml" #"net_xmls/net_four_paths.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
     if not is_scheduler_run:
       self.net_xml_file_url = "ext/" + self.net_xml_file_url
     
@@ -451,13 +451,12 @@ class Scheduler(object):
         
         # for multiple itrs
         # sinfo['datasize_to_tx_list'].append(datasize - txed_datasize)
-        # sinfo['datasize_to_tx_list'].append(sinfo['initial_datasize'] - sinfo['total_txed_datasize'])
+        sinfo['datasize_to_tx_list'].append(sinfo['initial_datasize'] - sinfo['total_txed_datasize'])
         last_resching_case_id = None
         try:
           last_resching_case_id = sinfo['resching_case_id_list'][-1]
         except:
           last_resching_case_id = 0
-        
         
         # sinfo['req_dict']['datasize'] = sinfo['datasize_to_tx_list'][-1]
         
@@ -465,22 +464,22 @@ class Scheduler(object):
         tobeproced_datasize = sinfo['tobeproced_datasize_list'][-1]
         if elapsed_time < tobeproced_data_transt:
           sinfo['resching_case_list'].append('elapsed_time= %s < tobeproced_data_transt= %s' % (elapsed_time, tobeproced_data_transt) )
-          elapsed_datasize = float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
-          sinfo['req_dict']['datasize'] = datasize - elapsed_datasize
+          elapsed_datasize = (0.9)*float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
+          sinfo['req_dict']['datasize'] = max(0.01, datasize - elapsed_datasize)
           sinfo['resching_case_id_list'].append(0)
-          if last_resching_case_id  == 0:
-            sinfo['datasize_to_tx_list'].append(datasize - txed_datasize)
-          elif last_resching_case_id == 1:
-            sinfo['datasize_to_tx_list'].append(sinfo['initial_datasize'] - sinfo['total_txed_datasize'])
+          # if last_resching_case_id  == 0:
+          #   sinfo['datasize_to_tx_list'].append(datasize - txed_datasize)
+          # elif last_resching_case_id == 1:
+          #   sinfo['datasize_to_tx_list'].append(sinfo['initial_datasize'] - sinfo['total_txed_datasize'])
         else:
           sinfo['resching_case_list'].append('elapsed_time= %s >= tobeproced_data_transt= %s' % (elapsed_time, tobeproced_data_transt) )
           elapsed_datasize = txed_datasize
-          sinfo['req_dict']['datasize'] = datasize - elapsed_datasize # sinfo['datasize_to_tx_list'][-1]
+          sinfo['req_dict']['datasize'] = max(0.01, datasize - elapsed_datasize) # sinfo['datasize_to_tx_list'][-1]
           sinfo['resching_case_id_list'].append(1)
-          if last_resching_case_id  == 0:
-            sinfo['datasize_to_tx_list'].append(datasize - txed_datasize)
-          elif last_resching_case_id == 1:
-            sinfo['datasize_to_tx_list'].append(sinfo['initial_datasize'] - sinfo['total_txed_datasize'])
+          # if last_resching_case_id  == 0:
+          #   sinfo['datasize_to_tx_list'].append(datasize - txed_datasize)
+          # elif last_resching_case_id == 1:
+          #   sinfo['datasize_to_tx_list'].append(sinfo['initial_datasize'] - sinfo['total_txed_datasize'])
           
         sinfo['elapsed_datasize_list'].append(elapsed_datasize)
         sinfo['req_dict']['slack_metric'] = sinfo['slack_metric_list'][-1] - elapsed_time

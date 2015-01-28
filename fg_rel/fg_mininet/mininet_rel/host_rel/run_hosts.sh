@@ -69,7 +69,7 @@ P4_CLIP=10.0.1.3
 C5D=1
 P5D=100
 P5_REQDICT='{"datasize":50,"slack_metric":100,"func_list":["fft","upsampleplot"]}'
-P5_APPPREFDICT='{"m_p":10,"m_u":0,"x_p":0,"x_u":0}'
+P5_APPPREFDICT='{"m_p":1,"m_u":1,"x_p":0,"x_u":0}'
 P5_CLIP=10.0.1.4
 
 C6D=1
@@ -80,7 +80,7 @@ P6_CLIP=10.0.1.5
 
 C7D=1
 P7D=120
-P7_REQDICT='{"datasize":15,"slack_metric":200,"func_list":["fft","upsampleplot"]}'
+P7_REQDICT='{"datasize":55,"slack_metric":120,"func_list":["fft","upsampleplot"]}'
 P7_APPPREFDICT='{"m_p":1,"m_u":10,"x_p":0,"x_u":0}'
 P7_CLIP=10.0.1.6
 
