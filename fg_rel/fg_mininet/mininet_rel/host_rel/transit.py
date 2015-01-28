@@ -69,7 +69,7 @@ class PipeServer(threading.Thread):
     self.logger.debug('listen_transit:: listening transit...')
     while 1:
       flag_in = self.sflagq_in.get(True, None)
-      self.logger.debug('listen_transit:: Popped flag_in=%s', flag_in)
+      self.logger.debug('listen_transit:: Popped flag_in= %s', flag_in)
       
       if flag_in == 'STOP':
         self.shutdown()
@@ -192,7 +192,7 @@ class SessionClientHandler(threading.Thread):
     if popped == 'STOP':
       #brute force to end init_rx thread
       self.sclient_sock.close()
-      self.logger.debug('run:: stopped by STOP flag !')
+      self.logger.debug('run:: stopped by STOP flag!')
     elif popped == 'EOF':
       self.logger.debug('run:: stopped by EOF.')
     else:

@@ -138,6 +138,7 @@ class Scheduler(object):
     self.starting_time = time.time()
     #
     self.sid_schregid_dict = {}
+    self.schregid_sid_dict = {}
     self.schingid_rescapalloc_dict = {}
     self.geninfo_dict = {}
     #
@@ -170,8 +171,10 @@ class Scheduler(object):
     if type_ == 's_sching_reply' or type_ == 'res_sching_reply':
       reply = data_['reply']
       #
-      s_id = int(data_['s_id'])
-      sch_req_id = self.sid_schregid_dict[s_id]
+      # s_id = int(data_['s_id'])
+      # sch_req_id = self.sid_schregid_dict[s_id]
+      sch_req_id = int(data_['s_id'])
+      s_id = self.schregid_sid_dict[sch_req_id]
       s_info = self.sessionsbeingserved_dict[sch_req_id]
       [p_ip, c_ip] = s_info['p_c_ip_list']
       user_info = self.users_beingserved_dict[p_ip]
@@ -383,7 +386,7 @@ class Scheduler(object):
       if not s_id in self.sid_res_dict:
         p_c_gwtag_list = self.sessionsbeingserved_dict[s_id]['p_c_gwtag_list']
         path_info = self.gm.get_path__edge__itr_on_path_list__fair_bw_dict(p_c_gwtag_list[0], p_c_gwtag_list[1])
-        self.sid_res_dict[s_id] = {'path_info': path_info}
+        self.sid_res_dict[s_id] = {'path_info': copy.copy(path_info) }
         self.gm.add_user_to_edge__itr_list(path_info['edge_on_path_list'], path_info['itr_on_path_list'])
         logging.debug('update_sid_res_dict:: s_id=%s, path=\n%s', s_id, path_info['path'])
         
@@ -394,24 +397,19 @@ class Scheduler(object):
           path_info_['fair_bw'] = path_fair_bw_
     #
     
-  # def update_sid_schregid_dict(self):
-  #   self.sid_schregid_dict = {}
-  #   #
-  #   i = 0
-  #   for k in self.sessionsbeingserved_dict:
-  #     self.sid_schregid_dict[i] = k
-  #     i += 1
-  def give_incintkeyform(self, flag, indict):
-    outdict = {}
+  def give_incintkeyform(self, indict1, indict2):
+    # indict1 and indict2 have same set of keys
+    outdict1, outdict2 = {}, {}
     i = 0
-    for k in indict:
-      outdict[i] = indict[k]
-      if flag:
-        self.sid_schregid_dict[i]=k
+    for k in indict1:
+      outdict1[i] = indict1[k]
+      outdict2[i] = indict2[k]
       
+      self.schregid_sid_dict[k] = i
+      self.sid_schregid_dict[i] = k
       i += 1
     #
-    return outdict
+    return [outdict1, outdict2]
   
   def do_sching(self):
     # Currently for active sessions, gets things together to work sching logic and then sends corresponding 
@@ -465,6 +463,11 @@ class Scheduler(object):
         if elapsed_time < tobeproced_data_transt:
           sinfo['resching_case_list'].append('elapsed_time= %s < tobeproced_data_transt= %s' % (elapsed_time, tobeproced_data_transt) )
           elapsed_datasize = (0.9)*float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
+          # if tobeproced_data_transt/elapsed_time >= 4:
+          #   elapsed_datasize = (0.9)*float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
+          # else:
+          #   elapsed_datasize = (0.5)*float(tobeproced_datasize*float(elapsed_time))/tobeproced_data_transt
+          
           sinfo['req_dict']['datasize'] = max(0.01, datasize - elapsed_datasize)
           sinfo['resching_case_id_list'].append(0)
           # if last_resching_case_id  == 0:
@@ -486,12 +489,10 @@ class Scheduler(object):
       #
     logging.info('do_sching:: sching_id=%s started;', sching_id)
     self.update_sid_res_dict()
-    # self.update_sid_schregid_dict()
-    sching_opter = SchingOptimizer(self.give_incintkeyform(flag = True,
-                                                           indict = self.sessionsbeingserved_dict),
+    [sessionsbeingserved_dict_, sid_res_dict_] = self.give_incintkeyform(self.sessionsbeingserved_dict, self.sid_res_dict)
+    sching_opter = SchingOptimizer(sessionsbeingserved_dict_,
                                    self.actual_res_dict,
-                                   self.give_incintkeyform(flag = False,
-                                                           indict = self.sid_res_dict) )
+                                   sid_res_dict_ )
     sching_opter.solve()
     #
     self.alloc_dict = sching_opter.get_sching_result()
@@ -557,7 +558,7 @@ class Scheduler(object):
         type_toacter = 'res_sching_req'
       
       msg = json.dumps({'type': type_toacter,
-                        'data': {'s_id': s_id,
+                        'data': {'s_id': self.sid_schregid_dict[s_id],
                                  'walk_rule_list': walk_rule_list,
                                  'itjob_rule_dict': itjob_rule_dict } } )
       self.cci.send_to_client('scher-acter', msg)
