@@ -97,7 +97,7 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    self.net_xml_file_url = "net_xmls/net_mesh_topo.xml" #"net_xmls/net_four_paths.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
+    self.net_xml_file_url = "net_xmls/net_complex.xml" #"net_xmls/net_four_paths.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
     if not is_scheduler_run:
       self.net_xml_file_url = "ext/" + self.net_xml_file_url
     
@@ -270,9 +270,13 @@ class Scheduler(object):
           logging.debug('_handle_recvfromuser:: sent msg=%s', pprint.pformat(msg) )
     elif type_ == 'session_done':
       sch_req_id = int(data_['sch_req_id'])
-      del data_['sch_req_id']
       
-      self.couplinginfo_dict[sch_req_id] = {}
+      logging.debug('_handle_recvfromuser:: ........................................................')
+      logging.debug('_handle_recvfromuser:: session_done for sch_req_id= %s', sch_req_id)
+      logging.debug('_handle_recvfromuser:: ........................................................')
+      
+      if not sch_req_id in self.couplinginfo_dict:
+        self.couplinginfo_dict[sch_req_id] = {}
       self.couplinginfo_dict[sch_req_id]['session_done'] = data_
       self.bye_session(sch_req_id = sch_req_id )
     elif type_ == 'coupling_done':

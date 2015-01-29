@@ -50,13 +50,13 @@ P1_CLIP=10.0.1.0
 
 C2D=1
 P2D=12
-P2_REQDICT='{"datasize":15,"slack_metric":30,"func_list":["fft","upsampleplot"]}'
+P2_REQDICT='{"datasize":15,"slack_metric":60,"func_list":["fft","upsampleplot"]}'
 P2_APPPREFDICT='{"m_p":1,"m_u":10,"x_p":0,"x_u":0}'
 P2_CLIP=10.0.1.1
 
 C3D=1
 P3D=20
-P3_REQDICT='{"datasize":15,"slack_metric":30,"func_list":["fft","upsampleplot"]}'
+P3_REQDICT='{"datasize":15,"slack_metric":20,"func_list":["fft","upsampleplot"]}'
 P3_APPPREFDICT='{"m_p":10,"m_u":0,"x_p":0,"x_u":0}'
 P3_CLIP=10.0.1.2
 

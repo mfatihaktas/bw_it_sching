@@ -356,9 +356,20 @@ class SchingOptimizer:
                                       s_app_pref_dict['m_p'],
                                       s_app_pref_dict['x_u'],
                                       s_app_pref_dict['x_p'])
-      (bw, proc, dur) = (self.s_bw[s_id, 0].value,
-                         self.s_proc.get((s_id, 0)).value,
-                         0 ) #self.s_dur.get((s_id,0)).value )
+      bw, proc, dur = None, None, 0
+      try:
+        bw = self.s_bw[s_id, 0].value
+      except AttributeError:
+        bw = self.s_bw[s_id, 0]
+      
+      try:
+        proc = self.s_proc.get((s_id, 0)).value
+      except AttributeError:
+        proc = self.s_proc.get((s_id, 0))
+      
+      # (bw, proc, dur) = (self.s_bw[s_id, 0].value,
+      #                   self.s_proc.get((s_id, 0)).value,
+      #                   0 ) #self.s_dur.get((s_id,0)).value )
       # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
       # print 'self.s_n[s_id, :].value=%s' % self.s_n[s_id, :].value
       # print 'sn_list=%s' % [n.value for n in self.s_n[s_id, :]]
@@ -367,14 +378,24 @@ class SchingOptimizer:
       # print 'tt=%s' % self.get_var_val('tt', (s_id, 0))
       # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
       sn_list = [float(self.s_n[s_id, k].value)**2 for k in range(len(s_req_dict['func_list']) ) ]
-      trans_t = (self.s_transt.get((s_id, 0)).value)
+      trans_t = None
+      if proc == 0:
+        trans_t = self.s_txt.get((s_id, 0)).value
+      else:
+        trans_t = (self.s_transt.get((s_id, 0)).value)
+      
       tt = self.get_var_val('tt', (s_id, 0))
       [s_itwalk_dict, s_walk_list] = self.get_session_itwalk_dict__walk_list(s_id)
       # ittime = self.it_time__basedon_itwalk_dict(s_itwalk_dict)
       
       s_path_info = self.sid_res_dict[s_id]['path_info']
       tobeproced_datasize = int(s_datasize*max(sn_list)) #MB
-      s_proct = (self.s_proct.get((s_id, 0)).value)
+      s_proct = None
+      if proc == 0:
+        s_proct = 0
+      else:
+        s_proct = self.s_proct.get((s_id, 0)).value
+      
       tobeproced_data_transt = 8*tobeproced_datasize/(BWREGCONST_INGRAB*bw) + s_proct #sec
       #
       self.session_res_alloc_dict['s-wise'][s_id] = {
@@ -396,9 +417,9 @@ class SchingOptimizer:
         's_txt': (self.s_txt.get((s_id, 0)).value),
         's_proct': s_proct,
         's_durt': 0, #self.s_durt.get((s_id, 0)).value,
-        's_transt': (self.s_transt.get((s_id, 0)).value),
+        's_transt': trans_t,
         'tobeproced_datasize': tobeproced_datasize,
-        'tobeproced_data_transt': tobeproced_data_transt 
+        'tobeproced_data_transt': tobeproced_data_transt
       }
     
     ### RES-WISE
