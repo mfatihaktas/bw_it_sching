@@ -127,7 +127,7 @@ class ExpPlotter(object):
     
     pipe.stdin.write('set xrange [-1:%s] \n' % (int(nums)+1) )
     pipe.stdin.write('set yrange [0:%s] \n'  % yrange )
-    pipe.stdin.write('set y2range [0:10] \n')
+    pipe.stdin.write('set y2range [0:15] \n')
     
     pipe.stdin.write('set ytics nomirror \n')
     pipe.stdin.write('set y2tics nomirror border \n')
@@ -177,7 +177,7 @@ class ExpPlotter(object):
     pipe.stdin.write('set xlabel "Scheduling Id"\n')
     pipe.stdin.write('set ylabel "Resource Capacity (%s)"\n' % resunit)
     
-    pipe.stdin.write('set xrange [-0.5:%s] \n' % (int(numsching)+1) )
+    pipe.stdin.write('set xrange [0.5:%s] \n' % int(numsching + 0.5) )
     pipe.stdin.write('set yrange [0:%s] \n'  % yrange )
     pipe.stdin.write('set xtics 1\n')
     
@@ -188,11 +188,14 @@ class ExpPlotter(object):
     pipe.stdin.write('set style fill pattern border\n')
     pipe.stdin.write('set samples 11\n')
     
-    str_ = 'plot "%s" using 1' % datafurl
-    for n in range(numsching-1):
-      str_ += ', "" using %s' % (n+2)
+    str_ = 'plot "%s"' % datafurl
+    for n in range(numsching):
+      if n == 0:
+        str_ += 'using %s' % (n + 1)
+      else:
+        str_ += ', "" using %s' % (n + 1)
     #
-    pipe.stdin.write( str_+'\n' )
+    pipe.stdin.write( str_ + '\n' )
     
 def main():
   pass

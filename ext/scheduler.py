@@ -97,7 +97,7 @@ class Scheduler(object):
       return
     self.data_over_tp = data_over_tp
     #
-    self.net_xml_file_url = "net_xmls/net_complex.xml" #"net_xmls/net_four_paths.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
+    self.net_xml_file_url = "net_xmls/net_simpler.xml" #"net_xmls/net_four_paths.xml" #"net_xmls/net_mesh_topo.xml"  #"net_xmls/net_resubmit_exp.xml"
     if not is_scheduler_run:
       self.net_xml_file_url = "ext/" + self.net_xml_file_url
     

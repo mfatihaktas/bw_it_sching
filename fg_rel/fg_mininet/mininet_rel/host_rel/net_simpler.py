@@ -77,8 +77,8 @@ def run_tnodes(host_list):
   popens = {}
   for host in host_list:
     popens[host] = {}
-    # popens[host]['eceiproc'] = host.popen('./run_hosts.sh ep2m')
-    popens[host]['t'] = host.popen('./run_hosts.sh %s' % host.name) #host.popen('./run_hosts.sh t')
+    # popens[host]['eceiproc'] = host.popen('./run_poisson_hosts.sh ep2m')
+    popens[host]['t'] = host.popen('./run_poisson_hosts.sh %s' % host.name) #host.popen('./run_poisson_hosts.sh t')
     print '%s is ready' % host.name
   #
   print 'itnodes are ready...'
@@ -86,7 +86,7 @@ def run_tnodes(host_list):
 def run_pcnodes(host_list):
   popens = {}
   for host in host_list:
-    popens[host] = host.popen('./run_hosts.sh %s' % host.name )
+    popens[host] = host.popen('./run_poisson_hosts.sh %s' % host.name )
     print '%s is ready' % host.name
   #
   print 'pcnodes are ready...'

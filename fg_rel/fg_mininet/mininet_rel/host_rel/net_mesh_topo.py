@@ -22,6 +22,17 @@ class MyTopo( Topo ):
     p9 = self.addHost( 'p9', ip='10.0.2.8' )
     p10 = self.addHost( 'p10', ip='10.0.2.9' )
     p11 = self.addHost( 'p11', ip='10.0.2.10' )
+    p12 = self.addHost( 'p12', ip='10.0.2.11' )
+    p13 = self.addHost( 'p13', ip='10.0.2.12' )
+    p14 = self.addHost( 'p14', ip='10.0.2.13' )
+    p15 = self.addHost( 'p15', ip='10.0.2.14' )
+    p16 = self.addHost( 'p16', ip='10.0.2.15' )
+    p17 = self.addHost( 'p17', ip='10.0.2.16' )
+    p18 = self.addHost( 'p18', ip='10.0.2.17' )
+    p19 = self.addHost( 'p19', ip='10.0.2.18' )
+    p20 = self.addHost( 'p20', ip='10.0.2.19' )
+    p21 = self.addHost( 'p21', ip='10.0.2.20' )
+    p22 = self.addHost( 'p22', ip='10.0.2.21' )
     
     c1 = self.addHost( 'c1', ip='10.0.1.0' )
     c2 = self.addHost( 'c2', ip='10.0.1.1' )
@@ -34,6 +45,17 @@ class MyTopo( Topo ):
     c9 = self.addHost( 'c9', ip='10.0.1.8' )
     c10 = self.addHost( 'c10', ip='10.0.1.9' )
     c11 = self.addHost( 'c11', ip='10.0.1.10' )
+    c12 = self.addHost( 'c12', ip='10.0.1.11' )
+    c13 = self.addHost( 'c13', ip='10.0.1.12' )
+    c14 = self.addHost( 'c14', ip='10.0.1.13' )
+    c15 = self.addHost( 'c15', ip='10.0.1.14' )
+    c16 = self.addHost( 'c16', ip='10.0.1.15' )
+    c17 = self.addHost( 'c17', ip='10.0.1.16' )
+    c18 = self.addHost( 'c18', ip='10.0.1.17' )
+    c19 = self.addHost( 'c19', ip='10.0.1.18' )
+    c20 = self.addHost( 'c20', ip='10.0.1.19' )
+    c21 = self.addHost( 'c21', ip='10.0.1.20' )
+    c22 = self.addHost( 'c22', ip='10.0.1.21' )
     
     s20 = self.addSwitch( 's20' )
     s21 = self.addSwitch( 's21' )
@@ -78,6 +100,17 @@ class MyTopo( Topo ):
     self.addLink( s10, c9, **wide_linkopts )
     self.addLink( s11, c10, **wide_linkopts )
     self.addLink( s10, c11, **wide_linkopts )
+    self.addLink( s10, c12, **wide_linkopts )
+    self.addLink( s11, c13, **wide_linkopts )
+    self.addLink( s10, c14, **wide_linkopts )
+    self.addLink( s11, c15, **wide_linkopts )
+    self.addLink( s10, c16, **wide_linkopts )
+    self.addLink( s11, c17, **wide_linkopts )
+    self.addLink( s10, c18, **wide_linkopts )
+    self.addLink( s11, c19, **wide_linkopts )
+    self.addLink( s10, c20, **wide_linkopts )
+    self.addLink( s11, c21, **wide_linkopts )
+    self.addLink( s10, c22, **wide_linkopts )
     
     self.addLink( p1, s20, **wide_linkopts )
     self.addLink( p2, s21, **wide_linkopts )
@@ -90,14 +123,25 @@ class MyTopo( Topo ):
     self.addLink( p9, s20, **wide_linkopts )
     self.addLink( p10, s21, **wide_linkopts )
     self.addLink( p11, s20, **wide_linkopts )
+    self.addLink( p12, s20, **wide_linkopts )
+    self.addLink( p13, s21, **wide_linkopts )
+    self.addLink( p14, s20, **wide_linkopts )
+    self.addLink( p15, s21, **wide_linkopts )
+    self.addLink( p16, s20, **wide_linkopts )
+    self.addLink( p17, s21, **wide_linkopts )
+    self.addLink( p18, s20, **wide_linkopts )
+    self.addLink( p19, s21, **wide_linkopts )
+    self.addLink( p20, s20, **wide_linkopts )
+    self.addLink( p21, s21, **wide_linkopts )
+    self.addLink( p22, s20, **wide_linkopts )
     # 
   
 def run_tnodes(host_list):
   popens = {}
   for host in host_list:
     popens[host] = {}
-    #popens[host]['eceiproc'] = host.popen('./run_hosts.sh ep2m')
-    popens[host]['t'] = host.popen('./run_hosts.sh %s' % host.name) #host.popen('./run_hosts.sh t')
+    #popens[host]['eceiproc'] = host.popen('./run_poisson_hosts.sh ep2m')
+    popens[host]['t'] = host.popen('./run_poisson_hosts.sh %s' % host.name) #host.popen('./run_poisson_hosts.sh t')
     print '%s is ready' % host.name
   #
   print 'itnodes are ready...'
@@ -105,7 +149,7 @@ def run_tnodes(host_list):
 def run_pcnodes(host_list):
   popens = {}
   for host in host_list:
-    popens[host] = host.popen('./run_hosts.sh %s' % host.name )
+    popens[host] = host.popen('./run_poisson_hosts.sh %s' % host.name )
     print '%s is ready' % host.name
   #
   print 'pcnodes are ready...'
@@ -116,7 +160,9 @@ if __name__ == '__main__':
   net.addController('r0', controller=RemoteController, ip='10.39.1.12', port=6633)
   
   p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11 = net.getNodeByName('p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11')
+  p12,p13,p14,p15,p16,p17,p18,p19,p20,p21,p22 = net.getNodeByName('p12','p13','p14','p15','p16','p17','p18','p19','p20','p21','p22')
   c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11 = net.getNodeByName('c1','c2','c3','c4','c5','c6','c7','c8','c9','c10','c11')
+  c12,c13,c14,c15,c16,c17,c18,c19,c20,c21,c22 = net.getNodeByName('c12','c13','c14','c15','c16','c17','c18','c19','c20','c21','c22')
   t11,t21,t31 = net.getNodeByName('t11','t21','t31')
   #
   p1.setMAC(mac='00:00:00:01:02:00')
@@ -130,6 +176,17 @@ if __name__ == '__main__':
   p9.setMAC(mac='00:00:00:01:02:08')
   p10.setMAC(mac='00:00:00:01:02:09')
   p11.setMAC(mac='00:00:00:01:02:10')
+  p12.setMAC(mac='00:00:00:01:02:11')
+  p13.setMAC(mac='00:00:00:01:02:12')
+  p14.setMAC(mac='00:00:00:01:02:13')
+  p15.setMAC(mac='00:00:00:01:02:14')
+  p16.setMAC(mac='00:00:00:01:02:15')
+  p17.setMAC(mac='00:00:00:01:02:16')
+  p18.setMAC(mac='00:00:00:01:02:17')
+  p19.setMAC(mac='00:00:00:01:02:18')
+  p20.setMAC(mac='00:00:00:01:02:19')
+  p21.setMAC(mac='00:00:00:01:02:20')
+  p22.setMAC(mac='00:00:00:01:02:21')
   
   c1.setMAC(mac='00:00:00:01:01:00')
   c2.setMAC(mac='00:00:00:01:01:01')
@@ -142,6 +199,17 @@ if __name__ == '__main__':
   c9.setMAC(mac='00:00:00:01:01:08')
   c10.setMAC(mac='00:00:00:01:01:09')
   c11.setMAC(mac='00:00:00:01:01:10')
+  c12.setMAC(mac='00:00:00:01:01:11')
+  c13.setMAC(mac='00:00:00:01:01:12')
+  c14.setMAC(mac='00:00:00:01:01:13')
+  c15.setMAC(mac='00:00:00:01:01:14')
+  c16.setMAC(mac='00:00:00:01:01:15')
+  c17.setMAC(mac='00:00:00:01:01:16')
+  c18.setMAC(mac='00:00:00:01:01:17')
+  c19.setMAC(mac='00:00:00:01:01:18')
+  c20.setMAC(mac='00:00:00:01:01:19')
+  c21.setMAC(mac='00:00:00:01:01:20')
+  c22.setMAC(mac='00:00:00:01:01:21')
   
   t11.setMAC(mac='00:00:00:00:01:01')
   t21.setMAC(mac='00:00:00:00:02:01')
@@ -158,6 +226,17 @@ if __name__ == '__main__':
   p9.setDefaultRoute(intf='p9-eth0')
   p10.setDefaultRoute(intf='p10-eth0')
   p11.setDefaultRoute(intf='p11-eth0')
+  p12.setDefaultRoute(intf='p12-eth0')
+  p13.setDefaultRoute(intf='p13-eth0')
+  p14.setDefaultRoute(intf='p14-eth0')
+  p15.setDefaultRoute(intf='p15-eth0')
+  p16.setDefaultRoute(intf='p16-eth0')
+  p17.setDefaultRoute(intf='p17-eth0')
+  p18.setDefaultRoute(intf='p18-eth0')
+  p19.setDefaultRoute(intf='p19-eth0')
+  p20.setDefaultRoute(intf='p20-eth0')
+  p21.setDefaultRoute(intf='p21-eth0')
+  p22.setDefaultRoute(intf='p22-eth0')
   
   c1.setDefaultRoute(intf='c1-eth0')
   c2.setDefaultRoute(intf='c2-eth0')
@@ -170,6 +249,17 @@ if __name__ == '__main__':
   c9.setDefaultRoute(intf='c9-eth0')
   c10.setDefaultRoute(intf='c10-eth0')
   c11.setDefaultRoute(intf='c11-eth0')
+  c12.setDefaultRoute(intf='c12-eth0')
+  c13.setDefaultRoute(intf='c13-eth0')
+  c14.setDefaultRoute(intf='c14-eth0')
+  c15.setDefaultRoute(intf='c15-eth0')
+  c16.setDefaultRoute(intf='c16-eth0')
+  c17.setDefaultRoute(intf='c17-eth0')
+  c18.setDefaultRoute(intf='c18-eth0')
+  c19.setDefaultRoute(intf='c19-eth0')
+  c20.setDefaultRoute(intf='c20-eth0')
+  c21.setDefaultRoute(intf='c21-eth0')
+  c22.setDefaultRoute(intf='c22-eth0')
   
   t11.setDefaultRoute(intf='t11-eth0')
   t21.setDefaultRoute(intf='t21-eth0')
@@ -185,6 +275,8 @@ if __name__ == '__main__':
   # run_pcnodes([c1, p1, c2, p2, c3, p3, c4, p4])
   # run_pcnodes([c1, p1, c2, p2, c3, p3, c4, p4, c5, p5, c6, p6, c7, p7])
   run_pcnodes([c1, p1, c2, p2, c3, p3, c4, p4, c5, p5, c6, p6, c7, p7, c8, p8, c9, p9, c10, p10, c11, p11])
+  # run_pcnodes([c1,p1,c2,p2,c3,p3,c4,p4,c5,p5,c6,p6,c7,p7,c8,p8,c9,p9,c10,p10,c11,p11, \
+  #             c12,p12,c13,p13,c14,p14,c15,p15,c16,p16,c17,p17,c18,p18,c19,p19,c20,p20,c21,p21,c22,p22])
   # run_pcnodes([c10, p10])
   #
   CLI( net )
