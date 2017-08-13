@@ -1,4 +1,4 @@
-implementing control (using SDN/POX) and service layers to design and build a QoS-aware bandwidth and in-transit service scheduling for scientific workflows Presented in:
+Implementing control (using SDN/POX) and service layers to design and build a QoS-aware bandwidth and in-transit service scheduling for scientific workflows Presented in:
 
 Aktas, Mehmet Fatih, Georgiana Haldeman, and Manish Parashar. "Scheduling and flexible control of bandwidth and in-transit services for end-to-end application workflows." Future Generation Computer Systems 56 (2016): 284-294.
 
